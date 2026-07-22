@@ -6,6 +6,7 @@ import BusinessMiniApp from './BusinessMiniApp.jsx'
 import Newsfeed from './Newsfeed.jsx'
 import Contacts from './Contacts.jsx'
 import MyProfile from './MyProfile.jsx'
+import Marketplace from './Marketplace.jsx'
 
 export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('feed') // 'feed' | 'contacts' | 'apps'
@@ -45,6 +46,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
         onProfileUpdated={onProfileUpdated}
       />
     )
+  }
+
+  if (openApp === 'marketplace') {
+    return <Marketplace userId={userId} onBack={() => setOpenApp(null)} />
   }
 
   if (openApp === 'store') {
@@ -87,6 +92,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
               <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
                 <div className="app-tile-icon">🏛️</div>
                 <div className="app-tile-label">Stadtverwaltung</div>
+              </button>
+
+              <button className="app-tile" onClick={() => setOpenApp('marketplace')}>
+                <div className="app-tile-icon">🛍️</div>
+                <div className="app-tile-label">Marktplatz</div>
               </button>
 
               {!loading && installedApps.map((app) => (

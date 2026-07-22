@@ -4,7 +4,7 @@ import StadtverwaltungApp from './StadtverwaltungApp.jsx'
 import AppStore from './AppStore.jsx'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
 import Newsfeed from './Newsfeed.jsx'
-import Connections from './Connections.jsx'
+import Contacts from './Contacts.jsx'
 
 export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
   const [openApp, setOpenApp] = useState(null)
@@ -38,8 +38,8 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
     return <Newsfeed userId={userId} onBack={() => setOpenApp(null)} />
   }
 
-  if (openApp === 'connections') {
-    return <Connections userId={userId} profile={profile} onBack={() => setOpenApp(null)} />
+  if (openApp === 'contacts') {
+    return <Contacts userId={userId} profile={profile} onBack={() => setOpenApp(null)} />
   }
 
   if (openApp === 'store') {
@@ -74,9 +74,9 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
             <div className="app-tile-label">Neuigkeiten</div>
           </button>
 
-          <button className="app-tile" onClick={() => setOpenApp('connections')}>
+          <button className="app-tile" onClick={() => setOpenApp('contacts')}>
             <div className="app-tile-icon">🤝</div>
-            <div className="app-tile-label">Vernetzen</div>
+            <div className="app-tile-label">Kontakte</div>
           </button>
 
           {!loading && installedApps.map((app) => (

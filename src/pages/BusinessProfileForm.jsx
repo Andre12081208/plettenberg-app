@@ -1,9 +1,17 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function BusinessProfileForm({ userId, onDone }) {
+const APP_CATEGORY_OPTIONS = [
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'buergerservice', label: 'Bürgerservice' },
+  { value: 'verein', label: 'Verein / Freizeit' },
+  { value: 'sonstiges', label: 'Sonstiges' }
+]
+
+export default function BusinessProfileForm({ userId, kind, onDone }) {
   const [companyName, setCompanyName] = useState('')
   const [category, setCategory] = useState('unternehmen')
+  const [appCategory, setAppCategory] = useState('sonstiges')
   const [description, setDescription] = useState('')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
@@ -48,6 +56,8 @@ export default function BusinessProfileForm({ userId, onDone }) {
         id: userId,
         company_name: companyName.trim(),
         category,
+        profile_kind: kind,
+        app_category: kind === 'anbieter' ? appCategory : null,
         description: description.trim() || null,
         address: address.trim() || null,
         phone: phone.trim() || null,
@@ -74,7 +84,7 @@ export default function BusinessProfileForm({ userId, onDone }) {
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>Gewerbeprofil</h1>
+        <h1>{kind === 'unternehmen' ? 'Unternehmensprofil' : 'Anbieterprofil'}</h1>
       </div>
       <main>
         {error && <div className="error-box">{error}</div>}
@@ -115,6 +125,18 @@ export default function BusinessProfileForm({ userId, onDone }) {
             </select>
           </div>
 
+          {kind === 'anbieter' && (
+            <div className="field">
+              <label htmlFor="appCategory">App-Store-Kategorie</label>
+              <select id="appCategory" value={appCategory} onChange={(e) => setAppCategory(e.target.value)}>
+                {APP_CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <div className="hint">Bestimmt, unter welcher Kategorie Bürger dich im App Store finden</div>
+            </div>
+          )}
+
           <div className="field">
             <label htmlFor="description">Kurzbeschreibung</label>
             <textarea id="description" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -150,7 +172,11 @@ export default function BusinessProfileForm({ userId, onDone }) {
           <button className="btn btn-primary" type="submit" disabled={loading}>
             {loading ? 'Wird gespeichert...' : 'Profil zur Prüfung einreichen'}
           </button>
-          <p className="center-note">Dein Profil wird erst nach Prüfung und Vertragsabschluss öffentlich sichtbar.</p>
+          <p className="center-note">
+            {kind === 'unternehmen'
+              ? 'Wir melden uns nach Prüfung bei euch, um die Flip-Anbindung zu besprechen.'
+              : 'Dein Profil wird erst nach Prüfung und Vertragsabschluss öffentlich sichtbar.'}
+          </p>
         </form>
       </main>
     </div>

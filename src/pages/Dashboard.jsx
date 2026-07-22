@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const STATUS_LABELS = {
@@ -8,6 +9,50 @@ const STATUS_LABELS = {
 }
 
 export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }) {
+  const [content, setContent] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [postError, setPostError] = useState('')
+  const [posts, setPosts] = useState([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
+
+  const canPost = profileType === 'business' && profile.profile_kind === 'anbieter' && profile.status === 'live'
+
+  useEffect(() => {
+    if (canPost) loadPosts()
+    // eslint-disable-next-line
+  }, [canPost])
+
+  async function loadPosts() {
+    setLoadingPosts(true)
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('business_profile_id', profile.id)
+      .order('created_at', { ascending: false })
+
+    setPosts(data || [])
+    setLoadingPosts(false)
+  }
+
+  async function handlePost(e) {
+    e.preventDefault()
+    setPostError('')
+    setPosting(true)
+
+    const { error } = await supabase.from('posts').insert({
+      business_profile_id: profile.id,
+      content: content.trim()
+    })
+
+    if (error) {
+      setPostError(error.message)
+    } else {
+      setContent('')
+      loadPosts()
+    }
+    setPosting(false)
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
   }
@@ -22,8 +67,7 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
         {profileType === 'private' ? (
           <div className="card">
             <p style={{ margin: 0, color: 'var(--ink-soft)', fontSize: 14 }}>
-              Dein Profil ist angelegt und für andere Nutzer nicht sichtbar. Bald kommen hier Ankündigungen
-              aus der Stadt und ein Verzeichnis von Betrieben.
+              Dein Profil ist angelegt und für andere Nutzer nicht sichtbar.
             </p>
           </div>
         ) : (
@@ -44,6 +88,40 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
               {profile.status === 'abgelehnt' &&
                 'Dein Profil wurde aktuell nicht freigeschaltet.'}
             </p>
+          </div>
+        )}
+
+        {canPost && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>News veröffentlichen</h3>
+            {postError && <div className="error-box">{postError}</div>}
+            <form onSubmit={handlePost}>
+              <div className="field">
+                <textarea
+                  rows={3}
+                  required
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Was gibt's Neues?"
+                />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={posting}>
+                {posting ? 'Wird veröffentlicht...' : 'Veröffentlichen'}
+              </button>
+            </form>
+
+            {!loadingPosts && posts.length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                {posts.map((p) => (
+                  <div key={p.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
+                    <p style={{ margin: 0, fontSize: 14 }}>{p.content}</p>
+                    <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
+                      {new Date(p.created_at).toLocaleDateString('de-DE')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

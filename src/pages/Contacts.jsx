@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import Connections from './Connections.jsx'
+import Chat from './Chat.jsx'
 
 export default function Contacts({ userId, profile, onBack }) {
   const [view, setView] = useState('list') // 'list' | 'connect'
+  const [openChat, setOpenChat] = useState(null)
   const [connections, setConnections] = useState([])
   const [loading, setLoading] = useState(true)
   const [pendingCount, setPendingCount] = useState(0)
@@ -34,6 +36,17 @@ export default function Contacts({ userId, profile, onBack }) {
     setConnections(withNames)
     setPendingCount(all.filter((c) => c.status === 'pending' && c.addressee_id === userId).length)
     setLoading(false)
+  }
+
+  if (openChat) {
+    return (
+      <Chat
+        userId={userId}
+        connectionId={openChat.connectionId}
+        otherUsername={openChat.otherUsername}
+        onBack={() => setOpenChat(null)}
+      />
+    )
   }
 
   if (view === 'connect') {
@@ -70,7 +83,15 @@ export default function Contacts({ userId, profile, onBack }) {
             <p className="center-note">Noch keine Kontakte. Nutz "Vernetzen", um jemanden hinzuzufügen.</p>
           )}
           {connections.map((c) => (
-            <p key={c.id} style={{ fontSize: 14 }}>@{c.otherUsername}</p>
+            <button
+              key={c.id}
+              className="card-choice"
+              style={{ marginBottom: 10 }}
+              onClick={() => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername })}
+            >
+              <h3 style={{ margin: 0 }}>@{c.otherUsername}</h3>
+              <p style={{ margin: 0 }}>Nachricht schreiben</p>
+            </button>
           ))}
         </div>
       </main>

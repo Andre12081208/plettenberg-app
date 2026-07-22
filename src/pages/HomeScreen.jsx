@@ -7,6 +7,7 @@ import Newsfeed from './Newsfeed.jsx'
 import Contacts from './Contacts.jsx'
 
 export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
+  const [activeTab, setActiveTab] = useState('feed') // 'feed' | 'apps'
   const [openApp, setOpenApp] = useState(null)
   const [installedApps, setInstalledApps] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,10 +35,6 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
     return <StadtverwaltungApp onBack={() => setOpenApp(null)} />
   }
 
-  if (openApp === 'newsfeed') {
-    return <Newsfeed userId={userId} onBack={() => setOpenApp(null)} />
-  }
-
   if (openApp === 'contacts') {
     return <Contacts userId={userId} profile={profile} onBack={() => setOpenApp(null)} />
   }
@@ -58,54 +55,72 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
 
   return (
     <div className="app-shell">
-      <div className="topbar">
-        <div className="mark">Plettenberg</div>
-        <h1>Hallo, {profile.first_name}</h1>
-      </div>
-      <main>
-        <div className="app-grid">
-          <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
-            <div className="app-tile-icon">🏛️</div>
-            <div className="app-tile-label">Stadtverwaltung</div>
-          </button>
+      {activeTab === 'feed' ? (
+        <Newsfeed userId={userId} embedded />
+      ) : (
+        <>
+          <div className="topbar">
+            <div className="mark">Plettenberg</div>
+            <h1>Apps</h1>
+          </div>
+          <main style={{ paddingBottom: 90 }}>
+            <div className="app-grid">
+              <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
+                <div className="app-tile-icon">🏛️</div>
+                <div className="app-tile-label">Stadtverwaltung</div>
+              </button>
 
-          <button className="app-tile" onClick={() => setOpenApp('newsfeed')}>
-            <div className="app-tile-icon">📰</div>
-            <div className="app-tile-label">Neuigkeiten</div>
-          </button>
+              <button className="app-tile" onClick={() => setOpenApp('contacts')}>
+                <div className="app-tile-icon">🤝</div>
+                <div className="app-tile-label">Kontakte</div>
+              </button>
 
-          <button className="app-tile" onClick={() => setOpenApp('contacts')}>
-            <div className="app-tile-icon">🤝</div>
-            <div className="app-tile-label">Kontakte</div>
-          </button>
+              {!loading && installedApps.map((app) => (
+                <button key={app.id} className="app-tile" onClick={() => setOpenApp(app)}>
+                  <div className="app-tile-icon">
+                    {app.logo_url
+                      ? <img src={app.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
+                      : app.company_name[0]}
+                  </div>
+                  <div className="app-tile-label">{app.company_name}</div>
+                </button>
+              ))}
 
-          {!loading && installedApps.map((app) => (
-            <button key={app.id} className="app-tile" onClick={() => setOpenApp(app)}>
-              <div className="app-tile-icon">
-                {app.logo_url
-                  ? <img src={app.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
-                  : app.company_name[0]}
-              </div>
-              <div className="app-tile-label">{app.company_name}</div>
+              <button className="app-tile" onClick={() => setOpenApp('store')}>
+                <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>
+                <div className="app-tile-label">App Store</div>
+              </button>
+            </div>
+
+            {isAdmin && (
+              <button className="btn btn-primary" onClick={onOpenAdmin} style={{ marginTop: 28 }}>
+                Gewerbeanfragen verwalten
+              </button>
+            )}
+
+            <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 12 }}>
+              Abmelden
             </button>
-          ))}
+          </main>
+        </>
+      )}
 
-          <button className="app-tile" onClick={() => setOpenApp('store')}>
-            <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>
-            <div className="app-tile-label">App Store</div>
-          </button>
-        </div>
-
-        {isAdmin && (
-          <button className="btn btn-primary" onClick={onOpenAdmin} style={{ marginTop: 28 }}>
-            Gewerbeanfragen verwalten
-          </button>
-        )}
-
-        <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 12 }}>
-          Abmelden
+      <nav className="tab-bar">
+        <button
+          className={`tab-bar-item ${activeTab === 'feed' ? 'active' : ''}`}
+          onClick={() => setActiveTab('feed')}
+        >
+          <span className="tab-bar-icon">📰</span>
+          Neuigkeiten
         </button>
-      </main>
+        <button
+          className={`tab-bar-item ${activeTab === 'apps' ? 'active' : ''}`}
+          onClick={() => setActiveTab('apps')}
+        >
+          <span className="tab-bar-icon">🔲</span>
+          Apps
+        </button>
+      </nav>
     </div>
   )
 }

@@ -7,11 +7,17 @@ import Newsfeed from './Newsfeed.jsx'
 import Contacts from './Contacts.jsx'
 import MyProfile from './MyProfile.jsx'
 import Marketplace from './Marketplace.jsx'
+import SnakeGame from './SnakeGame.jsx'
+
+const SYSTEM_APPS = [
+  { key: 'snake', name: 'Snake', icon: '🐍' }
+]
 
 export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('feed') // 'feed' | 'contacts' | 'apps'
   const [openApp, setOpenApp] = useState(null)
   const [installedApps, setInstalledApps] = useState([])
+  const [installedSystemKeys, setInstalledSystemKeys] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -20,12 +26,14 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
 
   async function loadInstalled() {
     setLoading(true)
-    const { data } = await supabase
-      .from('installed_apps')
-      .select('business_profiles(*)')
-      .eq('user_id', userId)
 
-    setInstalledApps((data || []).map((row) => row.business_profiles).filter(Boolean))
+    const [{ data: businessApps }, { data: systemApps }] = await Promise.all([
+      supabase.from('installed_apps').select('business_profiles(*)').eq('user_id', userId),
+      supabase.from('installed_system_apps').select('app_key').eq('user_id', userId)
+    ])
+
+    setInstalledApps((businessApps || []).map((row) => row.business_profiles).filter(Boolean))
+    setInstalledSystemKeys((systemApps || []).map((s) => s.app_key))
     setLoading(false)
   }
 
@@ -50,6 +58,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
 
   if (openApp === 'marketplace') {
     return <Marketplace userId={userId} onBack={() => setOpenApp(null)} />
+  }
+
+  if (openApp === 'snake') {
+    return <SnakeGame onBack={() => setOpenApp(null)} />
   }
 
   if (openApp === 'store') {
@@ -109,6 +121,13 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
                   <div className="app-tile-label">{app.company_name}</div>
                 </button>
               ))}
+
+              {!loading && installedSystemKeys.includes('snake') && (
+                <button className="app-tile" onClick={() => setOpenApp('snake')}>
+                  <div className="app-tile-icon">🐍</div>
+                  <div className="app-tile-label">Snake</div>
+                </button>
+              )}
 
               <button className="app-tile" onClick={() => setOpenApp('store')}>
                 <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>

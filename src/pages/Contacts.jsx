@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import Connections from './Connections.jsx'
 import Chat from './Chat.jsx'
 
-export default function Contacts({ userId, profile, onBack }) {
+export default function Contacts({ userId, profile, onBack, embedded }) {
   const [view, setView] = useState('list') // 'list' | 'connect'
   const [openChat, setOpenChat] = useState(null)
   const [connections, setConnections] = useState([])
@@ -59,6 +59,49 @@ export default function Contacts({ userId, profile, onBack }) {
     )
   }
 
+  const content = (
+    <>
+      <button className="card-choice" onClick={() => setView('connect')}>
+        <span className="eyebrow">
+          {pendingCount > 0 ? `${pendingCount} neue Anfrage${pendingCount > 1 ? 'n' : ''}` : 'Neue Kontakte'}
+        </span>
+        <h3>Vernetzen</h3>
+        <p>Freunde per Nutzername, Link oder QR-Code finden, Anfragen annehmen.</p>
+      </button>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Deine Kontakte</h3>
+        {loading && <div className="loading-dot">Lädt...</div>}
+        {!loading && connections.length === 0 && (
+          <p className="center-note">Noch keine Kontakte. Nutz "Vernetzen", um jemanden hinzuzufügen.</p>
+        )}
+        {connections.map((c) => (
+          <button
+            key={c.id}
+            className="card-choice"
+            style={{ marginBottom: 10 }}
+            onClick={() => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername })}
+          >
+            <h3 style={{ margin: 0 }}>@{c.otherUsername}</h3>
+            <p style={{ margin: 0 }}>Nachricht schreiben</p>
+          </button>
+        ))}
+      </div>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Kontakte</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>{content}</main>
+      </>
+    )
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -67,33 +110,7 @@ export default function Contacts({ userId, profile, onBack }) {
       </div>
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
-
-        <button className="card-choice" onClick={() => setView('connect')}>
-          <span className="eyebrow">
-            {pendingCount > 0 ? `${pendingCount} neue Anfrage${pendingCount > 1 ? 'n' : ''}` : 'Neue Kontakte'}
-          </span>
-          <h3>Vernetzen</h3>
-          <p>Freunde per Nutzername, Link oder QR-Code finden, Anfragen annehmen.</p>
-        </button>
-
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Deine Kontakte</h3>
-          {loading && <div className="loading-dot">Lädt...</div>}
-          {!loading && connections.length === 0 && (
-            <p className="center-note">Noch keine Kontakte. Nutz "Vernetzen", um jemanden hinzuzufügen.</p>
-          )}
-          {connections.map((c) => (
-            <button
-              key={c.id}
-              className="card-choice"
-              style={{ marginBottom: 10 }}
-              onClick={() => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername })}
-            >
-              <h3 style={{ margin: 0 }}>@{c.otherUsername}</h3>
-              <p style={{ margin: 0 }}>Nachricht schreiben</p>
-            </button>
-          ))}
-        </div>
+        {content}
       </main>
     </div>
   )

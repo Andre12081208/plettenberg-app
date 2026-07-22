@@ -213,6 +213,7 @@ main {
   text-align: center;
   color: var(--ink-soft);
   font-size: 13px;
+}
 
 .app-grid {
   display: grid;
@@ -304,4 +305,31 @@ main {
   border: 1px solid var(--line);
   margin-right: auto;
   border-bottom-left-radius: 4px;
+}
+
+.chat-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 10px;
+}
+
+.chat-bubble-own .chat-meta {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.chat-bubble-other .chat-meta {
+  color: var(--ink-soft);
+  justify-content: flex-start;
+}
+
+.chat-check-sent {
+  opacity: 0.6;
+}
+
+.chat-check-read {
+  opacity: 1;
+  font-weight: 700;
 }

@@ -12,10 +12,16 @@ export default function Onboarding({ onChoose }) {
           <p>Für private Nutzung. Dein Profil bleibt für andere Nutzer unsichtbar.</p>
         </button>
 
-        <button className="card-choice" onClick={() => onChoose('business')}>
-          <span className="eyebrow">Für Betriebe</span>
-          <h3>Ich vertrete ein Unternehmen oder einen Verein</h3>
-          <p>Nach dem Anlegen prüfen wir dein Profil, bevor es sichtbar wird.</p>
+        <button className="card-choice" onClick={() => onChoose('anbieter')}>
+          <span className="eyebrow">Für Bürger sichtbar</span>
+          <h3>Ich biete etwas für Bürger an</h3>
+          <p>Restaurant, Verein, Bürgerdienst. Erscheint nach Prüfung öffentlich.</p>
+        </button>
+
+        <button className="card-choice" onClick={() => onChoose('unternehmen')}>
+          <span className="eyebrow">Kein Bürgerkontakt</span>
+          <h3>Wir sind ein Unternehmen</h3>
+          <p>Für Firmen, die Flip intern nutzen möchten. Erscheint nicht öffentlich.</p>
         </button>
       </main>
     </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function Newsfeed({ userId, onBack }) {
+export default function Newsfeed({ userId, onBack, embedded }) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -50,6 +50,48 @@ export default function Newsfeed({ userId, onBack }) {
     setLoading(false)
   }
 
+  const content = (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+
+      {!loading && posts.length === 0 && (
+        <p className="center-note">Noch keine Neuigkeiten. Folge Anbietern im App Store, um hier ihre News zu sehen.</p>
+      )}
+
+      {!loading && posts.map((post) => (
+        <div className="card" key={post.id}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+            <div className="avatar-preview" style={{ width: 36, height: 36, fontSize: 14 }}>
+              {post.business_profiles?.logo_url
+                ? <img src={post.business_profiles.logo_url} alt="" />
+                : post.business_profiles?.company_name?.[0]}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{post.business_profiles?.company_name}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-soft)' }}>
+                {new Date(post.created_at).toLocaleDateString('de-DE')}
+              </div>
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: 14 }}>{post.content}</p>
+        </div>
+      ))}
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Neuigkeiten</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>{content}</main>
+      </>
+    )
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -58,32 +100,7 @@ export default function Newsfeed({ userId, onBack }) {
       </div>
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
-
-        {error && <div className="error-box">{error}</div>}
-        {loading && <div className="loading-dot">Lädt...</div>}
-
-        {!loading && posts.length === 0 && (
-          <p className="center-note">Noch keine Neuigkeiten. Folge Anbietern im App Store, um hier ihre News zu sehen.</p>
-        )}
-
-        {!loading && posts.map((post) => (
-          <div className="card" key={post.id}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
-              <div className="avatar-preview" style={{ width: 36, height: 36, fontSize: 14 }}>
-                {post.business_profiles?.logo_url
-                  ? <img src={post.business_profiles.logo_url} alt="" />
-                  : post.business_profiles?.company_name?.[0]}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{post.business_profiles?.company_name}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink-soft)' }}>
-                  {new Date(post.created_at).toLocaleDateString('de-DE')}
-                </div>
-              </div>
-            </div>
-            <p style={{ margin: 0, fontSize: 14 }}>{post.content}</p>
-          </div>
-        ))}
+        {content}
       </main>
     </div>
   )

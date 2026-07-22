@@ -7,7 +7,7 @@ import Newsfeed from './Newsfeed.jsx'
 import Contacts from './Contacts.jsx'
 
 export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
-  const [activeTab, setActiveTab] = useState('feed') // 'feed' | 'apps'
+  const [activeTab, setActiveTab] = useState('feed') // 'feed' | 'contacts' | 'apps'
   const [openApp, setOpenApp] = useState(null)
   const [installedApps, setInstalledApps] = useState([])
   const [loading, setLoading] = useState(true)
@@ -35,10 +35,6 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
     return <StadtverwaltungApp onBack={() => setOpenApp(null)} />
   }
 
-  if (openApp === 'contacts') {
-    return <Contacts userId={userId} profile={profile} onBack={() => setOpenApp(null)} />
-  }
-
   if (openApp === 'store') {
     return (
       <AppStore
@@ -55,9 +51,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
 
   return (
     <div className="app-shell">
-      {activeTab === 'feed' ? (
-        <Newsfeed userId={userId} embedded />
-      ) : (
+      {activeTab === 'feed' && <Newsfeed userId={userId} embedded />}
+
+      {activeTab === 'contacts' && <Contacts userId={userId} profile={profile} embedded />}
+
+      {activeTab === 'apps' && (
         <>
           <div className="topbar">
             <div className="mark">Plettenberg</div>
@@ -68,11 +66,6 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
               <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
                 <div className="app-tile-icon">🏛️</div>
                 <div className="app-tile-label">Stadtverwaltung</div>
-              </button>
-
-              <button className="app-tile" onClick={() => setOpenApp('contacts')}>
-                <div className="app-tile-icon">🤝</div>
-                <div className="app-tile-label">Kontakte</div>
               </button>
 
               {!loading && installedApps.map((app) => (
@@ -112,6 +105,13 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
         >
           <span className="tab-bar-icon">📰</span>
           Neuigkeiten
+        </button>
+        <button
+          className={`tab-bar-item ${activeTab === 'contacts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('contacts')}
+        >
+          <span className="tab-bar-icon">🤝</span>
+          Kontakte
         </button>
         <button
           className={`tab-bar-item ${activeTab === 'apps' ? 'active' : ''}`}

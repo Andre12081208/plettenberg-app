@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabaseClient'
 import StadtverwaltungApp from './StadtverwaltungApp.jsx'
 import AppStore from './AppStore.jsx'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
+import Newsfeed from './Newsfeed.jsx'
+import Connections from './Connections.jsx'
 
 export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
   const [openApp, setOpenApp] = useState(null)
@@ -32,6 +34,14 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
     return <StadtverwaltungApp onBack={() => setOpenApp(null)} />
   }
 
+  if (openApp === 'newsfeed') {
+    return <Newsfeed userId={userId} onBack={() => setOpenApp(null)} />
+  }
+
+  if (openApp === 'connections') {
+    return <Connections userId={userId} profile={profile} onBack={() => setOpenApp(null)} />
+  }
+
   if (openApp === 'store') {
     return (
       <AppStore
@@ -57,6 +67,16 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
           <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
             <div className="app-tile-icon">🏛️</div>
             <div className="app-tile-label">Stadtverwaltung</div>
+          </button>
+
+          <button className="app-tile" onClick={() => setOpenApp('newsfeed')}>
+            <div className="app-tile-icon">📰</div>
+            <div className="app-tile-label">Neuigkeiten</div>
+          </button>
+
+          <button className="app-tile" onClick={() => setOpenApp('connections')}>
+            <div className="app-tile-icon">🤝</div>
+            <div className="app-tile-label">Vernetzen</div>
           </button>
 
           {!loading && installedApps.map((app) => (

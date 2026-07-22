@@ -5,8 +5,9 @@ import AppStore from './AppStore.jsx'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
 import Newsfeed from './Newsfeed.jsx'
 import Contacts from './Contacts.jsx'
+import MyProfile from './MyProfile.jsx'
 
-export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
+export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('feed') // 'feed' | 'contacts' | 'apps'
   const [openApp, setOpenApp] = useState(null)
   const [installedApps, setInstalledApps] = useState([])
@@ -33,6 +34,17 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
 
   if (openApp === 'stadtverwaltung') {
     return <StadtverwaltungApp onBack={() => setOpenApp(null)} />
+  }
+
+  if (openApp === 'profile') {
+    return (
+      <MyProfile
+        userId={userId}
+        profile={profile}
+        onBack={() => setOpenApp(null)}
+        onProfileUpdated={onProfileUpdated}
+      />
+    )
   }
 
   if (openApp === 'store') {
@@ -63,6 +75,15 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin }) {
           </div>
           <main style={{ paddingBottom: 90 }}>
             <div className="app-grid">
+              <button className="app-tile" onClick={() => setOpenApp('profile')}>
+                <div className="app-tile-icon">
+                  {profile.avatar_url
+                    ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
+                    : '👤'}
+                </div>
+                <div className="app-tile-label">Mein Profil</div>
+              </button>
+
               <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
                 <div className="app-tile-icon">🏛️</div>
                 <div className="app-tile-label">Stadtverwaltung</div>

@@ -1,183 +1,212 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-const APP_CATEGORY_OPTIONS = [
-  { value: 'restaurant', label: 'Restaurant' },
+const APP_CATEGORIES = [
+  { value: 'alle', label: 'Alle' },
+  { value: 'restaurant', label: 'Restaurants' },
   { value: 'buergerservice', label: 'Bürgerservice' },
-  { value: 'verein', label: 'Verein / Freizeit' },
+  { value: 'verein', label: 'Vereine' },
   { value: 'sonstiges', label: 'Sonstiges' }
 ]
 
-export default function BusinessProfileForm({ userId, kind, onDone }) {
-  const [companyName, setCompanyName] = useState('')
-  const [category, setCategory] = useState('unternehmen')
-  const [appCategory, setAppCategory] = useState('sonstiges')
-  const [description, setDescription] = useState('')
-  const [address, setAddress] = useState('')
-  const [phone, setPhone] = useState('')
-  const [website, setWebsite] = useState('')
-  const [contactPerson, setContactPerson] = useState('')
-  const [representative, setRepresentative] = useState('')
-  const [registerNumber, setRegisterNumber] = useState('')
-  const [logoFile, setLogoFile] = useState(null)
-  const [logoPreview, setLogoPreview] = useState(null)
-  const [loading, setLoading] = useState(false)
+export default function AppStore({ userId, onBack, onChanged }) {
+  const [entries, setEntries] = useState([])
+  const [installedIds, setInstalledIds] = useState(new Set())
+  const [followedIds, setFollowedIds] = useState(new Set())
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeCategory, setActiveCategory] = useState('alle')
+  const [busyId, setBusyId] = useState(null)
 
-  function handleLogoChange(e) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setLogoFile(f)
-    setLogoPreview(URL.createObjectURL(f))
-  }
+  useEffect(() => {
+    loadAll()
+  }, [])
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
+  async function loadAll() {
     setLoading(true)
+    setError('')
 
-    let logoUrl = null
+    const [{ data: apps, error: appsError }, { data: installed, error: installedError }, { data: followed, error: followedError }] = await Promise.all([
+      supabase
+        .from('business_profiles')
+        .select('*')
+        .eq('status', 'live')
+        .eq('profile_kind', 'anbieter')
+        .neq('category', 'stadtverwaltung')
+        .order('company_name', { ascending: true }),
+      supabase
+        .from('installed_apps')
+        .select('business_profile_id')
+        .eq('user_id', userId),
+      supabase
+        .from('follows')
+        .select('business_profile_id')
+        .eq('user_id', userId)
+    ])
 
-    try {
-      if (logoFile) {
-        const ext = logoFile.name.split('.').pop()
-        const path = `${userId}/logo.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('logos')
-          .upload(path, logoFile, { upsert: true })
+    if (appsError) setError(appsError.message)
+    if (installedError) setError(installedError.message)
+    if (followedError) setError(followedError.message)
 
-        if (uploadError) throw uploadError
-
-        const { data } = supabase.storage.from('logos').getPublicUrl(path)
-        logoUrl = data.publicUrl
-      }
-
-      const { error: dbError } = await supabase.from('business_profiles').insert({
-        id: userId,
-        company_name: companyName.trim(),
-        category,
-        profile_kind: kind,
-        app_category: kind === 'anbieter' ? appCategory : null,
-        description: description.trim() || null,
-        address: address.trim() || null,
-        phone: phone.trim() || null,
-        website: website.trim() || null,
-        contact_person: contactPerson.trim() || null,
-        impressum_representative: representative.trim() || null,
-        impressum_register_number: registerNumber.trim() || null,
-        logo_url: logoUrl,
-        status: 'in_pruefung',
-        plan: 'kostenlos'
-      })
-
-      if (dbError) throw dbError
-
-      onDone()
-    } catch (err) {
-      setError(err.message || 'Etwas ist schiefgelaufen, versuch es noch einmal.')
-    } finally {
-      setLoading(false)
-    }
+    setEntries(apps || [])
+    setInstalledIds(new Set((installed || []).map((i) => i.business_profile_id)))
+    setFollowedIds(new Set((followed || []).map((f) => f.business_profile_id)))
+    setLoading(false)
   }
+
+  async function toggleInstall(app) {
+    setBusyId(`install-${app.id}`)
+    const isInstalled = installedIds.has(app.id)
+
+    if (isInstalled) {
+      const { error } = await supabase
+        .from('installed_apps')
+        .delete()
+        .eq('user_id', userId)
+        .eq('business_profile_id', app.id)
+
+      if (!error) {
+        setInstalledIds((prev) => {
+          const next = new Set(prev)
+          next.delete(app.id)
+          return next
+        })
+      } else {
+        setError(error.message)
+      }
+    } else {
+      const { error } = await supabase
+        .from('installed_apps')
+        .insert({ user_id: userId, business_profile_id: app.id })
+
+      if (!error) {
+        setInstalledIds((prev) => new Set(prev).add(app.id))
+      } else {
+        setError(error.message)
+      }
+    }
+
+    setBusyId(null)
+    onChanged?.()
+  }
+
+  async function toggleFollow(app) {
+    setBusyId(`follow-${app.id}`)
+    const isFollowed = followedIds.has(app.id)
+
+    if (isFollowed) {
+      const { error } = await supabase
+        .from('follows')
+        .delete()
+        .eq('user_id', userId)
+        .eq('business_profile_id', app.id)
+
+      if (!error) {
+        setFollowedIds((prev) => {
+          const next = new Set(prev)
+          next.delete(app.id)
+          return next
+        })
+      } else {
+        setError(error.message)
+      }
+    } else {
+      const { error } = await supabase
+        .from('follows')
+        .insert({ user_id: userId, business_profile_id: app.id })
+
+      if (!error) {
+        setFollowedIds((prev) => new Set(prev).add(app.id))
+      } else {
+        setError(error.message)
+      }
+    }
+
+    setBusyId(null)
+  }
+
+  const filtered = activeCategory === 'alle'
+    ? entries
+    : entries.filter((e) => e.app_category === activeCategory)
 
   return (
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>{kind === 'unternehmen' ? 'Unternehmensprofil' : 'Anbieterprofil'}</h1>
+        <h1>App Store</h1>
       </div>
       <main>
+        <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
+
         {error && <div className="error-box">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
-          <div className="avatar-upload">
-            <div className="avatar-preview">
-              {logoPreview ? <img src={logoPreview} alt="Logo-Vorschau" /> : 'Logo'}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+          {APP_CATEGORIES.map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => setActiveCategory(cat.value)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 999,
+                border: '1px solid var(--forest)',
+                background: activeCategory === cat.value ? 'var(--forest)' : 'transparent',
+                color: activeCategory === cat.value ? '#fff' : 'var(--forest)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {loading && <div className="loading-dot">Lädt...</div>}
+
+        {!loading && filtered.length === 0 && (
+          <p className="center-note">Noch keine Mini-Apps in dieser Kategorie.</p>
+        )}
+
+        {!loading && filtered.map((app) => {
+          const installed = installedIds.has(app.id)
+          const followed = followedIds.has(app.id)
+          return (
+            <div className="card" key={app.id}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
+                <div className="avatar-preview" style={{ width: 48, height: 48, fontSize: 16 }}>
+                  {app.logo_url ? <img src={app.logo_url} alt={app.company_name} /> : app.company_name[0]}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0, fontSize: 16 }}>{app.company_name}</h3>
+                  <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
+                    {APP_CATEGORIES.find((c) => c.value === app.app_category)?.label || 'Sonstiges'}
+                  </span>
+                </div>
+              </div>
+
+              {app.description && (
+                <p style={{ margin: '0 0 10px', fontSize: 14 }}>{app.description}</p>
+              )}
+
+              <div className="btn-row">
+                <button
+                  className={installed ? 'btn btn-secondary' : 'btn btn-primary'}
+                  onClick={() => toggleInstall(app)}
+                  disabled={busyId === `install-${app.id}`}
+                >
+                  {busyId === `install-${app.id}` ? '...' : installed ? 'Entfernen' : 'Hinzufügen'}
+                </button>
+                <button
+                  className={followed ? 'btn btn-secondary' : 'btn btn-primary'}
+                  onClick={() => toggleFollow(app)}
+                  disabled={busyId === `follow-${app.id}`}
+                >
+                  {busyId === `follow-${app.id}` ? '...' : followed ? 'Entfolgen' : 'Folgen'}
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="link-text" htmlFor="logo" style={{ cursor: 'pointer' }}>
-                Logo auswählen
-              </label>
-              <input
-                id="logo"
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                style={{ display: 'none' }}
-              />
-              <div className="hint">Optional</div>
-            </div>
-          </div>
-
-          <div className="field">
-            <label htmlFor="companyName">Name der Firma / des Vereins</label>
-            <input id="companyName" required value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
-          </div>
-
-          <div className="field">
-            <label htmlFor="category">Kategorie</label>
-            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="unternehmen">Unternehmen</option>
-              <option value="verein">Verein</option>
-              <option value="verband">Verband</option>
-              <option value="stadtverwaltung">Stadtverwaltung / Behörde</option>
-              <option value="sonstiges">Sonstiges</option>
-            </select>
-          </div>
-
-          {kind === 'anbieter' && (
-            <div className="field">
-              <label htmlFor="appCategory">App-Store-Kategorie</label>
-              <select id="appCategory" value={appCategory} onChange={(e) => setAppCategory(e.target.value)}>
-                {APP_CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <div className="hint">Bestimmt, unter welcher Kategorie Bürger dich im App Store finden</div>
-            </div>
-          )}
-
-          <div className="field">
-            <label htmlFor="description">Kurzbeschreibung</label>
-            <textarea id="description" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
-          <div className="field">
-            <label htmlFor="address">Adresse</label>
-            <input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
-          </div>
-          <div className="field">
-            <label htmlFor="phone">Telefon</label>
-            <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div className="field">
-            <label htmlFor="website">Website</label>
-            <input id="website" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" />
-          </div>
-          <div className="field">
-            <label htmlFor="contactPerson">Ansprechpartner</label>
-            <input id="contactPerson" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
-          </div>
-
-          <div className="field">
-            <label htmlFor="representative">Vertretungsberechtigte Person (Impressum)</label>
-            <input id="representative" value={representative} onChange={(e) => setRepresentative(e.target.value)} />
-            <div className="hint">Nach §5 TMG Pflicht für gewerbliche Profile</div>
-          </div>
-          <div className="field">
-            <label htmlFor="registerNumber">Handelsregisternummer (falls vorhanden)</label>
-            <input id="registerNumber" value={registerNumber} onChange={(e) => setRegisterNumber(e.target.value)} />
-          </div>
-
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Wird gespeichert...' : 'Profil zur Prüfung einreichen'}
-          </button>
-          <p className="center-note">
-            {kind === 'unternehmen'
-              ? 'Wir melden uns nach Prüfung bei euch, um die Flip-Anbindung zu besprechen.'
-              : 'Dein Profil wird erst nach Prüfung und Vertragsabschluss öffentlich sichtbar.'}
-          </p>
-        </form>
+          )
+        })}
       </main>
     </div>
   )

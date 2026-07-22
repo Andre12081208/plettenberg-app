@@ -147,4 +147,12 @@ export default function BusinessProfileForm({ userId, onDone }) {
             <input id="registerNumber" value={registerNumber} onChange={(e) => setRegisterNumber(e.target.value)} />
           </div>
 
-          <button
+          <button className="btn btn-primary" type="submit" disabled={loading}>
+            {loading ? 'Wird gespeichert...' : 'Profil zur Prüfung einreichen'}
+          </button>
+          <p className="center-note">Dein Profil wird erst nach Prüfung und Vertragsabschluss öffentlich sichtbar.</p>
+        </form>
+      </main>
+    </div>
+  )
+}

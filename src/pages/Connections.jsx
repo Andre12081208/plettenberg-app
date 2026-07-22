@@ -95,7 +95,6 @@ export default function Connections({ userId, profile, initialSearchValue, onBac
     : null
 
   const incoming = connections.filter((c) => c.status === 'pending' && c.addressee_id === userId)
-  const accepted = connections.filter((c) => c.status === 'accepted')
 
   return (
     <div className="app-shell">
@@ -186,14 +185,6 @@ export default function Connections({ userId, profile, initialSearchValue, onBac
             ))}
           </div>
         )}
-
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Deine Verbindungen</h3>
-          {!loading && accepted.length === 0 && <p className="center-note">Noch keine Verbindungen.</p>}
-          {accepted.map((c) => (
-            <p key={c.id} style={{ fontSize: 14 }}>@{c.otherUsername}</p>
-          ))}
-        </div>
       </main>
     </div>
   )

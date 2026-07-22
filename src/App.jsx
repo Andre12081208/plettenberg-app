@@ -115,6 +115,7 @@ export default function App() {
         userId={session.user.id}
         isAdmin={isAdmin}
         onOpenAdmin={() => setView('admin')}
+        onProfileUpdated={() => loadProfile(session.user.id)}
       />
     )
   }

@@ -9,10 +9,15 @@ const APP_CATEGORIES = [
   { value: 'sonstiges', label: 'Sonstiges' }
 ]
 
+const SYSTEM_APPS = [
+  { key: 'snake', name: 'Snake', icon: '🐍', description: 'Klassisches Snake-Spiel, direkt in der App spielbar.' }
+]
+
 export default function AppStore({ userId, onBack, onChanged }) {
   const [entries, setEntries] = useState([])
   const [installedIds, setInstalledIds] = useState(new Set())
   const [followedIds, setFollowedIds] = useState(new Set())
+  const [installedSystemKeys, setInstalledSystemKeys] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeCategory, setActiveCategory] = useState('alle')
@@ -26,7 +31,12 @@ export default function AppStore({ userId, onBack, onChanged }) {
     setLoading(true)
     setError('')
 
-    const [{ data: apps, error: appsError }, { data: installed, error: installedError }, { data: followed, error: followedError }] = await Promise.all([
+    const [
+      { data: apps, error: appsError },
+      { data: installed, error: installedError },
+      { data: followed, error: followedError },
+      { data: systemApps, error: systemError }
+    ] = await Promise.all([
       supabase
         .from('business_profiles')
         .select('*')
@@ -41,17 +51,59 @@ export default function AppStore({ userId, onBack, onChanged }) {
       supabase
         .from('follows')
         .select('business_profile_id')
+        .eq('user_id', userId),
+      supabase
+        .from('installed_system_apps')
+        .select('app_key')
         .eq('user_id', userId)
     ])
 
     if (appsError) setError(appsError.message)
     if (installedError) setError(installedError.message)
     if (followedError) setError(followedError.message)
+    if (systemError) setError(systemError.message)
 
     setEntries(apps || [])
     setInstalledIds(new Set((installed || []).map((i) => i.business_profile_id)))
     setFollowedIds(new Set((followed || []).map((f) => f.business_profile_id)))
+    setInstalledSystemKeys(new Set((systemApps || []).map((s) => s.app_key)))
     setLoading(false)
+  }
+
+  async function toggleSystemApp(app) {
+    setBusyId(`system-${app.key}`)
+    const isInstalled = installedSystemKeys.has(app.key)
+
+    if (isInstalled) {
+      const { error } = await supabase
+        .from('installed_system_apps')
+        .delete()
+        .eq('user_id', userId)
+        .eq('app_key', app.key)
+
+      if (!error) {
+        setInstalledSystemKeys((prev) => {
+          const next = new Set(prev)
+          next.delete(app.key)
+          return next
+        })
+      } else {
+        setError(error.message)
+      }
+    } else {
+      const { error } = await supabase
+        .from('installed_system_apps')
+        .insert({ user_id: userId, app_key: app.key })
+
+      if (!error) {
+        setInstalledSystemKeys((prev) => new Set(prev).add(app.key))
+      } else {
+        setError(error.message)
+      }
+    }
+
+    setBusyId(null)
+    onChanged?.()
   }
 
   async function toggleInstall(app) {
@@ -139,6 +191,33 @@ export default function AppStore({ userId, onBack, onChanged }) {
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
         {error && <div className="error-box">{error}</div>}
+
+        <h3 style={{ marginBottom: 10 }}>Spiele</h3>
+        {SYSTEM_APPS.map((app) => {
+          const installed = installedSystemKeys.has(app.key)
+          return (
+            <div className="card" key={app.key}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
+                <div className="avatar-preview" style={{ width: 48, height: 48, fontSize: 22 }}>
+                  {app.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0, fontSize: 16 }}>{app.name}</h3>
+                </div>
+              </div>
+              <p style={{ margin: '0 0 10px', fontSize: 14 }}>{app.description}</p>
+              <button
+                className={installed ? 'btn btn-secondary' : 'btn btn-primary'}
+                onClick={() => toggleSystemApp(app)}
+                disabled={busyId === `system-${app.key}`}
+              >
+                {busyId === `system-${app.key}` ? '...' : installed ? 'Entfernen' : 'Hinzufügen'}
+              </button>
+            </div>
+          )
+        })}
+
+        <h3 style={{ marginTop: 24, marginBottom: 10 }}>Anbieter</h3>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
           {APP_CATEGORIES.map((cat) => (

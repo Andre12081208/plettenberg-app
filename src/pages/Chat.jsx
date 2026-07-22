@@ -24,6 +24,17 @@ export default function Chat({ userId, connectionId, otherUsername, onBack }) {
         filter: `connection_id=eq.${connectionId}`
       }, (payload) => {
         setMessages((prev) => [...prev, payload.new])
+        if (payload.new.sender_id !== userId) {
+          markAsRead()
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `connection_id=eq.${connectionId}`
+      }, (payload) => {
+        setMessages((prev) => prev.map((m) => (m.id === payload.new.id ? payload.new : m)))
       })
       .subscribe()
 
@@ -48,6 +59,16 @@ export default function Chat({ userId, connectionId, otherUsername, onBack }) {
     if (error) setError(error.message)
     setMessages(data || [])
     setLoading(false)
+    markAsRead()
+  }
+
+  async function markAsRead() {
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('connection_id', connectionId)
+      .neq('sender_id', userId)
+      .is('read_at', null)
   }
 
   async function sendMessage(e) {
@@ -156,6 +177,10 @@ export default function Chat({ userId, connectionId, otherUsername, onBack }) {
     }
   }
 
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -170,23 +195,35 @@ export default function Chat({ userId, connectionId, otherUsername, onBack }) {
         <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
           {loading && <div className="loading-dot">Lädt...</div>}
 
-          {!loading && messages.map((m) => (
-            <div
-              key={m.id}
-              className={`chat-bubble ${m.sender_id === userId ? 'chat-bubble-own' : 'chat-bubble-other'}`}
-            >
-              {m.content && <p style={{ margin: 0 }}>{m.content}</p>}
-              {m.attachment_type === 'image' && (
-                <img src={m.attachment_url} alt="Anhang" style={{ maxWidth: '100%', borderRadius: 10 }} />
-              )}
-              {m.attachment_type === 'audio' && (
-                <audio controls src={m.attachment_url} style={{ maxWidth: '100%' }} />
-              )}
-              {m.attachment_type === 'file' && (
-                <a href={m.attachment_url} target="_blank" rel="noreferrer">Datei öffnen</a>
-              )}
-            </div>
-          ))}
+          {!loading && messages.map((m) => {
+            const isOwn = m.sender_id === userId
+            return (
+              <div
+                key={m.id}
+                className={`chat-bubble ${isOwn ? 'chat-bubble-own' : 'chat-bubble-other'}`}
+              >
+                {m.content && <p style={{ margin: 0 }}>{m.content}</p>}
+                {m.attachment_type === 'image' && (
+                  <img src={m.attachment_url} alt="Anhang" style={{ maxWidth: '100%', borderRadius: 10 }} />
+                )}
+                {m.attachment_type === 'audio' && (
+                  <audio controls src={m.attachment_url} style={{ maxWidth: '100%' }} />
+                )}
+                {m.attachment_type === 'file' && (
+                  <a href={m.attachment_url} target="_blank" rel="noreferrer">Datei öffnen</a>
+                )}
+
+                <div className="chat-meta">
+                  <span>{formatTime(m.created_at)}</span>
+                  {isOwn && (
+                    <span className={m.read_at ? 'chat-check-read' : 'chat-check-sent'}>
+                      {m.read_at ? '✓✓' : '✓'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
           <div ref={bottomRef} />
         </div>
 

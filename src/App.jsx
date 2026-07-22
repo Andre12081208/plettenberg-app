@@ -7,14 +7,15 @@ import PrivateProfileForm from './pages/PrivateProfileForm.jsx'
 import BusinessProfileForm from './pages/BusinessProfileForm.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
+import HomeScreen from './pages/HomeScreen.jsx'
 
 export default function App() {
-  const [session, setSession] = useState(undefined) // undefined = wird geladen
-  const [profileType, setProfileType] = useState(null) // 'private' | 'business' | null
+  const [session, setSession] = useState(undefined)
+  const [profileType, setProfileType] = useState(null)
   const [profile, setProfile] = useState(null)
   const [checkingProfile, setCheckingProfile] = useState(false)
-  const [chosenType, setChosenType] = useState(null) // Auswahl im Onboarding, bevor das Formular kommt
-  const [view, setView] = useState('dashboard') // 'dashboard' | 'admin'
+  const [chosenType, setChosenType] = useState(null)
+  const [view, setView] = useState('dashboard')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -91,10 +92,11 @@ export default function App() {
     )
   }
 
-  if (!profileType && chosenType === 'business') {
+  if (!profileType && (chosenType === 'anbieter' || chosenType === 'unternehmen')) {
     return (
       <BusinessProfileForm
         userId={session.user.id}
+        kind={chosenType}
         onDone={() => loadProfile(session.user.id)}
       />
     )
@@ -104,6 +106,17 @@ export default function App() {
 
   if (isAdmin && view === 'admin') {
     return <AdminPanel onBack={() => setView('dashboard')} />
+  }
+
+  if (profileType === 'private') {
+    return (
+      <HomeScreen
+        profile={profile}
+        userId={session.user.id}
+        isAdmin={isAdmin}
+        onOpenAdmin={() => setView('admin')}
+      />
+    )
   }
 
   return (

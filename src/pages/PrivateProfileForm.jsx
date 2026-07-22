@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 export default function PrivateProfileForm({ userId, onDone }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [username, setUsername] = useState('')
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -41,6 +42,7 @@ export default function PrivateProfileForm({ userId, onDone }) {
         id: userId,
         first_name: firstName.trim(),
         last_name: lastName.trim(),
+        username: username.trim().toLowerCase(),
         avatar_url: avatarUrl
       })
 
@@ -48,7 +50,11 @@ export default function PrivateProfileForm({ userId, onDone }) {
 
       onDone()
     } catch (err) {
-      setError(err.message || 'Etwas ist schiefgelaufen, versuch es noch einmal.')
+      if (err.message?.includes('duplicate key') || err.message?.includes('already exists')) {
+        setError('Dieser Nutzername ist schon vergeben, wähl bitte einen anderen.')
+      } else {
+        setError(err.message || 'Etwas ist schiefgelaufen, versuch es noch einmal.')
+      }
     } finally {
       setLoading(false)
     }
@@ -102,6 +108,18 @@ export default function PrivateProfileForm({ userId, onDone }) {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
             />
+          </div>
+
+          <div className="field">
+            <label htmlFor="username">Nutzername</label>
+            <input
+              id="username"
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="z.B. wanderfreund23"
+            />
+            <div className="hint">Frei wählbar, nicht dein echter Name. Andere finden dich nur darüber.</div>
           </div>
 
           <button className="btn btn-primary" type="submit" disabled={loading}>

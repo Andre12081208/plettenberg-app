@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { ADMIN_EMAIL } from '../lib/adminConfig'
 
 const STATUS_OPTIONS = [
   { value: 'in_pruefung', label: 'In Prüfung' },
@@ -22,13 +23,43 @@ const ORDER_STATUS_OPTIONS = [
   { value: 'geliefert', label: 'Geliefert' }
 ]
 
+function PresenceDot({ lastSeenAt }) {
+  if (!lastSeenAt) {
+    return <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#A3402F' }} title="Noch nie online" />
+  }
+
+  const diffMs = Date.now() - new Date(lastSeenAt).getTime()
+  const minutes = diffMs / 1000 / 60
+  const hours = minutes / 60
+  const days = hours / 24
+
+  let color = '#A3402F' // rot
+  let label = 'Länger als 7 Tage nicht online'
+
+  if (minutes <= 3) {
+    color = '#2E9E5B' // grün
+    label = 'Gerade online'
+  } else if (hours <= 24) {
+    color = '#9AA0A6' // grau
+    label = 'Innerhalb der letzten 24 Stunden online'
+  } else if (days <= 7) {
+    color = '#20241F' // schwarz
+    label = 'Innerhalb der letzten 7 Tage online'
+  }
+
+  return <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: color }} title={label} />
+}
+
 export default function AdminPanel({ onBack }) {
   const [tab, setTab] = useState('nutzer')
 
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg · Admin</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="mark">Plettenberg · Admin</div>
+          <span className="status-pill status-live">Admin · Voller Zugriff</span>
+        </div>
         <h1>Verwaltung</h1>
       </div>
       <main>
@@ -58,6 +89,8 @@ function NutzerTab() {
 
   useEffect(() => {
     loadUsers()
+    const interval = setInterval(loadUsers, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   async function loadUsers() {
@@ -89,17 +122,38 @@ function NutzerTab() {
   const statusLabel = { aktiv: 'Aktiv', beobachter: 'Beobachter', gesperrt: 'Gesperrt' }
   const statusClass = { aktiv: 'status-live', beobachter: 'status-vertrag', gesperrt: 'status-abgelehnt' }
 
+  function formatLastSeen(lastSeenAt) {
+    if (!lastSeenAt) return 'Noch nie'
+    const diffMs = Date.now() - new Date(lastSeenAt).getTime()
+    if (diffMs / 1000 / 60 <= 3) return 'Gerade online'
+    return `Zuletzt online vor: ${formatDuration(diffMs)}`
+  }
+
+  function formatDuration(diffMs) {
+    const minutes = Math.floor(diffMs / 1000 / 60)
+    if (minutes < 60) return `${minutes} Min.`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours} Std.`
+    const days = Math.floor(hours / 24)
+    return `${days} Tag${days > 1 ? 'en' : ''}`
+  }
+
   return (
     <>
       {error && <div className="error-box">{error}</div>}
-      {loading && <div className="loading-dot">Lädt...</div>}
+      {loading && users.length === 0 && <div className="loading-dot">Lädt...</div>}
       {!loading && users.length === 0 && <p className="center-note">Keine Nutzer gefunden.</p>}
 
-      {!loading && users.map((u) => (
+      {users.map((u) => (
         <div className="card" key={u.user_id}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
             <div>
-              <h3 style={{ margin: 0 }}>{u.display_name}</h3>
+              <h3 style={{ margin: 0 }}>
+                {u.display_name}
+                {u.email === ADMIN_EMAIL && (
+                  <span className="status-pill status-live" style={{ marginLeft: 8, fontSize: 10 }}>Admin</span>
+                )}
+              </h3>
               <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{u.kind === 'einwohner' ? 'Einwohner' : 'Betrieb'}</span>
             </div>
             <span className={`status-pill ${statusClass[u.account_status]}`}>
@@ -107,8 +161,9 @@ function NutzerTab() {
             </span>
           </div>
           <p style={{ margin: '4px 0', fontSize: 13, color: 'var(--ink-soft)' }}>{u.email}</p>
-          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
-            Zuletzt online: {u.last_seen_at ? new Date(u.last_seen_at).toLocaleString('de-DE') : 'Noch nie'}
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <PresenceDot lastSeenAt={u.last_seen_at} />
+            {formatLastSeen(u.last_seen_at)}
           </p>
 
           <div className="btn-row">

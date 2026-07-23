@@ -11,6 +11,7 @@ import HomeScreen from './pages/HomeScreen.jsx'
 import AccountBlocked from './pages/AccountBlocked.jsx'
 
 export default function App() {
+  const [justConfirmedMsg, setJustConfirmedMsg] = useState('')
   const [session, setSession] = useState(undefined)
   const [profileType, setProfileType] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -22,6 +23,16 @@ export default function App() {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const isEmailConfirmation = window.location.hash.includes('type=signup')
+
+      if (event === 'SIGNED_IN' && isEmailConfirmation) {
+        window.history.replaceState({}, '', window.location.pathname)
+        supabase.auth.signOut().then(() => {
+          setJustConfirmedMsg('Deine Email-Adresse wurde bestätigt. Du kannst dich jetzt anmelden.')
+        })
+        return
+      }
+
       if (event === 'SIGNED_IN') {
         sessionStorage.removeItem('pb_activeTab')
         sessionStorage.removeItem('pb_openApp')
@@ -105,7 +116,7 @@ export default function App() {
   }
 
   if (!session) {
-    return <Auth />
+    return <Auth confirmedMessage={justConfirmedMsg} />
   }
 
   if (!profileType && !chosenType) {

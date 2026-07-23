@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabaseClient'
 export default function ChannelDetail({ userId, channelId, onBack }) {
   const [channel, setChannel] = useState(null)
   const [posts, setPosts] = useState([])
-  const [isFollowing, setIsFollowing] = useState(false)
+  const [followStatus, setFollowStatus] = useState('none') // 'none' | 'active' | 'pending'
+  const [pendingFollowers, setPendingFollowers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [content, setContent] = useState('')
@@ -23,14 +24,20 @@ export default function ChannelDetail({ userId, channelId, onBack }) {
 
     const [{ data: ch, error: chError }, { data: follow }, { data: postData }] = await Promise.all([
       supabase.from('channels').select('*').eq('id', channelId).maybeSingle(),
-      supabase.from('channel_follows').select('id').eq('user_id', userId).eq('channel_id', channelId).maybeSingle(),
+      supabase.from('channel_follows').select('status').eq('user_id', userId).eq('channel_id', channelId).maybeSingle(),
       supabase.from('channel_posts').select('*').eq('channel_id', channelId).order('created_at', { ascending: false })
     ])
 
     if (chError) setError(chError.message)
     setChannel(ch)
-    setIsFollowing(!!follow)
+    setFollowStatus(follow ? follow.status : 'none')
     setPosts(postData || [])
+
+    if (ch?.created_by === userId) {
+      const { data: pending } = await supabase.rpc('get_channel_pending_followers', { gid: channelId })
+      setPendingFollowers(pending || [])
+    }
+
     setLoading(false)
   }
 
@@ -38,13 +45,42 @@ export default function ChannelDetail({ userId, channelId, onBack }) {
 
   async function toggleFollow() {
     setBusy(true)
-    if (isFollowing) {
+    if (followStatus !== 'none') {
       await supabase.from('channel_follows').delete().eq('user_id', userId).eq('channel_id', channelId)
-      setIsFollowing(false)
+      setFollowStatus('none')
     } else {
-      await supabase.from('channel_follows').insert({ user_id: userId, channel_id: channelId })
-      setIsFollowing(true)
+      const newStatus = channel.require_approval ? 'pending' : 'active'
+      await supabase.from('channel_follows').insert({ user_id: userId, channel_id: channelId, status: newStatus })
+      setFollowStatus(newStatus)
     }
+    setBusy(false)
+  }
+
+  async function handleTogglePublic() {
+    const newValue = !channel.is_public
+    const { error } = await supabase.from('channels').update({ is_public: newValue }).eq('id', channelId)
+    if (error) setError(error.message)
+    else setChannel((prev) => ({ ...prev, is_public: newValue }))
+  }
+
+  async function handleToggleApproval() {
+    const newValue = !channel.require_approval
+    const { error } = await supabase.from('channels').update({ require_approval: newValue }).eq('id', channelId)
+    if (error) setError(error.message)
+    else setChannel((prev) => ({ ...prev, require_approval: newValue }))
+  }
+
+  async function approveFollower(uid) {
+    setBusy(true)
+    await supabase.from('channel_follows').update({ status: 'active' }).eq('channel_id', channelId).eq('user_id', uid)
+    setPendingFollowers((prev) => prev.filter((p) => p.user_id !== uid))
+    setBusy(false)
+  }
+
+  async function declineFollower(uid) {
+    setBusy(true)
+    await supabase.from('channel_follows').delete().eq('channel_id', channelId).eq('user_id', uid)
+    setPendingFollowers((prev) => prev.filter((p) => p.user_id !== uid))
     setBusy(false)
   }
 
@@ -100,9 +136,15 @@ export default function ChannelDetail({ userId, channelId, onBack }) {
 
         {channel.description && <p style={{ fontSize: 14, marginBottom: 14 }}>{channel.description}</p>}
 
+        {followStatus === 'pending' && (
+          <div className="error-box" style={{ background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
+            Deine Anfrage wartet auf Bestätigung durch den Ersteller.
+          </div>
+        )}
+
         <div className="btn-row" style={{ marginBottom: 18 }}>
-          <button className={isFollowing ? 'btn btn-secondary' : 'btn btn-primary'} onClick={toggleFollow} disabled={busy}>
-            {isFollowing ? 'Entfolgen' : 'Folgen'}
+          <button className={followStatus !== 'none' ? 'btn btn-secondary' : 'btn btn-primary'} onClick={toggleFollow} disabled={busy}>
+            {followStatus === 'active' ? 'Entfolgen' : followStatus === 'pending' ? 'Anfrage zurückziehen' : 'Folgen'}
           </button>
           {!isOwner && (
             <button className="btn btn-secondary" onClick={handleReport} disabled={reported}>
@@ -110,6 +152,39 @@ export default function ChannelDetail({ userId, channelId, onBack }) {
             </button>
           )}
         </div>
+
+        {isOwner && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Einstellungen</h3>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" checked={channel.is_public} onChange={handleTogglePublic} style={{ width: 'auto' }} />
+                Öffentlich (erscheint im Katalog aller Nutzer)
+              </label>
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" checked={channel.require_approval} onChange={handleToggleApproval} style={{ width: 'auto' }} />
+                Neue Abonnenten müssen von mir bestätigt werden
+              </label>
+            </div>
+          </div>
+        )}
+
+        {isOwner && pendingFollowers.length > 0 && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Wartende Abonnenten</h3>
+            {pendingFollowers.map((p) => (
+              <div key={p.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span>@{p.username}</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-primary" style={{ width: 'auto', padding: '6px 12px' }} onClick={() => approveFollower(p.user_id)} disabled={busy}>Annehmen</button>
+                  <button className="btn btn-secondary" style={{ width: 'auto', padding: '6px 12px' }} onClick={() => declineFollower(p.user_id)} disabled={busy}>Ablehnen</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {isOwner && (
           <div className="card">

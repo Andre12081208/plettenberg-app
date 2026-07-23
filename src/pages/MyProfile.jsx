@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function MyProfile({ userId, profile, onBack, onProfileUpdated }) {
+async function handleLogout() {
+    await supabase.auth.signOut()
+  }export default function MyProfile({ userId, profile, onBack, onProfileUpdated }) {
   const [firstName, setFirstName] = useState(profile.first_name || '')
   const [lastName, setLastName] = useState(profile.last_name || '')
   const [username, setUsername] = useState(profile.username || '')
@@ -239,7 +241,9 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
             </button>
           </form>
         </div>
-      </main>
+      <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 8 }}>
+          Abmelden
+        </button></main>
     </div>
   )
 }

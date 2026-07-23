@@ -28,14 +28,21 @@ export default function Calendar({ userId, onBack }) {
   const [viewedOwnerId, setViewedOwnerId] = useState(userId)
   const [sharedWithMe, setSharedWithMe] = useState([])
   const [events, setEvents] = useState({})
+  const [birthdays, setBirthdays] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [screen, setScreen] = useState('month') // 'month' | 'settings'
   const [editingEvent, setEditingEvent] = useState(null) // null | 'new' | event object
 
-  useEffect(() => {
+ useEffect(() => {
     loadSharedWithMe()
+    loadBirthdays()
   }, [])
+
+  async function loadBirthdays() {
+    const { data } = await supabase.rpc('get_contact_birthdays')
+    setBirthdays(data || [])
+  }
 
   useEffect(() => {
     loadEvents()
@@ -174,7 +181,13 @@ export default function Calendar({ userId, onBack }) {
           {cells.map((day, i) => {
             if (!day) return <div key={i} />
             const key = toKey(day)
-            const hasEvents = (events[key] || []).length > 0
+           const hasEvents = (events[key] || []).length > 0
+            const birthdaysOnDay = isOwnCalendar
+              ? birthdays.filter((b) => {
+                  const bd = new Date(b.birthday)
+                  return bd.getMonth() === day.getMonth() && bd.getDate() === day.getDate()
+                })
+              : []
             const isSelected = selectedKey === key
             const isToday = toKey(new Date()) === key
             return (
@@ -189,10 +202,16 @@ export default function Calendar({ userId, onBack }) {
                 }}
               >
                 {day.getDate()}
-                {hasEvents && (
+               {hasEvents && (
                   <span style={{
-                    position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)',
+                    position: 'absolute', bottom: 4, left: 'calc(50% - 5px)',
                     width: 4, height: 4, borderRadius: '50%', background: isSelected ? '#fff' : 'var(--clay)'
+                  }} />
+                )}
+                {birthdaysOnDay.length > 0 && (
+                  <span style={{
+                    position: 'absolute', bottom: 4, left: 'calc(50% + 1px)',
+                    width: 4, height: 4, borderRadius: '50%', background: isSelected ? '#fff' : '#B0396A'
                   }} />
                 )}
               </button>
@@ -208,6 +227,17 @@ export default function Calendar({ userId, onBack }) {
               {selectedDate.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
             </h3>
 
+            {selectedDate && isOwnCalendar && (() => {
+              const todaysBirthdays = birthdays.filter((b) => {
+                const bd = new Date(b.birthday)
+                return bd.getMonth() === selectedDate.getMonth() && bd.getDate() === selectedDate.getDate()
+              })
+              return todaysBirthdays.map((b) => (
+                <p key={b.contact_id} style={{ margin: '0 0 10px', fontSize: 14, color: '#B0396A', fontWeight: 600 }}>
+                  🎂 @{b.username} hat Geburtstag
+                </p>
+              ))
+            })()}
             {selectedEvents.length === 0 && <p className="center-note">Keine Termine an diesem Tag.</p>}
 
             {selectedEvents.map((ev) => (

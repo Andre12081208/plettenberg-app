@@ -21,7 +21,11 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'SIGNED_IN') {
+        sessionStorage.removeItem('pb_activeTab')
+        sessionStorage.removeItem('pb_openApp')
+      }
       setSession(newSession)
       setChosenType(null)
     })

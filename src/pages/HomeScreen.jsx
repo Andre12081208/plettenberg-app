@@ -11,6 +11,7 @@ import SnakeGame from './SnakeGame.jsx'
 import Kiosk from './Kiosk.jsx'
 import AdminPanel from './AdminPanel.jsx'
 import Calendar from './Calendar.jsx'
+import Settings from './Settings.jsx'
 import ChannelsHub from './ChannelsHub.jsx'
 import GastroHub from './GastroHub.jsx'
 
@@ -199,6 +200,9 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
   if (openApp === 'calendar') {
     return <Calendar userId={userId} onBack={() => setOpenApp(null)} />
   }
+  if (openApp === 'settings') {
+    return <Settings profile={profile} onBack={() => setOpenApp(null)} onProfileUpdated={onProfileUpdated} />
+  }
 
   if (openApp === 'channels') {
     return (
@@ -293,6 +297,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
               <button className="app-tile" onClick={() => setOpenApp('gastro')}>
                 <div className="app-tile-icon">🍽️</div>
                 <div className="app-tile-label">Gastro</div>
+              </button>
+              <button className="app-tile" onClick={() => setOpenApp('settings')}>
+                <div className="app-tile-icon">⚙️</div>
+                <div className="app-tile-label">Einstellungen</div>
               </button>
 
               <button className="app-tile" onClick={() => setOpenApp('store')}>

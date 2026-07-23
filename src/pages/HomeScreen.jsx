@@ -11,6 +11,7 @@ import SnakeGame from './SnakeGame.jsx'
 import Kiosk from './Kiosk.jsx'
 import AdminPanel from './AdminPanel.jsx'
 import Calendar from './Calendar.jsx'
+import ChannelsHub from './ChannelsHub.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
 
@@ -31,6 +32,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
+  const [initialChannelCode, setInitialChannelCode] = useState(null)
 
   useEffect(() => {
     loadInstalled()
@@ -38,12 +40,16 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     const params = new URLSearchParams(window.location.search)
     const u = params.get('u')
     const g = params.get('g')
+    const c = params.get('c')
 
     if (u || g) {
-      setActiveTab('apps') // wird gleich sofort überschrieben, sorgt nur für sauberen Zwischenzustand
       setTimeout(() => setActiveTab('contacts'), 0)
       if (u) setInitialUsername(u)
       if (g) setInitialGroupCode(g)
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (c) {
+      setOpenApp('channels')
+      setInitialChannelCode(c)
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
@@ -152,6 +158,17 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     return <Calendar userId={userId} onBack={() => setOpenApp(null)} />
   }
 
+  if (openApp === 'channels') {
+    return (
+      <ChannelsHub
+        userId={userId}
+        onBack={() => setOpenApp(null)}
+        initialChannelCode={initialChannelCode}
+        onConsumedInitial={() => setInitialChannelCode(null)}
+      />
+    )
+  }
+
   if (openApp === 'snake') {
     return <SnakeGame onBack={() => setOpenApp(null)} />
   }
@@ -213,6 +230,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
               <button className="app-tile" onClick={() => setOpenApp('calendar')}>
                 <div className="app-tile-icon">📅</div>
                 <div className="app-tile-label">Kalender</div>
+              </button>
+
+              <button className="app-tile" onClick={() => setOpenApp('channels')}>
+                <div className="app-tile-icon">📢</div>
+                <div className="app-tile-label">Channels</div>
               </button>
 
               <button className="app-tile" onClick={() => setOpenApp('kiosk')}>

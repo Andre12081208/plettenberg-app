@@ -56,6 +56,7 @@ export default function AdminPanel({ onBack, embedded }) {
   const content = (
     <>
       <div className="btn-row" style={{ marginBottom: 18, flexWrap: 'wrap' }}>
+        <button className={tab === 'insights' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('insights')}>Insights</button>
         <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
         <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
         <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
@@ -63,6 +64,7 @@ export default function AdminPanel({ onBack, embedded }) {
         <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('channels')}>Channels</button>
       </div>
 
+      {tab === 'insights' && <InsightsTab />}
       {tab === 'nutzer' && <NutzerTab />}
       {tab === 'gewerbe' && <GewerbeTab />}
       {tab === 'produkte' && <ProdukteTab />}
@@ -101,7 +103,68 @@ export default function AdminPanel({ onBack, embedded }) {
   )
 }
 
-function NutzerTab() {
+function InsightsTab() {
+  const [overview, setOverview] = useState(null)
+  const [usage, setUsage] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadStats()
+  }, [])
+
+  async function loadStats() {
+    setLoading(true)
+    setError('')
+
+    const [{ data: overviewData, error: overviewError }, { data: usageData, error: usageError }] = await Promise.all([
+      supabase.rpc('admin_get_overview_stats'),
+      supabase.rpc('admin_get_usage_stats')
+    ])
+
+    if (overviewError) setError(overviewError.message)
+    if (usageError) setError(usageError.message)
+
+    setOverview(overviewData?.[0] || null)
+    setUsage(usageData || [])
+    setLoading(false)
+  }
+
+  if (loading) return <div className="loading-dot">Lädt...</div>
+  if (error) return <div className="error-box">{error}</div>
+  if (!overview) return <p className="center-note">Keine Daten verfügbar.</p>
+
+  const regularUsers = overview.total_users - overview.never_active
+
+  return (
+    <>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Übersicht</h3>
+        <p style={{ margin: '4px 0' }}>👥 Registrierte Nutzer gesamt: <strong>{overview.total_users}</strong></p>
+        <p style={{ margin: '4px 0', fontSize: 13, color: 'var(--ink-soft)' }}>davon {overview.total_private} Einwohner, {overview.total_business} Betriebe</p>
+        <p style={{ margin: '12px 0 4px' }}>🟢 Gerade online: <strong>{overview.online_now}</strong></p>
+        <p style={{ margin: '4px 0' }}>📅 Aktiv in den letzten 7 Tagen: <strong>{overview.active_7d}</strong></p>
+        <p style={{ margin: '4px 0' }}>📅 Aktiv in den letzten 30 Tagen: <strong>{overview.active_30d}</strong></p>
+        <p style={{ margin: '4px 0' }}>👤 Regelmäßig genutzt (mind. 1x eingeloggt): <strong>{regularUsers}</strong></p>
+        <p style={{ margin: '4px 0' }}>💤 Registriert, aber nie eingeloggt: <strong>{overview.never_active}</strong></p>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Durchschnittliche Nutzungsdauer</h3>
+        {usage.map((u) => (
+          <div key={u.user_type} style={{ marginBottom: 14 }}>
+            <p style={{ margin: '0 0 6px', fontWeight: 600 }}>
+              {u.user_type === 'einwohner' ? 'Einwohner' : 'Betriebe (z.B. Restaurants)'}
+            </p>
+            <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--ink-soft)' }}>Pro Tag: {u.avg_minutes_per_day} Min.</p>
+            <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--ink-soft)' }}>Pro Woche: {u.avg_minutes_per_week} Min.</p>
+            <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--ink-soft)' }}>Pro Monat: {u.avg_minutes_per_month} Min.</p>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}function NutzerTab() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

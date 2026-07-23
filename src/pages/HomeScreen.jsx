@@ -10,6 +10,7 @@ import Marketplace from './Marketplace.jsx'
 import SnakeGame from './SnakeGame.jsx'
 import Kiosk from './Kiosk.jsx'
 import AdminPanel from './AdminPanel.jsx'
+import Calendar from './Calendar.jsx'
 
 export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('feed')
@@ -62,6 +63,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     return <Kiosk userId={userId} onBack={() => setOpenApp(null)} />
   }
 
+  if (openApp === 'calendar') {
+    return <Calendar userId={userId} onBack={() => setOpenApp(null)} />
+  }
+
   if (openApp === 'snake') {
     return <SnakeGame onBack={() => setOpenApp(null)} />
   }
@@ -108,6 +113,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
               <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
                 <div className="app-tile-icon">🏛️</div>
                 <div className="app-tile-label">Stadtverwaltung</div>
+              </button>
+
+              <button className="app-tile" onClick={() => setOpenApp('calendar')}>
+                <div className="app-tile-icon">📅</div>
+                <div className="app-tile-label">Kalender</div>
               </button>
 
               <button className="app-tile" onClick={() => setOpenApp('kiosk')}>

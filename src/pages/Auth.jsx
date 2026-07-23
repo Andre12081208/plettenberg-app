@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function Auth() {
-  const [mode, setMode] = useState('signup') // 'signup' | 'login'
+export default function Auth({ confirmedMessage }) {
+  const [mode, setMode] = useState(confirmedMessage ? 'login' : 'signup')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,7 +16,7 @@ export default function Auth() {
     setLoading(true)
 
     if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
       if (error) {
         setError(übersetzeFehler(error.message))
       } else {
@@ -46,6 +46,7 @@ export default function Auth() {
       </div>
       <main>
         {error && <div className="error-box">{error}</div>}
+        {confirmedMessage && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{confirmedMessage}</div>}
         {info && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{info}</div>}
 
         <form onSubmit={handleSubmit}>

@@ -15,7 +15,7 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
   const [posts, setPosts] = useState([])
   const [loadingPosts, setLoadingPosts] = useState(false)
 
-  const canPost = profileType === 'business' && profile.profile_kind === 'anbieter' && profile.status === 'live'
+  const canPost = profileType === 'business' && profile.profile_kind === 'anbieter' && profile.status === 'live' && profile.account_status !== 'beobachter'
 
   useEffect(() => {
     if (canPost) loadPosts()
@@ -62,6 +62,11 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
       <div className="topbar">
         <div className="mark">Plettenberg</div>
         <h1>Willkommen{profileType === 'private' ? `, ${profile.first_name}` : ''}</h1>
+        {profile.account_status === 'beobachter' && (
+          <div className="error-box" style={{ background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
+            Beobachter-Modus: Du kannst aktuell nichts schreiben oder senden.
+          </div>
+        )}
       </div>
       <main>
         {profileType === 'private' ? (

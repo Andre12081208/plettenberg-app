@@ -40,10 +40,9 @@ export default function App() {
 
   useEffect(() => {
     if (!profileType) return
-    supabase.rpc('touch_last_seen')
-    const interval = setInterval(() => {
-      supabase.rpc('touch_last_seen')
-    }, 60000)
+    const ping = () => { supabase.rpc('touch_last_seen').then(() => {}) }
+    ping()
+    const interval = setInterval(ping, 60000)
     return () => clearInterval(interval)
   }, [profileType])
 

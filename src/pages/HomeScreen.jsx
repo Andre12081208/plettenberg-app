@@ -27,12 +27,27 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
   })
   const [installedApps, setInstalledApps] = useState([])
   const [installedSystemKeys, setInstalledSystemKeys] = useState([])
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
+  const [initialUsername, setInitialUsername] = useState(null)
+  const [initialGroupCode, setInitialGroupCode] = useState(null)
 
   useEffect(() => {
     loadInstalled()
+
+    const params = new URLSearchParams(window.location.search)
+    const u = params.get('u')
+    const g = params.get('g')
+
+    if (u || g) {
+      setActiveTab('apps') // wird gleich sofort überschrieben, sorgt nur für sauberen Zwischenzustand
+      setTimeout(() => setActiveTab('contacts'), 0)
+      if (u) setInitialUsername(u)
+      if (g) setInitialGroupCode(g)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
   }, [])
+
   useEffect(() => {
     checkUnreadMessages()
     const interval = setInterval(checkUnreadMessages, 20000)
@@ -47,6 +62,23 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
       .neq('sender_id', userId)
       .limit(1)
     setHasUnreadMessages((data || []).length > 0)
+  }
+
+  async function loadInstalled() {
+    setLoading(true)
+
+    const [{ data: businessApps }, { data: systemApps }] = await Promise.all([
+      supabase.from('installed_apps').select('business_profiles(*)').eq('user_id', userId),
+      supabase.from('installed_system_apps').select('app_key').eq('user_id', userId)
+    ])
+
+    setInstalledApps((businessApps || []).map((row) => row.business_profiles).filter(Boolean))
+    setInstalledSystemKeys((systemApps || []).map((s) => s.app_key))
+    setLoading(false)
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
   }
 
   useEffect(() => {
@@ -92,21 +124,6 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
-
-  async function loadInstalled() {
-    setLoading(true)
-
-    const [{ data: businessApps }, { data: systemApps }] = await Promise.all([
-      supabase.from('installed_apps').select('business_profiles(*)').eq('user_id', userId),
-      supabase.from('installed_system_apps').select('app_key').eq('user_id', userId)
-    ])
-
-    setInstalledApps((businessApps || []).map((row) => row.business_profiles).filter(Boolean))
-    setInstalledSystemKeys((systemApps || []).map((s) => s.app_key))
-    setLoading(false)
-  }
-
- 
 
   if (openApp === 'stadtverwaltung') {
     return <StadtverwaltungApp onBack={() => setOpenApp(null)} />
@@ -157,7 +174,17 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     <div className="app-shell">
       {activeTab === 'feed' && <Newsfeed userId={userId} embedded />}
 
-     {activeTab === 'contacts' && <Contacts userId={userId} profile={profile} embedded onUnreadChanged={checkUnreadMessages} />}
+      {activeTab === 'contacts' && (
+        <Contacts
+          userId={userId}
+          profile={profile}
+          embedded
+          onUnreadChanged={checkUnreadMessages}
+          initialUsername={initialUsername}
+          initialGroupCode={initialGroupCode}
+          onConsumedInitial={() => { setInitialUsername(null); setInitialGroupCode(null) }}
+        />
+      )}
 
       {activeTab === 'admin' && isAdmin && <AdminPanel embedded />}
 
@@ -221,8 +248,6 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
                 <div className="app-tile-label">App Store</div>
               </button>
             </div>
-
-            
           </main>
         </>
       )}

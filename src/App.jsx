@@ -48,7 +48,22 @@ export default function App() {
     ping()
     const interval = setInterval(ping, 60000)
     return () => clearInterval(interval)
-  }, [profileType])
+  }, [profileType])useEffect(() => {
+    const preference = profile?.theme_preference || 'auto'
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+    function applyTheme() {
+      let isDark
+      if (preference === 'hell') isDark = false
+      else if (preference === 'dunkel') isDark = true
+      else isDark = mediaQuery.matches
+      document.body.classList.toggle('dark-mode', isDark)
+    }
+
+    applyTheme()
+    mediaQuery.addEventListener('change', applyTheme)
+    return () => mediaQuery.removeEventListener('change', applyTheme)
+  }, [profile])
 
   async function loadProfile(userId) {
     setCheckingProfile(true)

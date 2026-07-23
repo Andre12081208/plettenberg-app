@@ -9,8 +9,9 @@ import MyProfile from './MyProfile.jsx'
 import Marketplace from './Marketplace.jsx'
 import SnakeGame from './SnakeGame.jsx'
 import Kiosk from './Kiosk.jsx'
+import AdminPanel from './AdminPanel.jsx'
 
-export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onProfileUpdated }) {
+export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('feed')
   const [openApp, setOpenApp] = useState(null)
   const [installedApps, setInstalledApps] = useState([])
@@ -81,14 +82,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
 
   return (
     <div className="app-shell">
-      {profile.account_status === 'beobachter' && (
-        <div className="error-box" style={{ margin: '12px 16px 0', background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
-          Beobachter-Modus: Du kannst aktuell nichts schreiben, bestellen oder senden.
-        </div>
-      )}
       {activeTab === 'feed' && <Newsfeed userId={userId} embedded />}
 
       {activeTab === 'contacts' && <Contacts userId={userId} profile={profile} embedded />}
+
+      {activeTab === 'admin' && isAdmin && <AdminPanel embedded />}
 
       {activeTab === 'apps' && (
         <>
@@ -146,13 +144,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
               </button>
             </div>
 
-            {isAdmin && (
-              <button className="btn btn-primary" onClick={onOpenAdmin} style={{ marginTop: 28 }}>
-                Verwaltung öffnen
-              </button>
-            )}
-
-            <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 12 }}>
+            <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 20 }}>
               Abmelden
             </button>
           </main>
@@ -181,6 +173,15 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
           <span className="tab-bar-icon">🔲</span>
           Apps
         </button>
+        {isAdmin && (
+          <button
+            className={`tab-bar-item ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => setActiveTab('admin')}
+          >
+            <span className="tab-bar-icon">🛠️</span>
+            Verwaltung
+          </button>
+        )}
       </nav>
     </div>
   )

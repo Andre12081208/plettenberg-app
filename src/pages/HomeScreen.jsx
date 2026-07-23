@@ -90,9 +90,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     setLoading(false)
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-  }
+ 
 
   if (openApp === 'stadtverwaltung') {
     return <StadtverwaltungApp onBack={() => setOpenApp(null)} />
@@ -208,9 +206,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
               </button>
             </div>
 
-            <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 20 }}>
-              Abmelden
-            </button>
+            
           </main>
         </>
       )}

@@ -27,11 +27,27 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
   })
   const [installedApps, setInstalledApps] = useState([])
   const [installedSystemKeys, setInstalledSystemKeys] = useState([])
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadInstalled()
   }, [])
+  useEffect(() => {
+    checkUnreadMessages()
+    const interval = setInterval(checkUnreadMessages, 20000)
+    return () => clearInterval(interval)
+  }, [])
+
+  async function checkUnreadMessages() {
+    const { data } = await supabase
+      .from('messages')
+      .select('id')
+      .is('read_at', null)
+      .neq('sender_id', userId)
+      .limit(1)
+    setHasUnreadMessages((data || []).length > 0)
+  }
 
   useEffect(() => {
     if (!pendingBusinessAppId) return
@@ -141,7 +157,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     <div className="app-shell">
       {activeTab === 'feed' && <Newsfeed userId={userId} embedded />}
 
-      {activeTab === 'contacts' && <Contacts userId={userId} profile={profile} embedded />}
+     {activeTab === 'contacts' && <Contacts userId={userId} profile={profile} embedded onUnreadChanged={checkUnreadMessages} />}
 
       {activeTab === 'admin' && isAdmin && <AdminPanel embedded />}
 
@@ -222,9 +238,13 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
         <button
           className={`tab-bar-item ${activeTab === 'contacts' ? 'active' : ''}`}
           onClick={() => setActiveTab('contacts')}
+          style={{ position: 'relative' }}
         >
           <span className="tab-bar-icon">🤝</span>
           Kontakte
+          {hasUnreadMessages && (
+            <span style={{ position: 'absolute', top: 6, right: '30%', width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)' }} />
+          )}
         </button>
         <button
           className={`tab-bar-item ${activeTab === 'apps' ? 'active' : ''}`}

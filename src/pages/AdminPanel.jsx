@@ -60,12 +60,14 @@ export default function AdminPanel({ onBack, embedded }) {
         <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
         <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
         <button className={tab === 'bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('bestellungen')}>Bestellungen</button>
+        <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('channels')}>Channels</button>
       </div>
 
       {tab === 'nutzer' && <NutzerTab />}
       {tab === 'gewerbe' && <GewerbeTab />}
       {tab === 'produkte' && <ProdukteTab />}
       {tab === 'bestellungen' && <BestellungenTab />}
+      {tab === 'channels' && <ChannelsTab />}
     </>
   )
 
@@ -538,6 +540,61 @@ function BestellungenTab() {
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+function ChannelsTab() {
+  const [channels, setChannels] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState(null)
+
+  useEffect(() => {
+    loadChannels()
+  }, [])
+
+  async function loadChannels() {
+    setLoading(true)
+    const { data, error } = await supabase.rpc('admin_list_channels')
+    if (error) setError(error.message)
+    setChannels(data || [])
+    setLoading(false)
+  }
+
+  async function setStatus(channelId, newStatus) {
+    setBusyId(channelId)
+    const { error } = await supabase.rpc('admin_set_channel_status', { target_channel_id: channelId, new_status: newStatus })
+    if (error) setError(error.message)
+    else setChannels((prev) => prev.map((c) => (c.channel_id === channelId ? { ...c, status: newStatus } : c)))
+    setBusyId(null)
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && channels.length === 0 && <p className="center-note">Noch keine Channels vorhanden.</p>}
+
+      {channels.map((c) => (
+        <div className="card" key={c.channel_id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+            <h3 style={{ margin: 0 }}>{c.name}</h3>
+            <span className={`status-pill ${c.status === 'aktiv' ? 'status-live' : 'status-abgelehnt'}`}>
+              {c.status === 'aktiv' ? 'Aktiv' : 'Deaktiviert'}
+            </span>
+          </div>
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>Erstellt von: @{c.creator_username}</p>
+          {c.report_count > 0 && (
+            <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--danger)', fontWeight: 600 }}>
+              {c.report_count} Meldung{c.report_count > 1 ? 'en' : ''}
+            </p>
+          )}
+          <div className="btn-row">
+            <button className="btn btn-secondary" disabled={busyId === c.channel_id || c.status === 'aktiv'} onClick={() => setStatus(c.channel_id, 'aktiv')}>Aktivieren</button>
+            <button className="btn btn-secondary" disabled={busyId === c.channel_id || c.status === 'deaktiviert'} onClick={() => setStatus(c.channel_id, 'deaktiviert')}>Deaktivieren</button>
           </div>
         </div>
       ))}

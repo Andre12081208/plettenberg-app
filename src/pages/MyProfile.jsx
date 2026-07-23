@@ -6,6 +6,8 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
   const [lastName, setLastName] = useState(profile.last_name || '')
   const [username, setUsername] = useState(profile.username || '')
   const [phone, setPhone] = useState(profile.phone || '')
+  const [birthday, setBirthday] = useState(profile.birthday || '')
+  const [showBirthday, setShowBirthday] = useState(profile.show_birthday_to_contacts || false)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(profile.avatar_url || null)
   const [saving, setSaving] = useState(false)
@@ -58,6 +60,8 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
           last_name: lastName.trim(),
           username: username.trim().toLowerCase(),
           phone: phone.trim() || null,
+          birthday: birthday || null,
+          show_birthday_to_contacts: showBirthday,
           avatar_url: avatarUrl
         })
         .eq('id', userId)
@@ -164,9 +168,26 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
               <input id="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="phone">Telefonnummer</label>
-              <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
-            </div>
+            <label htmlFor="phone">Telefonnummer</label>
+            <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
+          </div>
+
+          <div className="field">
+            <label htmlFor="birthday">Geburtstag</label>
+            <input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+          </div>
+
+          <div className="field">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={showBirthday}
+                onChange={(e) => setShowBirthday(e.target.checked)}
+                style={{ width: 'auto' }}
+              />
+              Meinen Geburtstag für bestätigte Kontakte sichtbar machen
+            </label>
+          </div>
 
             <button className="btn btn-primary" type="submit" disabled={saving}>
               {saving ? 'Wird gespeichert...' : 'Stammdaten speichern'}

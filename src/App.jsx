@@ -48,7 +48,8 @@ export default function App() {
     ping()
     const interval = setInterval(ping, 60000)
     return () => clearInterval(interval)
-  }, [profileType])useEffect(() => {
+  }, [profileType])
+    useEffect(() => {
     const preference = profile?.theme_preference || 'auto'
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 

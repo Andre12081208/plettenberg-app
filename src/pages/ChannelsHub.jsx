@@ -7,6 +7,7 @@ import QRScanner from './QRScanner.jsx'
 export default function ChannelsHub({ userId, onBack, initialChannelCode, onConsumedInitial }) {
   const [view, setView] = useState('list')
   const [channels, setChannels] = useState([])
+  const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedChannelId, setSelectedChannelId] = useState(null)
@@ -14,7 +15,7 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
   const [searchResults, setSearchResults] = useState([])
   const [searching, setSearching] = useState(false)
 
-  useEffect(() => { loadChannels() }, [])
+  useEffect(() => { loadChannels(); loadCatalog() }, [])
 
   useEffect(() => {
     if (initialChannelCode) resolveCode(initialChannelCode)
@@ -39,16 +40,17 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
     setLoading(false)
   }
 
+  async function loadCatalog() {
+    const { data, error } = await supabase.rpc('get_public_channels')
+    if (error) setError(error.message)
+    setCatalog(data || [])
+  }
+
   async function handleSearch(e) {
     e?.preventDefault()
     if (!query.trim()) { setSearchResults([]); return }
     setSearching(true)
-    const { data, error } = await supabase
-      .from('channels')
-      .select('id, name, description')
-      .eq('status', 'aktiv')
-      .ilike('name', `%${query.trim()}%`)
-      .limit(20)
+    const { data, error } = await supabase.rpc('search_channels', { query: query.trim() })
     if (error) setError(error.message)
     setSearchResults(data || [])
     setSearching(false)
@@ -72,7 +74,7 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
       <ChannelDetail
         userId={userId}
         channelId={selectedChannelId}
-        onBack={() => { setSelectedChannelId(null); loadChannels() }}
+        onBack={() => { setSelectedChannelId(null); loadChannels(); loadCatalog() }}
       />
     )
   }
@@ -96,6 +98,8 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
     )
   }
 
+  const followedIds = new Set(channels.map((c) => c.channel_id))
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -114,6 +118,7 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
 
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Channel suchen</h3>
+          <p className="hint" style={{ marginTop: -4, marginBottom: 10 }}>Findet auch private Channels, die nicht im Katalog stehen.</p>
           <form onSubmit={handleSearch}>
             <div className="field">
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name des Channels" />
@@ -130,7 +135,10 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
               style={{ marginTop: 12 }}
               onClick={() => setSelectedChannelId(r.id)}
             >
-              <h3 style={{ margin: 0 }}>{r.name}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h3 style={{ margin: 0 }}>{r.name}</h3>
+                {!r.is_public && <span className="status-pill status-vertrag" style={{ fontSize: 10 }}>Privat</span>}
+              </div>
               {r.description && <p style={{ margin: 0 }}>{r.description}</p>}
             </button>
           ))}
@@ -145,8 +153,20 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <h3 style={{ margin: 0 }}>{c.name}</h3>
               {c.is_owner && <span className="status-pill status-live" style={{ fontSize: 10 }}>Eigener Channel</span>}
+              {c.follow_status === 'pending' && <span className="status-pill status-pruefung" style={{ fontSize: 10 }}>Warte auf Bestätigung</span>}
             </div>
             {c.last_post && <p style={{ margin: 0 }}>{c.last_post.length > 50 ? c.last_post.slice(0, 50) + '…' : c.last_post}</p>}
+          </button>
+        ))}
+
+        <h3 style={{ marginTop: 24, marginBottom: 10 }}>Katalog – öffentliche Channels</h3>
+        {catalog.filter((c) => !followedIds.has(c.id)).length === 0 && (
+          <p className="center-note">Keine weiteren öffentlichen Channels verfügbar.</p>
+        )}
+        {catalog.filter((c) => !followedIds.has(c.id)).map((c) => (
+          <button key={c.id} className="card-choice" onClick={() => setSelectedChannelId(c.id)}>
+            <h3 style={{ margin: 0 }}>{c.name}</h3>
+            {c.description && <p style={{ margin: 0 }}>{c.description}</p>}
           </button>
         ))}
       </main>

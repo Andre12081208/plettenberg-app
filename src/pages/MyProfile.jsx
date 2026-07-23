@@ -1,31 +1,23 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-async function handleLogout() {
-    await supabase.auth.signOut()
-  }export default function MyProfile({ userId, profile, onBack, onProfileUpdated }) {
+export default function MyProfile({ userId, profile, onBack, onProfileUpdated }) {
   const [firstName, setFirstName] = useState(profile.first_name || '')
   const [lastName, setLastName] = useState(profile.last_name || '')
   const [username, setUsername] = useState(profile.username || '')
   const [phone, setPhone] = useState(profile.phone || '')
   const [birthday, setBirthday] = useState(profile.birthday || '')
   const [showBirthday, setShowBirthday] = useState(profile.show_birthday_to_contacts || false)
-      const [themePreference, setThemePreference] = useState(profile.theme_preference || 'auto')
+  const [contactEmail, setContactEmail] = useState(profile.contact_email || '')
+  const [website, setWebsite] = useState(profile.website || '')
+  const [instagram, setInstagram] = useState(profile.instagram || '')
+  const [tiktok, setTiktok] = useState(profile.tiktok || '')
+  const [info, setInfo] = useState(profile.info || '')
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(profile.avatar_url || null)
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [error, setError] = useState('')
-
-  const [newEmail, setNewEmail] = useState('')
-  const [emailSaving, setEmailSaving] = useState(false)
-  const [emailMsg, setEmailMsg] = useState('')
-  const [emailError, setEmailError] = useState('')
-
-  const [newPassword, setNewPassword] = useState('')
-  const [passwordSaving, setPasswordSaving] = useState(false)
-  const [passwordMsg, setPasswordMsg] = useState('')
-  const [passwordError, setPasswordError] = useState('')
 
   function handleFileChange(e) {
     const f = e.target.files?.[0]
@@ -64,7 +56,12 @@ async function handleLogout() {
           username: username.trim().toLowerCase(),
           phone: phone.trim() || null,
           birthday: birthday || null,
-          show_birthday_to_contacts: showBirthday,theme_preference: themePreference,
+          show_birthday_to_contacts: showBirthday,
+          contact_email: contactEmail.trim() || null,
+          website: website.trim() || null,
+          instagram: instagram.trim() || null,
+          tiktok: tiktok.trim() || null,
+          info: info.trim() || null,
           avatar_url: avatarUrl
         })
         .eq('id', userId)
@@ -84,45 +81,6 @@ async function handleLogout() {
     }
   }
 
-  async function handleChangeEmail(e) {
-    e.preventDefault()
-    setEmailError('')
-    setEmailMsg('')
-    setEmailSaving(true)
-
-    const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
-
-    if (error) {
-      setEmailError(error.message)
-    } else {
-      setEmailMsg('Bestätigungslinks wurden an die alte und neue Email-Adresse geschickt. Erst nach Bestätigung ist die Änderung wirksam.')
-      setNewEmail('')
-    }
-    setEmailSaving(false)
-  }
-
-  async function handleChangePassword(e) {
-    e.preventDefault()
-    setPasswordError('')
-    setPasswordMsg('')
-
-    if (newPassword.length < 6) {
-      setPasswordError('Das Passwort muss mindestens 6 Zeichen haben.')
-      return
-    }
-
-    setPasswordSaving(true)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-
-    if (error) {
-      setPasswordError(error.message)
-    } else {
-      setPasswordMsg('Passwort geändert.')
-      setNewPassword('')
-    }
-    setPasswordSaving(false)
-  }
-
   const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase()
 
   return (
@@ -134,8 +92,11 @@ async function handleLogout() {
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
+        <p className="hint" style={{ marginBottom: 16 }}>
+          Das ist deine Visitenkarte. Bestätigte Kontakte sehen genau das, was du hier ausfüllst.
+        </p>
+
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Stammdaten</h3>
           {error && <div className="error-box">{error}</div>}
           {savedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{savedMsg}</div>}
 
@@ -171,87 +132,54 @@ async function handleLogout() {
               <input id="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
             </div>
             <div className="field">
-            <label htmlFor="phone">Telefonnummer</label>
-            <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
-          </div>
+              <label htmlFor="phone">Telefonnummer</label>
+              <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
+            </div>
 
-          <div className="field">
-            <label htmlFor="birthday">Geburtstag</label>
-            <input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
-          </div>
+            <div className="field">
+              <label htmlFor="birthday">Geburtstag</label>
+              <input id="birthday" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+            </div>
 
-          <div className="field">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="checkbox"
-                checked={showBirthday}
-                onChange={(e) => setShowBirthday(e.target.checked)}
-                style={{ width: 'auto' }}
-              />
-              Meinen Geburtstag für bestätigte Kontakte sichtbar machen
-            </label>
-          </div><div className="field">
-            <label htmlFor="themePreference">Erscheinungsbild</label>
-            <select id="themePreference" value={themePreference} onChange={(e) => setThemePreference(e.target.value)}>
-              <option value="auto">Automatisch (nach Geräteeinstellung)</option>
-              <option value="hell">Hell</option>
-              <option value="dunkel">Dunkel</option>
-            </select>
-          </div>
+            <div className="field">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={showBirthday}
+                  onChange={(e) => setShowBirthday(e.target.checked)}
+                  style={{ width: 'auto' }}
+                />
+                Meinen Geburtstag für bestätigte Kontakte sichtbar machen
+              </label>
+            </div>
+
+            <div className="field">
+              <label htmlFor="contactEmail">Email (für Kontakte sichtbar)</label>
+              <input id="contactEmail" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Optional" />
+            </div>
+            <div className="field">
+              <label htmlFor="website">Webseite</label>
+              <input id="website" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" />
+            </div>
+            <div className="field">
+              <label htmlFor="instagram">Instagram</label>
+              <input id="instagram" value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="Optional" />
+            </div>
+            <div className="field">
+              <label htmlFor="tiktok">TikTok</label>
+              <input id="tiktok" value={tiktok} onChange={(e) => setTiktok(e.target.value)} placeholder="Optional" />
+            </div>
+            <div className="field">
+              <label htmlFor="info">Info</label>
+              <textarea id="info" rows={3} value={info} onChange={(e) => setInfo(e.target.value)} placeholder="Optional, kurzer Text über dich" />
+            </div>
 
             <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? 'Wird gespeichert...' : 'Stammdaten speichern'}
+              {saving ? 'Wird gespeichert...' : 'Visitenkarte speichern'}
             </button>
           </form>
         </div>
-
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Email ändern</h3>
-          {emailError && <div className="error-box">{emailError}</div>}
-          {emailMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{emailMsg}</div>}
-          <form onSubmit={handleChangeEmail}>
-            <div className="field">
-              <label htmlFor="newEmail">Neue Email-Adresse</label>
-              <input
-                id="newEmail"
-                type="email"
-                required
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="neue@email.de"
-              />
-            </div>
-            <button className="btn btn-secondary" type="submit" disabled={emailSaving}>
-              {emailSaving ? 'Einen Moment...' : 'Email ändern'}
-            </button>
-          </form>
-        </div>
-
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Passwort ändern</h3>
-          {passwordError && <div className="error-box">{passwordError}</div>}
-          {passwordMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{passwordMsg}</div>}
-          <form onSubmit={handleChangePassword}>
-            <div className="field">
-              <label htmlFor="newPassword">Neues Passwort</label>
-              <input
-                id="newPassword"
-                type="password"
-                required
-                minLength={6}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="mindestens 6 Zeichen"
-              />
-            </div>
-            <button className="btn btn-secondary" type="submit" disabled={passwordSaving}>
-              {passwordSaving ? 'Einen Moment...' : 'Passwort ändern'}
-            </button>
-          </form>
-        </div>
-      <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 8 }}>
-          Abmelden
-        </button></main>
+      </main>
     </div>
   )
 }

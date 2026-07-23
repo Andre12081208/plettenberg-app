@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import Connections from './Connections.jsx'
 import Chat from './Chat.jsx'
 
-export default function Contacts({ userId, profile, onBack, embedded }) {
+export default function Contacts({ userId, profile, onBack, embedded, onUnreadChanged }) {
   const [view, setView] = useState('list') // 'list' | 'connect'
   const [openChat, setOpenChat] = useState(null)
   const [connections, setConnections] = useState([])
@@ -35,9 +35,19 @@ export default function Contacts({ userId, profile, onBack, embedded }) {
           return { ...c, otherId, otherUsername: username, otherDisplayName: displayName }
         })
     )
-    setConnections(withNames)
+    const { data: unreadRows } = await supabase
+      .from('messages')
+      .select('connection_id')
+      .is('read_at', null)
+      .neq('sender_id', userId)
+
+    const unreadSet = new Set((unreadRows || []).map((r) => r.connection_id))
+    const withUnread = withNames.map((c) => ({ ...c, hasUnread: unreadSet.has(c.id) }))
+
+    setConnections(withUnread)
     setPendingCount(all.filter((c) => c.status === 'pending' && c.addressee_id === userId).length)
     setLoading(false)
+    onUnreadChanged?.()
   }
 
   if (openChat) {
@@ -47,7 +57,7 @@ export default function Contacts({ userId, profile, onBack, embedded }) {
         connectionId={openChat.connectionId}
         otherUsername={openChat.otherUsername}
         otherDisplayName={openChat.otherDisplayName}
-        onBack={() => setOpenChat(null)}
+        onBack={() => { setOpenChat(null); loadConnections() }}
       />
     )
   }
@@ -85,7 +95,12 @@ export default function Contacts({ userId, profile, onBack, embedded }) {
             style={{ marginBottom: 10 }}
             onClick={() => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername, otherDisplayName: c.otherDisplayName })}
           >
-            <h3 style={{ margin: 0 }}>{c.otherDisplayName}</h3>
+           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h3 style={{ margin: 0 }}>{c.otherDisplayName}</h3>
+              {c.hasUnread && (
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)', display: 'inline-block' }} />
+              )}
+            </div>
             <p style={{ margin: 0 }}>@{c.otherUsername}</p>
           </button>
         ))}

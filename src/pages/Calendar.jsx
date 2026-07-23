@@ -22,10 +22,10 @@ function toKey(date) {
   return `${y}-${m}-${d}`
 }
 
-export default function Calendar({ userId, onBack }) {
+export default function Calendar({ userId, onBack, viewOwnerId }) {
   const [viewDate, setViewDate] = useState(startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(null)
-  const [viewedOwnerId, setViewedOwnerId] = useState(userId)
+  const [viewedOwnerId, setViewedOwnerId] = useState(viewOwnerId || userId)
   const [sharedWithMe, setSharedWithMe] = useState([])
   const [events, setEvents] = useState({})
   const [birthdays, setBirthdays] = useState([])

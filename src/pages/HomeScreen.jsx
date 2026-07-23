@@ -8,13 +8,10 @@ import Contacts from './Contacts.jsx'
 import MyProfile from './MyProfile.jsx'
 import Marketplace from './Marketplace.jsx'
 import SnakeGame from './SnakeGame.jsx'
-
-const SYSTEM_APPS = [
-  { key: 'snake', name: 'Snake', icon: '🐍' }
-]
+import Kiosk from './Kiosk.jsx'
 
 export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onProfileUpdated }) {
-  const [activeTab, setActiveTab] = useState('feed') // 'feed' | 'contacts' | 'apps'
+  const [activeTab, setActiveTab] = useState('feed')
   const [openApp, setOpenApp] = useState(null)
   const [installedApps, setInstalledApps] = useState([])
   const [installedSystemKeys, setInstalledSystemKeys] = useState([])
@@ -58,6 +55,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
 
   if (openApp === 'marketplace') {
     return <Marketplace userId={userId} onBack={() => setOpenApp(null)} />
+  }
+
+  if (openApp === 'kiosk') {
+    return <Kiosk userId={userId} onBack={() => setOpenApp(null)} />
   }
 
   if (openApp === 'snake') {
@@ -106,6 +107,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
                 <div className="app-tile-label">Stadtverwaltung</div>
               </button>
 
+              <button className="app-tile" onClick={() => setOpenApp('kiosk')}>
+                <div className="app-tile-icon">🏪</div>
+                <div className="app-tile-label">Kiosk</div>
+              </button>
+
               <button className="app-tile" onClick={() => setOpenApp('marketplace')}>
                 <div className="app-tile-icon">🛍️</div>
                 <div className="app-tile-label">Marktplatz</div>
@@ -137,7 +143,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
 
             {isAdmin && (
               <button className="btn btn-primary" onClick={onOpenAdmin} style={{ marginTop: 28 }}>
-                Gewerbeanfragen verwalten
+                Verwaltung öffnen
               </button>
             )}
 

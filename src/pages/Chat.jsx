@@ -180,6 +180,16 @@ export default function Chat({ userId, connectionId, otherUsername, otherDisplay
   function formatTime(iso) {
     return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
   }
+  function formatDateLabel(iso) {
+    const date = new Date(iso)
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(today.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) return 'Heute'
+    if (date.toDateString() === yesterday.toDateString()) return 'Gestern'
+    return date.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
 
   return (
     <div className="app-shell">
@@ -196,31 +206,41 @@ export default function Chat({ userId, connectionId, otherUsername, otherDisplay
         <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
           {loading && <div className="loading-dot">Lädt...</div>}
 
-          {!loading && messages.map((m) => {
+        {!loading && messages.map((m, index) => {
             const isOwn = m.sender_id === userId
-            return (
-              <div
-                key={m.id}
-                className={`chat-bubble ${isOwn ? 'chat-bubble-own' : 'chat-bubble-other'}`}
-              >
-                {m.content && <p style={{ margin: 0 }}>{m.content}</p>}
-                {m.attachment_type === 'image' && (
-                  <img src={m.attachment_url} alt="Anhang" style={{ maxWidth: '100%', borderRadius: 10 }} />
-                )}
-                {m.attachment_type === 'audio' && (
-                  <audio controls src={m.attachment_url} style={{ maxWidth: '100%' }} />
-                )}
-                {m.attachment_type === 'file' && (
-                  <a href={m.attachment_url} target="_blank" rel="noreferrer">Datei öffnen</a>
-                )}
+            const currentDay = new Date(m.created_at).toDateString()
+            const previousDay = index > 0 ? new Date(messages[index - 1].created_at).toDateString() : null
+            const showDateDivider = currentDay !== previousDay
 
-                <div className="chat-meta">
-                  <span>{formatTime(m.created_at)}</span>
-                  {isOwn && (
-                    <span className={m.read_at ? 'chat-check-read' : 'chat-check-sent'}>
-                      {m.read_at ? '✓✓' : '✓'}
+            return (
+              <div key={m.id}>
+                {showDateDivider && (
+                  <div style={{ textAlign: 'center', margin: '14px 0' }}>
+                    <span style={{ fontSize: 12, color: 'var(--ink-soft)', background: '#fff', border: '1px solid var(--line)', padding: '3px 12px', borderRadius: 999 }}>
+                      {formatDateLabel(m.created_at)}
                     </span>
+                  </div>
+                )}
+                <div className={`chat-bubble ${isOwn ? 'chat-bubble-own' : 'chat-bubble-other'}`}>
+                  {m.content && <p style={{ margin: 0 }}>{m.content}</p>}
+                  {m.attachment_type === 'image' && (
+                    <img src={m.attachment_url} alt="Anhang" style={{ maxWidth: '100%', borderRadius: 10 }} />
                   )}
+                  {m.attachment_type === 'audio' && (
+                    <audio controls src={m.attachment_url} style={{ maxWidth: '100%' }} />
+                  )}
+                  {m.attachment_type === 'file' && (
+                    <a href={m.attachment_url} target="_blank" rel="noreferrer">Datei öffnen</a>
+                  )}
+
+                  <div className="chat-meta">
+                    <span>{formatTime(m.created_at)}</span>
+                    {isOwn && (
+                      <span className={m.read_at ? 'chat-check-read' : 'chat-check-sent'}>
+                        {m.read_at ? '✓✓' : '✓'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )

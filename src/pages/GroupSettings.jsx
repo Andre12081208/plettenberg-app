@@ -8,6 +8,10 @@ export default function GroupSettings({ userId, groupId, onBack }) {
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
 
+  const [showInviteContacts, setShowInviteContacts] = useState(false)
+  const [invitable, setInvitable] = useState([])
+  const [invitableLoading, setInvitableLoading] = useState(false)
+
   useEffect(() => {
     loadMembers()
     loadInviteCode()
@@ -24,6 +28,33 @@ export default function GroupSettings({ userId, groupId, onBack }) {
     if (error) setError(error.message)
     setMembers(data || [])
     setLoading(false)
+  }
+
+  async function loadInvitable() {
+    setInvitableLoading(true)
+    const { data, error } = await supabase.rpc('get_invitable_contacts', { gid: groupId })
+    if (error) setError(error.message)
+    setInvitable(data || [])
+    setInvitableLoading(false)
+  }
+
+  async function openInvitePanel() {
+    setShowInviteContacts(true)
+    loadInvitable()
+  }
+
+  async function inviteContact(contactId) {
+    setBusyId(contactId)
+    const { error } = await supabase.from('group_members').insert({
+      group_id: groupId, user_id: contactId, role: 'member', status: 'active'
+    })
+    if (error) {
+      setError(error.message)
+    } else {
+      setInvitable((prev) => prev.filter((c) => c.contact_id !== contactId))
+      loadMembers()
+    }
+    setBusyId(null)
   }
 
   async function approve(memberId) {
@@ -75,9 +106,39 @@ export default function GroupSettings({ userId, groupId, onBack }) {
 
         {error && <div className="error-box">{error}</div>}
 
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Kontakte einladen</h3>
+          {!showInviteContacts ? (
+            <button className="btn btn-primary" onClick={openInvitePanel}>Kontakte anzeigen</button>
+          ) : (
+            <>
+              {invitableLoading && <div className="loading-dot">Lädt...</div>}
+              {!invitableLoading && invitable.length === 0 && (
+                <p className="center-note">Alle deine Kontakte sind schon in der Gruppe (oder du hast noch keine).</p>
+              )}
+              {invitable.map((c) => (
+                <div key={c.contact_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600 }}>{c.display_name}</p>
+                    <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>@{c.username}</span>
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: 'auto', padding: '6px 14px' }}
+                    onClick={() => inviteContact(c.contact_id)}
+                    disabled={busyId === c.contact_id}
+                  >
+                    {busyId === c.contact_id ? '...' : 'Hinzufügen'}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
         {inviteLink && (
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>Einladung</h3>
+            <h3 style={{ marginTop: 0 }}>Einladung per Link/QR-Code</h3>
             <p style={{ fontSize: 13, color: 'var(--ink-soft)', wordBreak: 'break-all' }}>{inviteLink}</p>
             <img src={qrUrl} alt="QR-Code" style={{ width: 140, height: 140 }} />
           </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function Chat({ userId, connectionId, otherUsername, onBack }) {
+export default function Chat({ userId, connectionId, otherUsername, otherDisplayName, onBack }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -185,7 +185,8 @@ export default function Chat({ userId, connectionId, otherUsername, onBack }) {
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>@{otherUsername}</h1>
+       <h1>{otherDisplayName || `@${otherUsername}`}</h1>
+        <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink-soft)' }}>@{otherUsername}</p>
       </div>
       <main style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>

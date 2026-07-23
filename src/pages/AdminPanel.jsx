@@ -15,7 +15,40 @@ const STATUS_CLASS = {
   abgelehnt: 'status-abgelehnt'
 }
 
+const ORDER_STATUS_OPTIONS = [
+  { value: 'eingegangen', label: 'Eingegangen' },
+  { value: 'in_zubereitung', label: 'In Zubereitung' },
+  { value: 'unterwegs', label: 'Unterwegs' },
+  { value: 'geliefert', label: 'Geliefert' }
+]
+
 export default function AdminPanel({ onBack }) {
+  const [tab, setTab] = useState('gewerbe')
+
+  return (
+    <div className="app-shell">
+      <div className="topbar">
+        <div className="mark">Plettenberg · Admin</div>
+        <h1>Verwaltung</h1>
+      </div>
+      <main>
+        <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
+
+        <div className="btn-row" style={{ marginBottom: 18 }}>
+          <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
+          <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
+          <button className={tab === 'bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('bestellungen')}>Bestellungen</button>
+        </div>
+
+        {tab === 'gewerbe' && <GewerbeTab />}
+        {tab === 'produkte' && <ProdukteTab />}
+        {tab === 'bestellungen' && <BestellungenTab />}
+      </main>
+    </div>
+  )
+}
+
+function GewerbeTab() {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -57,65 +90,310 @@ export default function AdminPanel({ onBack }) {
   }
 
   return (
-    <div className="app-shell">
-      <div className="topbar">
-        <div className="mark">Plettenberg · Admin</div>
-        <h1>Gewerbeanfragen</h1>
-      </div>
-      <main>
-        <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && entries.length === 0 && <p className="center-note">Noch keine Gewerbeanfragen vorhanden.</p>}
 
-        {error && <div className="error-box">{error}</div>}
+      {!loading && entries.map((entry) => (
+        <div className="card" key={entry.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+            <h3 style={{ margin: 0 }}>{entry.company_name}</h3>
+            <span className={`status-pill ${STATUS_CLASS[entry.status]}`}>
+              {STATUS_OPTIONS.find((s) => s.value === entry.status)?.label}
+            </span>
+          </div>
 
-        {loading && <div className="loading-dot">Lädt...</div>}
-
-        {!loading && entries.length === 0 && (
-          <p className="center-note">Noch keine Gewerbeanfragen vorhanden.</p>
-        )}
-
-        {!loading && entries.map((entry) => (
-          <div className="card" key={entry.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <h3 style={{ margin: 0 }}>{entry.company_name}</h3>
-              <span className={`status-pill ${STATUS_CLASS[entry.status]}`}>
-                {STATUS_OPTIONS.find((s) => s.value === entry.status)?.label}
-              </span>
-            </div>
-
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            Kategorie: {entry.category}
+          </p>
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            Art: {entry.profile_kind === 'unternehmen' ? 'Unternehmen (Flip-Interesse)' : 'Anbieter'}
+          </p>
+          {entry.contact_person && (
             <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
-              Kategorie: {entry.category}
+              Ansprechpartner: {entry.contact_person}
             </p>
-            {entry.contact_person && (
-              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
-                Ansprechpartner: {entry.contact_person}
-              </p>
-            )}
-            {entry.phone && (
-              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
-                Telefon: {entry.phone}
-              </p>
-            )}
-            {entry.website && (
-              <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ink-soft)' }}>
-                Website: {entry.website}
-              </p>
-            )}
+          )}
+          {entry.phone && (
+            <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+              Telefon: {entry.phone}
+            </p>
+          )}
+          {entry.website && (
+            <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ink-soft)' }}>
+              Website: {entry.website}
+            </p>
+          )}
 
-            <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
-              <label>Status ändern</label>
-              <select
-                value={entry.status}
-                disabled={savingId === entry.id}
-                onChange={(e) => updateStatus(entry.id, e.target.value)}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+          <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+            <label>Status ändern</label>
+            <select
+              value={entry.status}
+              disabled={savingId === entry.id}
+              onChange={(e) => updateStatus(entry.id, e.target.value)}
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
+function ProdukteTab() {
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [price, setPrice] = useState('')
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [busyId, setBusyId] = useState(null)
+
+  useEffect(() => {
+    loadProducts()
+  }, [])
+
+  async function loadProducts() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) setError(error.message)
+    setProducts(data || [])
+    setLoading(false)
+  }
+
+  function handleFileChange(e) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault()
+    setError('')
+    setSaving(true)
+
+    let imageUrl = null
+
+    try {
+      if (file) {
+        const ext = file.name.split('.').pop()
+        const path = `${Date.now()}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(path, file)
+
+        if (uploadError) throw uploadError
+
+        const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+        imageUrl = data.publicUrl
+      }
+
+      const { error: dbError } = await supabase.from('products').insert({
+        name: name.trim(),
+        description: description.trim() || null,
+        price: parseFloat(price),
+        image_url: imageUrl
+      })
+
+      if (dbError) throw dbError
+
+      setName('')
+      setDescription('')
+      setPrice('')
+      setFile(null)
+      setPreview(null)
+      loadProducts()
+    } catch (err) {
+      setError(err.message || 'Produkt konnte nicht angelegt werden.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function toggleActive(product) {
+    setBusyId(product.id)
+    const { error } = await supabase
+      .from('products')
+      .update({ active: !product.active })
+      .eq('id', product.id)
+
+    if (!error) {
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, active: !p.active } : p)))
+    } else {
+      setError(error.message)
+    }
+    setBusyId(null)
+  }
+
+  async function deleteProduct(product) {
+    setBusyId(product.id)
+    const { error } = await supabase.from('products').delete().eq('id', product.id)
+
+    if (!error) {
+      setProducts((prev) => prev.filter((p) => p.id !== product.id))
+    } else {
+      setError(error.message)
+    }
+    setBusyId(null)
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Neues Produkt anlegen</h3>
+        <form onSubmit={handleCreate}>
+          <div className="avatar-upload">
+            <div className="avatar-preview" style={{ borderRadius: 10, width: 72, height: 72 }}>
+              {preview ? <img src={preview} alt="Vorschau" /> : '📦'}
+            </div>
+            <div>
+              <label className="link-text" htmlFor="productPhoto" style={{ cursor: 'pointer' }}>
+                Foto auswählen
+              </label>
+              <input
+                id="productPhoto"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              <div className="hint">Optional</div>
             </div>
           </div>
-        ))}
-      </main>
-    </div>
+
+          <div className="field">
+            <label htmlFor="name">Name</label>
+            <input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor="price">Preis in €</label>
+            <input id="price" type="number" step="0.01" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor="description">Beschreibung</label>
+            <textarea id="description" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          <button className="btn btn-primary" type="submit" disabled={saving}>
+            {saving ? 'Wird angelegt...' : 'Produkt anlegen'}
+          </button>
+        </form>
+      </div>
+
+      <h3 style={{ marginBottom: 10 }}>Vorhandene Produkte</h3>
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && products.length === 0 && <p className="center-note">Noch keine Produkte angelegt.</p>}
+
+      {!loading && products.map((product) => (
+        <div className="card" key={product.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h3 style={{ margin: 0 }}>{product.name}</h3>
+            <span className={`status-pill ${product.active ? 'status-live' : 'status-abgelehnt'}`}>
+              {product.active ? 'Aktiv' : 'Inaktiv'}
+            </span>
+          </div>
+          <p style={{ margin: '0 0 10px', fontSize: 14 }}>{product.price} €</p>
+
+          <div className="btn-row">
+            <button className="btn btn-secondary" onClick={() => toggleActive(product)} disabled={busyId === product.id}>
+              {product.active ? 'Deaktivieren' : 'Aktivieren'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => deleteProduct(product)} disabled={busyId === product.id}>
+              Löschen
+            </button>
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
+function BestellungenTab() {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [savingId, setSavingId] = useState(null)
+
+  useEffect(() => {
+    loadOrders()
+  }, [])
+
+  async function loadOrders() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .order('created_at', { ascending: false })
+
+    if (error) setError(error.message)
+    setOrders(data || [])
+    setLoading(false)
+  }
+
+  async function updateStatus(id, newStatus) {
+    setSavingId(id)
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', id)
+
+    if (!error) {
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o)))
+    } else {
+      setError(error.message)
+    }
+    setSavingId(null)
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && orders.length === 0 && <p className="center-note">Noch keine Bestellungen.</p>}
+
+      {!loading && orders.map((order) => (
+        <div className="card" key={order.id}>
+          <p style={{ margin: '0 0 8px', fontWeight: 600 }}>
+            {new Date(order.created_at).toLocaleString('de-DE')}
+          </p>
+          {order.order_items?.map((item) => (
+            <p key={item.id} style={{ margin: '2px 0', fontSize: 14 }}>
+              {item.quantity}× {item.product_name} ({item.unit_price} € / Stück)
+            </p>
+          ))}
+          <p style={{ margin: '8px 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+            Lieferadresse: {order.delivery_address}
+          </p>
+          {order.note && (
+            <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--ink-soft)' }}>Notiz: {order.note}</p>
+          )}
+
+          <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+            <label>Status ändern</label>
+            <select
+              value={order.status}
+              disabled={savingId === order.id}
+              onChange={(e) => updateStatus(order.id, e.target.value)}
+            >
+              {ORDER_STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ))}
+    </>
   )
 }

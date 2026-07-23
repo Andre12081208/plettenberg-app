@@ -12,15 +12,69 @@ import Kiosk from './Kiosk.jsx'
 import AdminPanel from './AdminPanel.jsx'
 import Calendar from './Calendar.jsx'
 
+const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
+
 export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated }) {
-  const [activeTab, setActiveTab] = useState('feed')
-  const [openApp, setOpenApp] = useState(null)
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_activeTab') || 'apps')
+  const [openApp, setOpenApp] = useState(() => {
+    const saved = sessionStorage.getItem('pb_openApp')
+    if (!saved || saved.startsWith('business:')) return null
+    return saved
+  })
+  const [pendingBusinessAppId, setPendingBusinessAppId] = useState(() => {
+    const saved = sessionStorage.getItem('pb_openApp')
+    return saved && saved.startsWith('business:') ? saved.replace('business:', '') : null
+  })
   const [installedApps, setInstalledApps] = useState([])
   const [installedSystemKeys, setInstalledSystemKeys] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadInstalled()
+  }, [])
+
+  useEffect(() => {
+    if (!pendingBusinessAppId) return
+    supabase
+      .from('business_profiles')
+      .select('*')
+      .eq('id', pendingBusinessAppId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setOpenApp(data)
+        setPendingBusinessAppId(null)
+      })
+  }, [pendingBusinessAppId])
+
+  useEffect(() => {
+    sessionStorage.setItem('pb_activeTab', activeTab)
+  }, [activeTab])
+
+  useEffect(() => {
+    if (openApp && typeof openApp === 'object' && openApp.id) {
+      sessionStorage.setItem('pb_openApp', `business:${openApp.id}`)
+    } else if (typeof openApp === 'string') {
+      sessionStorage.setItem('pb_openApp', openApp)
+    } else {
+      sessionStorage.removeItem('pb_openApp')
+    }
+  }, [openApp])
+
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'hidden') {
+        sessionStorage.setItem('pb_hiddenAt', Date.now().toString())
+      } else if (document.visibilityState === 'visible') {
+        const hiddenAt = parseInt(sessionStorage.getItem('pb_hiddenAt') || '0', 10)
+        if (hiddenAt && Date.now() - hiddenAt > INACTIVITY_LIMIT_MS) {
+          setActiveTab('apps')
+          setOpenApp(null)
+        }
+        sessionStorage.removeItem('pb_hiddenAt')
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
   async function loadInstalled() {
@@ -81,7 +135,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     )
   }
 
-  if (openApp && openApp.id) {
+  if (openApp && typeof openApp === 'object' && openApp.id) {
     return <BusinessMiniApp app={openApp} onBack={() => setOpenApp(null)} />
   }
 

@@ -8,10 +8,21 @@ const APP_CATEGORY_OPTIONS = [
   { value: 'sonstiges', label: 'Sonstiges' }
 ]
 
+const GASTRO_CATEGORY_OPTIONS = [
+  { value: 'doener', label: 'Döner / Imbiss' },
+  { value: 'pizza', label: 'Pizza' },
+  { value: 'cafe', label: 'Café' },
+  { value: 'bar', label: 'Bar / Kneipe' },
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'sonstiges', label: 'Sonstiges' }
+]
+
 export default function BusinessProfileForm({ userId, kind, onDone }) {
   const [companyName, setCompanyName] = useState('')
   const [category, setCategory] = useState('unternehmen')
   const [appCategory, setAppCategory] = useState('sonstiges')
+  const [gastroCategory, setGastroCategory] = useState('sonstiges')
+  const [openingHours, setOpeningHours] = useState('')
   const [description, setDescription] = useState('')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
@@ -58,6 +69,8 @@ export default function BusinessProfileForm({ userId, kind, onDone }) {
         category,
         profile_kind: kind,
         app_category: kind === 'anbieter' ? appCategory : null,
+        gastro_category: kind === 'anbieter' && appCategory === 'restaurant' ? gastroCategory : null,
+        opening_hours: kind === 'anbieter' && appCategory === 'restaurant' ? (openingHours.trim() || null) : null,
         description: description.trim() || null,
         address: address.trim() || null,
         phone: phone.trim() || null,
@@ -135,6 +148,25 @@ export default function BusinessProfileForm({ userId, kind, onDone }) {
               </select>
               <div className="hint">Bestimmt, unter welcher Kategorie Bürger dich im App Store finden</div>
             </div>
+          )}
+
+          {kind === 'anbieter' && appCategory === 'restaurant' && (
+            <>
+              <div className="field">
+                <label htmlFor="gastroCategory">Gastro-Kategorie</label>
+                <select id="gastroCategory" value={gastroCategory} onChange={(e) => setGastroCategory(e.target.value)}>
+                  {GASTRO_CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="hint">Erscheint bei "Gastro" in der passenden Kategorie</div>
+              </div>
+
+              <div className="field">
+                <label htmlFor="openingHours">Öffnungszeiten</label>
+                <textarea id="openingHours" rows={2} value={openingHours} onChange={(e) => setOpeningHours(e.target.value)} placeholder="z.B. Mo-Fr 11-22 Uhr, Sa-So 12-23 Uhr" />
+              </div>
+            </>
           )}
 
           <div className="field">

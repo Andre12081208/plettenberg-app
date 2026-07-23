@@ -8,6 +8,7 @@ import BusinessProfileForm from './pages/BusinessProfileForm.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
 import HomeScreen from './pages/HomeScreen.jsx'
+import AccountBlocked from './pages/AccountBlocked.jsx'
 
 export default function App() {
   const [session, setSession] = useState(undefined)
@@ -36,6 +37,12 @@ export default function App() {
     }
     loadProfile(session.user.id)
   }, [session])
+
+  useEffect(() => {
+    if (profileType) {
+      supabase.rpc('touch_last_seen')
+    }
+  }, [profileType])
 
   async function loadProfile(userId) {
     setCheckingProfile(true)
@@ -100,6 +107,10 @@ export default function App() {
         onDone={() => loadProfile(session.user.id)}
       />
     )
+  }
+
+  if (profile?.account_status === 'gesperrt') {
+    return <AccountBlocked />
   }
 
   const isAdmin = session.user.email === ADMIN_EMAIL

@@ -12,6 +12,7 @@ import Kiosk from './Kiosk.jsx'
 import AdminPanel from './AdminPanel.jsx'
 import Calendar from './Calendar.jsx'
 import ChannelsHub from './ChannelsHub.jsx'
+import GastroHub from './GastroHub.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
 
@@ -208,6 +209,8 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
         onConsumedInitial={() => setInitialChannelCode(null)}
       />
     )
+  }if (openApp === 'gastro') {
+    return <GastroHub onBack={() => setOpenApp(null)} />
   }
 
   if (openApp === 'snake') {
@@ -286,6 +289,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
               <button className="app-tile" onClick={() => setOpenApp('kiosk')}>
                 <div className="app-tile-icon">🏪</div>
                 <div className="app-tile-label">Kiosk</div>
+              </button>
+              <button className="app-tile" onClick={() => setOpenApp('gastro')}>
+                <div className="app-tile-icon">🍽️</div>
+                <div className="app-tile-label">Gastro</div>
               </button>
 
               <button className="app-tile" onClick={() => setOpenApp('store')}>

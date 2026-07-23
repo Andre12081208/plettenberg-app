@@ -28,11 +28,13 @@ export default function Contacts({ userId, profile, onBack, embedded }) {
         .filter((c) => c.status === 'accepted')
         .map(async (c) => {
           const otherId = c.requester_id === userId ? c.addressee_id : c.requester_id
-          const { data: username } = await supabase.rpc('get_username', { target_id: otherId })
-          return { ...c, otherId, otherUsername: username }
+          const [{ data: username }, { data: displayName }] = await Promise.all([
+            supabase.rpc('get_username', { target_id: otherId }),
+            supabase.rpc('get_display_name', { target_id: otherId })
+          ])
+          return { ...c, otherId, otherUsername: username, otherDisplayName: displayName }
         })
     )
-
     setConnections(withNames)
     setPendingCount(all.filter((c) => c.status === 'pending' && c.addressee_id === userId).length)
     setLoading(false)
@@ -44,6 +46,7 @@ export default function Contacts({ userId, profile, onBack, embedded }) {
         userId={userId}
         connectionId={openChat.connectionId}
         otherUsername={openChat.otherUsername}
+        otherDisplayName={openChat.otherDisplayName}
         onBack={() => setOpenChat(null)}
       />
     )
@@ -80,10 +83,10 @@ export default function Contacts({ userId, profile, onBack, embedded }) {
             key={c.id}
             className="card-choice"
             style={{ marginBottom: 10 }}
-            onClick={() => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername })}
+            onClick={() => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername, otherDisplayName: c.otherDisplayName })}
           >
-            <h3 style={{ margin: 0 }}>@{c.otherUsername}</h3>
-            <p style={{ margin: 0 }}>Nachricht schreiben</p>
+            <h3 style={{ margin: 0 }}>{c.otherDisplayName}</h3>
+            <p style={{ margin: 0 }}>@{c.otherUsername}</p>
           </button>
         ))}
       </div>

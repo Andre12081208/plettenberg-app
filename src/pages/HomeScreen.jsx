@@ -81,6 +81,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onOpenAdmin, onPr
 
   return (
     <div className="app-shell">
+      {profile.account_status === 'beobachter' && (
+        <div className="error-box" style={{ margin: '12px 16px 0', background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
+          Beobachter-Modus: Du kannst aktuell nichts schreiben, bestellen oder senden.
+        </div>
+      )}
       {activeTab === 'feed' && <Newsfeed userId={userId} embedded />}
 
       {activeTab === 'contacts' && <Contacts userId={userId} profile={profile} embedded />}

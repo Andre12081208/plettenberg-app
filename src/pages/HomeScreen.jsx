@@ -15,6 +15,11 @@ import ChannelsHub from './ChannelsHub.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
 
+const SYSTEM_APP_META = {
+  calendar: { icon: '📅', label: 'Kalender' },
+  snake: { icon: '🐍', label: 'Snake' }
+}
+
 export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_activeTab') || 'apps')
   const [openApp, setOpenApp] = useState(() => {
@@ -26,9 +31,9 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     const saved = sessionStorage.getItem('pb_openApp')
     return saved && saved.startsWith('business:') ? saved.replace('business:', '') : null
   })
-  const [installedApps, setInstalledApps] = useState([])
-  const [installedSystemKeys, setInstalledSystemKeys] = useState([])
+  const [movableTiles, setMovableTiles] = useState([])
   const [loading, setLoading] = useState(true)
+  const [editMode, setEditMode] = useState(false)
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
@@ -74,13 +79,49 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     setLoading(true)
 
     const [{ data: businessApps }, { data: systemApps }] = await Promise.all([
-      supabase.from('installed_apps').select('business_profiles(*)').eq('user_id', userId),
-      supabase.from('installed_system_apps').select('app_key').eq('user_id', userId)
+      supabase.from('installed_apps').select('position, business_profiles(*)').eq('user_id', userId).order('position'),
+      supabase.from('installed_system_apps').select('position, app_key').eq('user_id', userId).order('position')
     ])
 
-    setInstalledApps((businessApps || []).map((row) => row.business_profiles).filter(Boolean))
-    setInstalledSystemKeys((systemApps || []).map((s) => s.app_key))
+    const businessTiles = (businessApps || [])
+      .filter((row) => row.business_profiles)
+      .map((row) => ({ type: 'business', position: row.position, data: row.business_profiles }))
+
+    const systemTiles = (systemApps || [])
+      .map((row) => ({ type: 'system', position: row.position, key: row.app_key }))
+
+    const merged = [...businessTiles, ...systemTiles].sort((a, b) => a.position - b.position)
+
+    setMovableTiles(merged)
     setLoading(false)
+  }
+
+  async function moveTile(index, direction) {
+    const otherIndex = index + direction
+    if (otherIndex < 0 || otherIndex >= movableTiles.length) return
+
+    const a = movableTiles[index]
+    const b = movableTiles[otherIndex]
+
+    async function updateOne(tile, newPosition) {
+      if (tile.type === 'business') {
+        await supabase.from('installed_apps').update({ position: newPosition }).eq('user_id', userId).eq('business_profile_id', tile.data.id)
+      } else {
+        await supabase.from('installed_system_apps').update({ position: newPosition }).eq('user_id', userId).eq('app_key', tile.key)
+      }
+    }
+
+    await Promise.all([updateOne(a, b.position), updateOne(b, a.position)])
+    loadInstalled()
+  }
+
+  async function removeTile(tile) {
+    if (tile.type === 'business') {
+      await supabase.from('installed_apps').delete().eq('user_id', userId).eq('business_profile_id', tile.data.id)
+    } else {
+      await supabase.from('installed_system_apps').delete().eq('user_id', userId).eq('app_key', tile.key)
+    }
+    loadInstalled()
   }
 
   async function handleLogout() {
@@ -208,7 +249,12 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
       {activeTab === 'apps' && (
         <>
           <div className="topbar">
-            <div className="mark">Plettenberg</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="mark">Plettenberg</div>
+              <button className="link-text" onClick={() => setEditMode(!editMode)}>
+                {editMode ? 'Fertig' : 'Anordnen'}
+              </button>
+            </div>
             <h1>Apps</h1>
           </div>
           <main style={{ paddingBottom: 90 }}>
@@ -227,19 +273,9 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
                 <div className="app-tile-label">Stadtverwaltung</div>
               </button>
 
-              <button className="app-tile" onClick={() => setOpenApp('calendar')}>
-                <div className="app-tile-icon">📅</div>
-                <div className="app-tile-label">Kalender</div>
-              </button>
-
               <button className="app-tile" onClick={() => setOpenApp('channels')}>
                 <div className="app-tile-icon">📢</div>
                 <div className="app-tile-label">Channels</div>
-              </button>
-
-              <button className="app-tile" onClick={() => setOpenApp('kiosk')}>
-                <div className="app-tile-icon">🏪</div>
-                <div className="app-tile-label">Kiosk</div>
               </button>
 
               <button className="app-tile" onClick={() => setOpenApp('marketplace')}>
@@ -247,28 +283,53 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
                 <div className="app-tile-label">Marktplatz</div>
               </button>
 
-              {!loading && installedApps.map((app) => (
-                <button key={app.id} className="app-tile" onClick={() => setOpenApp(app)}>
-                  <div className="app-tile-icon">
-                    {app.logo_url
-                      ? <img src={app.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
-                      : app.company_name[0]}
-                  </div>
-                  <div className="app-tile-label">{app.company_name}</div>
-                </button>
-              ))}
-
-              {!loading && installedSystemKeys.includes('snake') && (
-                <button className="app-tile" onClick={() => setOpenApp('snake')}>
-                  <div className="app-tile-icon">🐍</div>
-                  <div className="app-tile-label">Snake</div>
-                </button>
-              )}
+              <button className="app-tile" onClick={() => setOpenApp('kiosk')}>
+                <div className="app-tile-icon">🏪</div>
+                <div className="app-tile-label">Kiosk</div>
+              </button>
 
               <button className="app-tile" onClick={() => setOpenApp('store')}>
                 <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>
                 <div className="app-tile-label">App Store</div>
               </button>
+
+              {!loading && movableTiles.map((tile, index) => {
+                const icon = tile.type === 'business'
+                  ? (tile.data.logo_url
+                      ? <img src={tile.data.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
+                      : tile.data.company_name[0])
+                  : (SYSTEM_APP_META[tile.key]?.icon || '❓')
+                const label = tile.type === 'business' ? tile.data.company_name : (SYSTEM_APP_META[tile.key]?.label || tile.key)
+                const tileKey = tile.type === 'business' ? `business-${tile.data.id}` : `system-${tile.key}`
+
+                return (
+                  <div key={tileKey} style={{ position: 'relative' }}>
+                    <button
+                      className="app-tile"
+                      style={{ width: '100%' }}
+                      onClick={editMode ? undefined : () => setOpenApp(tile.type === 'business' ? tile.data : tile.key)}
+                    >
+                      <div className="app-tile-icon">{icon}</div>
+                      <div className="app-tile-label">{label}</div>
+                    </button>
+
+                    {editMode && (
+                      <>
+                        <button
+                          onClick={() => removeTile(tile)}
+                          style={{ position: 'absolute', top: -6, right: 6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', color: '#fff', border: 'none', fontSize: 12, lineHeight: '20px', cursor: 'pointer' }}
+                        >
+                          ✕
+                        </button>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 2 }}>
+                          <button className="link-text" style={{ fontSize: 13 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
+                          <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </main>
         </>

@@ -39,9 +39,12 @@ export default function App() {
   }, [session])
 
   useEffect(() => {
-    if (profileType) {
+    if (!profileType) return
+    supabase.rpc('touch_last_seen')
+    const interval = setInterval(() => {
       supabase.rpc('touch_last_seen')
-    }
+    }, 60000)
+    return () => clearInterval(interval)
   }, [profileType])
 
   async function loadProfile(userId) {

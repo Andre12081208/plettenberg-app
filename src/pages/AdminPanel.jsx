@@ -23,7 +23,7 @@ const ORDER_STATUS_OPTIONS = [
 ]
 
 export default function AdminPanel({ onBack }) {
-  const [tab, setTab] = useState('gewerbe')
+  const [tab, setTab] = useState('nutzer')
 
   return (
     <div className="app-shell">
@@ -34,17 +34,91 @@ export default function AdminPanel({ onBack }) {
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
-        <div className="btn-row" style={{ marginBottom: 18 }}>
+        <div className="btn-row" style={{ marginBottom: 18, flexWrap: 'wrap' }}>
+          <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
           <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
           <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
           <button className={tab === 'bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('bestellungen')}>Bestellungen</button>
         </div>
 
+        {tab === 'nutzer' && <NutzerTab />}
         {tab === 'gewerbe' && <GewerbeTab />}
         {tab === 'produkte' && <ProdukteTab />}
         {tab === 'bestellungen' && <BestellungenTab />}
       </main>
     </div>
+  )
+}
+
+function NutzerTab() {
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState(null)
+
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  async function loadUsers() {
+    setLoading(true)
+    setError('')
+    const { data, error } = await supabase.rpc('admin_list_users')
+    if (error) {
+      setError(error.message)
+    } else {
+      const sorted = [...(data || [])].sort(
+        (a, b) => new Date(b.last_seen_at || 0) - new Date(a.last_seen_at || 0)
+      )
+      setUsers(sorted)
+    }
+    setLoading(false)
+  }
+
+  async function setStatus(userId, newStatus) {
+    setBusyId(userId)
+    const { error } = await supabase.rpc('admin_set_account_status', { target_id: userId, new_status: newStatus })
+    if (error) {
+      setError(error.message)
+    } else {
+      setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, account_status: newStatus } : u)))
+    }
+    setBusyId(null)
+  }
+
+  const statusLabel = { aktiv: 'Aktiv', beobachter: 'Beobachter', gesperrt: 'Gesperrt' }
+  const statusClass = { aktiv: 'status-live', beobachter: 'status-vertrag', gesperrt: 'status-abgelehnt' }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && users.length === 0 && <p className="center-note">Keine Nutzer gefunden.</p>}
+
+      {!loading && users.map((u) => (
+        <div className="card" key={u.user_id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+            <div>
+              <h3 style={{ margin: 0 }}>{u.display_name}</h3>
+              <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{u.kind === 'einwohner' ? 'Einwohner' : 'Betrieb'}</span>
+            </div>
+            <span className={`status-pill ${statusClass[u.account_status]}`}>
+              {statusLabel[u.account_status]}
+            </span>
+          </div>
+          <p style={{ margin: '4px 0', fontSize: 13, color: 'var(--ink-soft)' }}>{u.email}</p>
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            Zuletzt online: {u.last_seen_at ? new Date(u.last_seen_at).toLocaleString('de-DE') : 'Noch nie'}
+          </p>
+
+          <div className="btn-row">
+            <button className="btn btn-secondary" disabled={busyId === u.user_id || u.account_status === 'aktiv'} onClick={() => setStatus(u.user_id, 'aktiv')}>Aktiv</button>
+            <button className="btn btn-secondary" disabled={busyId === u.user_id || u.account_status === 'beobachter'} onClick={() => setStatus(u.user_id, 'beobachter')}>Beobachter</button>
+            <button className="btn btn-secondary" disabled={busyId === u.user_id || u.account_status === 'gesperrt'} onClick={() => setStatus(u.user_id, 'gesperrt')}>Sperren</button>
+          </div>
+        </div>
+      ))}
+    </>
   )
 }
 

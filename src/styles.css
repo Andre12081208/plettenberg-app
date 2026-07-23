@@ -8,6 +8,8 @@
   --line: #DAD5C8;
   --danger: #A3402F;
   --radius: 10px;
+  --surface: #fff;
+}
 }
 
 * { box-sizing: border-box; }
@@ -80,7 +82,7 @@ main {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   font-size: 15px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -123,7 +125,7 @@ main {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 18px;
-  background: #fff;
+  background: var(--surface);
   margin-bottom: 16px;
 }
 
@@ -134,7 +136,7 @@ main {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 18px;
-  background: #fff;
+  background: var(--surface);
   margin-bottom: 14px;
   cursor: pointer;
 }
@@ -301,7 +303,7 @@ main {
 }
 
 .chat-bubble-other {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   margin-right: auto;
   border-bottom-left-radius: 4px;
@@ -332,4 +334,11 @@ main {
 .chat-check-read {
   opacity: 1;
   font-weight: 700;
+}
+body.dark-mode {
+  --paper: #1B1F1B;
+  --ink: #EDEBE3;
+  --ink-soft: #A8ADA4;
+  --line: #3A3F38;
+  --surface: #242822;
 }

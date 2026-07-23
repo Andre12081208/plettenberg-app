@@ -6,6 +6,7 @@ import Calendar from './Calendar.jsx'
 import CreateGroup from './CreateGroup.jsx'
 import GroupChat from './GroupChat.jsx'
 import GroupSettings from './GroupSettings.jsx'
+import ProfileCard from './ProfileCard.jsx'
 
 export default function Contacts({ userId, profile, onBack, embedded, onUnreadChanged, initialUsername, initialGroupCode, onConsumedInitial }) {
   const [view, setView] = useState('list')
@@ -17,6 +18,7 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
   const [loading, setLoading] = useState(true)
   const [pendingCount, setPendingCount] = useState(0)
   const [calendarTarget, setCalendarTarget] = useState(null)
+  const [profileCardTarget, setProfileCardTarget] = useState(null)
   const [joinPreview, setJoinPreview] = useState(null)
   const [joinError, setJoinError] = useState('')
   const [joining, setJoining] = useState(false)
@@ -135,6 +137,10 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
     )
   }
 
+  if (view === 'viewProfileCard' && profileCardTarget) {
+    return <ProfileCard contactId={profileCardTarget} onBack={() => setView('contactList')} />
+  }
+
   if (view === 'createGroup') {
     return (
       <CreateGroup
@@ -199,6 +205,7 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
         onBack={() => setView('list')}
         onMessage={(c) => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername, otherDisplayName: c.otherDisplayName })}
         onViewCalendar={(c) => { setCalendarTarget(c.otherId); setView('viewCalendar') }}
+        onViewProfile={(c) => { setProfileCardTarget(c.otherId); setView('viewProfileCard') }}
       />
     )
   }
@@ -226,7 +233,7 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
 
       <button className="card-choice" onClick={() => setView('contactList')}>
         <h3 style={{ margin: 0 }}>Deine Kontakte</h3>
-        <p style={{ margin: 0 }}>Suchen, Nachricht senden, Kalender ansehen</p>
+        <p style={{ margin: 0 }}>Suchen, Nachricht senden, Profil oder Kalender ansehen</p>
       </button>
 
       <div className="btn-row" style={{ marginBottom: 18 }}>
@@ -304,7 +311,7 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
   )
 }
 
-function ContactSearch({ connections, onBack, onMessage, onViewCalendar }) {
+function ContactSearch({ connections, onBack, onMessage, onViewCalendar, onViewProfile }) {
   const [query, setQuery] = useState('')
   const [openActionsFor, setOpenActionsFor] = useState(null)
 
@@ -345,8 +352,9 @@ function ContactSearch({ connections, onBack, onMessage, onViewCalendar }) {
             </button>
 
             {openActionsFor === c.id && (
-              <div className="btn-row" style={{ marginTop: 12 }}>
-                <button className="btn btn-primary" onClick={() => onMessage(c)}>Nachricht senden</button>
+              <div className="btn-row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" onClick={() => onViewProfile(c)}>Profil ansehen</button>
+                <button className="btn btn-secondary" onClick={() => onMessage(c)}>Nachricht senden</button>
                 <button className="btn btn-secondary" onClick={() => onViewCalendar(c)}>Kalender ansehen</button>
               </div>
             )}

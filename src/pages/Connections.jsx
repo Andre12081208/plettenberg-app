@@ -32,8 +32,11 @@ export default function Connections({ userId, profile, initialSearchValue, onBac
     const withNames = await Promise.all(
       (data || []).map(async (c) => {
         const otherId = c.requester_id === userId ? c.addressee_id : c.requester_id
-        const { data: username } = await supabase.rpc('get_username', { target_id: otherId })
-        return { ...c, otherId, otherUsername: username }
+        const [{ data: username }, { data: displayName }] = await Promise.all([
+          supabase.rpc('get_username', { target_id: otherId }),
+          supabase.rpc('get_display_name', { target_id: otherId })
+        ])
+        return { ...c, otherId, otherUsername: username, otherDisplayName: displayName }
       })
     )
 
@@ -162,7 +165,10 @@ export default function Connections({ userId, profile, initialSearchValue, onBac
             <h3 style={{ marginTop: 0 }}>Anfragen</h3>
             {incoming.map((c) => (
               <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span>@{c.otherUsername}</span>
+               <div>
+                  <div style={{ fontWeight: 600 }}>{c.otherDisplayName}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>@{c.otherUsername}</div>
+                </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     className="btn btn-primary"

@@ -10,6 +10,7 @@ async function handleLogout() {
   const [phone, setPhone] = useState(profile.phone || '')
   const [birthday, setBirthday] = useState(profile.birthday || '')
   const [showBirthday, setShowBirthday] = useState(profile.show_birthday_to_contacts || false)
+      const [themePreference, setThemePreference] = useState(profile.theme_preference || 'auto')
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(profile.avatar_url || null)
   const [saving, setSaving] = useState(false)
@@ -63,7 +64,7 @@ async function handleLogout() {
           username: username.trim().toLowerCase(),
           phone: phone.trim() || null,
           birthday: birthday || null,
-          show_birthday_to_contacts: showBirthday,
+          show_birthday_to_contacts: showBirthday,theme_preference: themePreference,
           avatar_url: avatarUrl
         })
         .eq('id', userId)
@@ -189,6 +190,13 @@ async function handleLogout() {
               />
               Meinen Geburtstag für bestätigte Kontakte sichtbar machen
             </label>
+          </div><div className="field">
+            <label htmlFor="themePreference">Erscheinungsbild</label>
+            <select id="themePreference" value={themePreference} onChange={(e) => setThemePreference(e.target.value)}>
+              <option value="auto">Automatisch (nach Geräteeinstellung)</option>
+              <option value="hell">Hell</option>
+              <option value="dunkel">Dunkel</option>
+            </select>
           </div>
 
             <button className="btn btn-primary" type="submit" disabled={saving}>

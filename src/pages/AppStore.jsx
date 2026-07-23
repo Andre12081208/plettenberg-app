@@ -10,8 +10,18 @@ const APP_CATEGORIES = [
 ]
 
 const SYSTEM_APPS = [
+  { key: 'calendar', name: 'Kalender', icon: '📅', description: 'Termine planen, mit Kontakten teilen und Geburtstage sehen.' },
   { key: 'snake', name: 'Snake', icon: '🐍', description: 'Klassisches Snake-Spiel, direkt in der App spielbar.' }
 ]
+
+async function getNextPosition(userId) {
+  const [{ data: a }, { data: b }] = await Promise.all([
+    supabase.from('installed_apps').select('position').eq('user_id', userId),
+    supabase.from('installed_system_apps').select('position').eq('user_id', userId)
+  ])
+  const positions = [...(a || []), ...(b || [])].map((r) => r.position || 0)
+  return positions.length > 0 ? Math.max(...positions) + 1 : 0
+}
 
 export default function AppStore({ userId, onBack, onChanged }) {
   const [entries, setEntries] = useState([])
@@ -91,9 +101,10 @@ export default function AppStore({ userId, onBack, onChanged }) {
         setError(error.message)
       }
     } else {
+      const position = await getNextPosition(userId)
       const { error } = await supabase
         .from('installed_system_apps')
-        .insert({ user_id: userId, app_key: app.key })
+        .insert({ user_id: userId, app_key: app.key, position })
 
       if (!error) {
         setInstalledSystemKeys((prev) => new Set(prev).add(app.key))
@@ -127,9 +138,10 @@ export default function AppStore({ userId, onBack, onChanged }) {
         setError(error.message)
       }
     } else {
+      const position = await getNextPosition(userId)
       const { error } = await supabase
         .from('installed_apps')
-        .insert({ user_id: userId, business_profile_id: app.id })
+        .insert({ user_id: userId, business_profile_id: app.id, position })
 
       if (!error) {
         setInstalledIds((prev) => new Set(prev).add(app.id))
@@ -192,7 +204,7 @@ export default function AppStore({ userId, onBack, onChanged }) {
 
         {error && <div className="error-box">{error}</div>}
 
-        <h3 style={{ marginBottom: 10 }}>Spiele</h3>
+        <h3 style={{ marginBottom: 10 }}>Spiele & Extras</h3>
         {SYSTEM_APPS.map((app) => {
           const installed = installedSystemKeys.has(app.key)
           return (

@@ -50,32 +50,50 @@ function PresenceDot({ lastSeenAt }) {
   return <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: color }} title={label} />
 }
 
-export default function AdminPanel({ onBack }) {
+export default function AdminPanel({ onBack, embedded }) {
   const [tab, setTab] = useState('nutzer')
+
+  const content = (
+    <>
+      <div className="btn-row" style={{ marginBottom: 18, flexWrap: 'wrap' }}>
+        <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
+        <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
+        <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
+        <button className={tab === 'bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('bestellungen')}>Bestellungen</button>
+      </div>
+
+      {tab === 'nutzer' && <NutzerTab />}
+      {tab === 'gewerbe' && <GewerbeTab />}
+      {tab === 'produkte' && <ProdukteTab />}
+      {tab === 'bestellungen' && <BestellungenTab />}
+    </>
+  )
+
+  const header = (
+    <div className="topbar">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="mark">Plettenberg · Admin</div>
+        <span className="status-pill status-live">Admin · Voller Zugriff</span>
+      </div>
+      <h1>Verwaltung</h1>
+    </div>
+  )
+
+  if (embedded) {
+    return (
+      <>
+        {header}
+        <main style={{ paddingBottom: 90 }}>{content}</main>
+      </>
+    )
+  }
 
   return (
     <div className="app-shell">
-      <div className="topbar">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="mark">Plettenberg · Admin</div>
-          <span className="status-pill status-live">Admin · Voller Zugriff</span>
-        </div>
-        <h1>Verwaltung</h1>
-      </div>
+      {header}
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
-
-        <div className="btn-row" style={{ marginBottom: 18, flexWrap: 'wrap' }}>
-          <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
-          <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
-          <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
-          <button className={tab === 'bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('bestellungen')}>Bestellungen</button>
-        </div>
-
-        {tab === 'nutzer' && <NutzerTab />}
-        {tab === 'gewerbe' && <GewerbeTab />}
-        {tab === 'produkte' && <ProdukteTab />}
-        {tab === 'bestellungen' && <BestellungenTab />}
+        {content}
       </main>
     </div>
   )

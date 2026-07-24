@@ -44,6 +44,7 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(path, file, { upsert: true })
+        if (uploadError) console.log('UPLOAD ERROR VOLL:', JSON.stringify(uploadError, null, 2))
 
         if (uploadError) throw uploadError
 

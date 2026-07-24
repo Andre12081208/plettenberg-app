@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function ListingDetail({ listing, userId, onBack, onDeleted, onContact, contacting }) {
+export default function ListingDetail({ listing, userId, onBack, onDeleted, onContact, contacting, onEdit }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -86,9 +86,14 @@ export default function ListingDetail({ listing, userId, onBack, onDeleted, onCo
               </button>
             </div>
           ) : (
-            <button className="btn btn-secondary" onClick={() => setConfirmingDelete(true)}>
-              Anzeige löschen
-            </button>
+            <div className="btn-row">
+              <button className="btn btn-primary" onClick={() => onEdit(listing)}>
+                Anzeige bearbeiten
+              </button>
+              <button className="btn btn-secondary" onClick={() => setConfirmingDelete(true)}>
+                Anzeige löschen
+              </button>
+            </div>
           )
         ) : (
           <button className="btn btn-primary" onClick={() => onContact(listing)} disabled={contacting}>

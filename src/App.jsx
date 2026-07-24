@@ -129,7 +129,6 @@ export default function App() {
   if (checkingProfile) {
     return <div className="loading-dot">Einen Moment...</div>
   }
-  }
 
   if (!profileType && !chosenType) {
     return <Onboarding onChoose={setChosenType} />

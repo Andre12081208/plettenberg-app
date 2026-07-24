@@ -14,6 +14,7 @@ import Calendar from './Calendar.jsx'
 import Settings from './Settings.jsx'
 import ChannelsHub from './ChannelsHub.jsx'
 import GastroHub from './GastroHub.jsx'
+import { useLanguage } from '../lib/LanguageContext.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
 
@@ -23,6 +24,7 @@ const SYSTEM_APP_META = {
 }
 
 export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated, onPasswordChanged }) {
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_activeTab') || 'apps')
   const [openApp, setOpenApp] = useState(() => {
     const saved = sessionStorage.getItem('pb_openApp')
@@ -243,10 +245,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="mark">Plettenberg</div>
                 <button className="link-text" onClick={() => setEditMode(!editMode)}>
-                  {editMode ? 'Fertig' : 'Anordnen'}
+                  {editMode ? t('apps.done') : t('apps.arrange')}
                 </button>
               </div>
-              <h1>Apps</h1>
+              <h1>{t('apps.title')}</h1>
             </div>
             <main style={{ paddingBottom: 90 }}>
               <div className="app-grid">
@@ -256,40 +258,40 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                       ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
                       : '👤'}
                   </div>
-                  <div className="app-tile-label">Mein Profil</div>
+                  <div className="app-tile-label">{t('apps.myProfile')}</div>
                 </button>
 
                 <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
                   <div className="app-tile-icon">🏛️</div>
-                  <div className="app-tile-label">Stadtverwaltung</div>
+                  <div className="app-tile-label">{t('apps.cityHall')}</div>
                 </button>
 
                 <button className="app-tile" onClick={() => setOpenApp('channels')}>
                   <div className="app-tile-icon">📢</div>
-                  <div className="app-tile-label">Channels</div>
+                  <div className="app-tile-label">{t('apps.channels')}</div>
                 </button>
 
                 <button className="app-tile" onClick={() => setOpenApp('marketplace')}>
                   <div className="app-tile-icon">🛍️</div>
-                  <div className="app-tile-label">Marktplatz</div>
+                  <div className="app-tile-label">{t('apps.marketplace')}</div>
                 </button>
 
                 <button className="app-tile" onClick={() => setOpenApp('kiosk')}>
                   <div className="app-tile-icon">🏪</div>
-                  <div className="app-tile-label">Kiosk</div>
+                  <div className="app-tile-label">{t('apps.kiosk')}</div>
                 </button>
                 <button className="app-tile" onClick={() => setOpenApp('gastro')}>
                   <div className="app-tile-icon">🍽️</div>
-                  <div className="app-tile-label">Gastro</div>
+                  <div className="app-tile-label">{t('apps.gastro')}</div>
                 </button>
                 <button className="app-tile" onClick={() => setOpenApp('settings')}>
                   <div className="app-tile-icon">⚙️</div>
-                  <div className="app-tile-label">Einstellungen</div>
+                  <div className="app-tile-label">{t('apps.settingsTile')}</div>
                 </button>
 
                 <button className="app-tile" onClick={() => setOpenApp('store')}>
                   <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>
-                  <div className="app-tile-label">App Store</div>
+                  <div className="app-tile-label">{t('apps.appStore')}</div>
                 </button>
 
                 {!loading && movableTiles.map((tile, index) => {
@@ -347,7 +349,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
           onClick={() => goToTab('feed')}
         >
           <span className="tab-bar-icon">📰</span>
-          Neuigkeiten
+          Newsfeed
         </button>
         <button
           className={`tab-bar-item ${activeTab === 'contacts' && !openApp ? 'active' : ''}`}
@@ -355,7 +357,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
           style={{ position: 'relative' }}
         >
           <span className="tab-bar-icon">🤝</span>
-          Kontakte
+          {t('nav.contacts')}
           {unreadChatCount > 0 && (
             <span style={{ position: 'absolute', top: 2, right: '20%', minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
               {unreadChatCount}
@@ -367,7 +369,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
           onClick={() => goToTab('apps')}
         >
           <span className="tab-bar-icon">🔲</span>
-          Apps
+          {t('nav.apps')}
         </button>
         {isAdmin && (
           <button
@@ -375,7 +377,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
             onClick={() => goToTab('admin')}
           >
             <span className="tab-bar-icon">🛠️</span>
-            Verwaltung
+            {t('nav.admin')}
           </button>
         )}
       </nav>

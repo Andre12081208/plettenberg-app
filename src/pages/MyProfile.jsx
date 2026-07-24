@@ -31,6 +31,9 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
     setError('')
     setSavedMsg('')
     setSaving(true)
+    
+    const { data: { session } } = await supabase.auth.getSession()
+   console.log('AUTH DEBUG:', session ? JSON.parse(atob(session.access_token.split('.')[1])) : 'KEIN SESSION')
 
     let avatarUrl = profile.avatar_url || null
 

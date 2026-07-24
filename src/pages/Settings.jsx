@@ -102,6 +102,8 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
       current_password: currentPassword
     })
 
+    console.log('PASSWORT ÄNDERN FEHLER:', error)
+
     if (error) {
       setPasswordError(error.message)
       setPasswordSaving(false)

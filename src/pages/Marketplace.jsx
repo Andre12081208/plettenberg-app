@@ -46,7 +46,13 @@ export default function Marketplace({ userId, onBack }) {
     if (!threadId) {
       const { data: created, error: createError } = await supabase
         .from('marketplace_threads')
-        .insert({ listing_id: listing.id, buyer_id: userId, seller_id: listing.seller_id })
+        .insert({
+          listing_id: listing.id,
+          buyer_id: userId,
+          seller_id: listing.seller_id,
+          listing_title: listing.title,
+          listing_image_url: listing.image_urls?.[0] || listing.image_url || null
+        })
         .select('id')
         .single()
 

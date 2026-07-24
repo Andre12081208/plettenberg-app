@@ -59,21 +59,14 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
     setCurrentPasswordError('')
     setVerifyingCurrent(true)
 
-    const { data: userData } = await supabase.auth.getUser()
-    const email = userData?.user?.email
-
-    if (!email) {
-      setCurrentPasswordError('Deine Email-Adresse konnte nicht ermittelt werden. Bitte lade die Seite neu.')
-      setVerifyingCurrent(false)
-      return
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password: currentPassword })
+    const { data, error } = await supabase.rpc('verify_current_password', { password: currentPassword })
 
     if (error) {
-      setCurrentPasswordError('Das eingegebene Passwort ist nicht korrekt.')
-    } else {
+      setCurrentPasswordError('Es gab ein Problem bei der Prüfung. Bitte versuch es erneut.')
+    } else if (data === true) {
       setCurrentPasswordVerified(true)
+    } else {
+      setCurrentPasswordError('Das eingegebene Passwort ist nicht korrekt.')
     }
     setVerifyingCurrent(false)
   }
@@ -93,7 +86,10 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
     }
 
     setPasswordSaving(true)
-    const { error } = await supabase.auth.updateUser({ password: newPassword1 })
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword1,
+      current_password: currentPassword
+    })
 
     if (error) {
       setPasswordError(error.message)

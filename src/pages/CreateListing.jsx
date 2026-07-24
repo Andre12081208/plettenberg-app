@@ -1,14 +1,21 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function CreateListing({ userId, onDone, onBack }) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [isFree, setIsFree] = useState(false)
-  const [price, setPrice] = useState('')
-  const [pickupAvailable, setPickupAvailable] = useState(true)
-  const [deliveryAvailable, setDeliveryAvailable] = useState(false)
-  const [deliveryFee, setDeliveryFee] = useState('')
+export default function CreateListing({ userId, existingListing, onDone, onBack }) {
+  const isEditing = !!existingListing
+
+  const [title, setTitle] = useState(existingListing?.title || '')
+  const [description, setDescription] = useState(existingListing?.description || '')
+  const [isFree, setIsFree] = useState(existingListing?.is_free || false)
+  const [price, setPrice] = useState(existingListing?.price != null ? String(existingListing.price) : '')
+  const [pickupAvailable, setPickupAvailable] = useState(existingListing ? existingListing.pickup_available : true)
+  const [deliveryAvailable, setDeliveryAvailable] = useState(existingListing?.delivery_available || false)
+  const [deliveryFee, setDeliveryFee] = useState(existingListing?.delivery_fee != null ? String(existingListing.delivery_fee) : '')
+
+  const existingPhotos = existingListing?.image_urls?.length
+    ? existingListing.image_urls
+    : (existingListing?.image_url ? [existingListing.image_url] : [])
+
   const [files, setFiles] = useState([])
   const [previews, setPreviews] = useState([])
   const [loading, setLoading] = useState(false)
@@ -36,23 +43,25 @@ export default function CreateListing({ userId, onDone, onBack }) {
     setLoading(true)
 
     try {
-      const imageUrls = []
+      let imageUrls = existingPhotos
 
-      for (const file of files) {
-        const ext = file.name.split('.').pop()
-        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('marketplace-images')
-          .upload(path, file)
+      if (files.length > 0) {
+        imageUrls = []
+        for (const file of files) {
+          const ext = file.name.split('.').pop()
+          const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+          const { error: uploadError } = await supabase.storage
+            .from('marketplace-images')
+            .upload(path, file)
 
-        if (uploadError) throw uploadError
+          if (uploadError) throw uploadError
 
-        const { data } = supabase.storage.from('marketplace-images').getPublicUrl(path)
-        imageUrls.push(data.publicUrl)
+          const { data } = supabase.storage.from('marketplace-images').getPublicUrl(path)
+          imageUrls.push(data.publicUrl)
+        }
       }
 
-      const { error: dbError } = await supabase.from('marketplace_listings').insert({
-        seller_id: userId,
+      const payload = {
         title: title.trim(),
         description: description.trim() || null,
         price: isFree ? null : parseFloat(price),
@@ -62,9 +71,23 @@ export default function CreateListing({ userId, onDone, onBack }) {
         pickup_available: pickupAvailable,
         delivery_available: deliveryAvailable,
         delivery_fee: deliveryAvailable && deliveryFee ? parseFloat(deliveryFee) : null
-      })
+      }
 
-      if (dbError) throw dbError
+      if (isEditing) {
+        const { error: dbError } = await supabase
+          .from('marketplace_listings')
+          .update(payload)
+          .eq('id', existingListing.id)
+
+        if (dbError) throw dbError
+      } else {
+        const { error: dbError } = await supabase.from('marketplace_listings').insert({
+          seller_id: userId,
+          ...payload
+        })
+
+        if (dbError) throw dbError
+      }
 
       onDone()
     } catch (err) {
@@ -78,7 +101,7 @@ export default function CreateListing({ userId, onDone, onBack }) {
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>Anzeige erstellen</h1>
+        <h1>{isEditing ? 'Anzeige bearbeiten' : 'Anzeige erstellen'}</h1>
       </div>
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
@@ -88,7 +111,7 @@ export default function CreateListing({ userId, onDone, onBack }) {
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label className="link-text" htmlFor="photos" style={{ cursor: 'pointer' }}>
-              Fotos auswählen (bis zu 8)
+              {isEditing ? 'Neue Fotos hochladen (ersetzt die aktuellen)' : 'Fotos auswählen (bis zu 8)'}
             </label>
             <input
               id="photos"
@@ -98,14 +121,25 @@ export default function CreateListing({ userId, onDone, onBack }) {
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
-            {previews.length > 0 && (
+
+            {previews.length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                 {previews.map((src, i) => (
                   <img key={i} src={src} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
                 ))}
               </div>
-            )}
-            <div className="hint">{files.length}/8 ausgewählt</div>
+            ) : existingPhotos.length > 0 ? (
+              <div style={{ marginTop: 10 }}>
+                <div className="hint" style={{ marginBottom: 6 }}>Aktuelle Fotos (bleiben, wenn du keine neuen auswählst):</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {existingPhotos.map((src, i) => (
+                    <img key={i} src={src} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {files.length > 0 && <div className="hint">{files.length}/8 neu ausgewählt</div>}
           </div>
 
           <div className="field">
@@ -181,7 +215,7 @@ export default function CreateListing({ userId, onDone, onBack }) {
           </div>
 
           <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Wird veröffentlicht...' : 'Anzeige veröffentlichen'}
+            {loading ? 'Wird gespeichert...' : isEditing ? 'Änderungen speichern' : 'Anzeige veröffentlichen'}
           </button>
         </form>
       </main>

@@ -75,9 +75,6 @@ export default function AdminPanel({ onBack, embedded }) {
 
   const header = (
     <div className="topbar">
-     {product.image_url && (
-  <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 160, objectFit: 'cover' }} />
-)}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="mark">Plettenberg · Admin</div>
         <span className="status-pill status-live">Admin · Voller Zugriff</span>
@@ -516,6 +513,12 @@ function ProdukteTab() {
 
       {!loading && products.map((product) => (
         <div className="card" key={product.id}>
+          {!loading && products.map((product) => (
+        <div className="card" key={product.id}>
+          {product.image_url && (
+            <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 160, objectFit: 'cover' }} />
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <h3 style={{ margin: 0 }}>{product.name}</h3>
             <span className={`status-pill ${product.active ? 'status-live' : 'status-abgelehnt'}`}>

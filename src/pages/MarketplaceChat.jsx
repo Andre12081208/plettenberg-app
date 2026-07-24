@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 
 export default function MarketplaceChat({ userId, threadId, role, onBack }) {
   const [messages, setMessages] = useState([])
+  const [listingInfo, setListingInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -11,6 +12,7 @@ export default function MarketplaceChat({ userId, threadId, role, onBack }) {
 
   useEffect(() => {
     loadMessages()
+    loadListingInfo()
 
     const channel = supabase
       .channel(`marketplace-messages-${threadId}`)
@@ -33,6 +35,15 @@ export default function MarketplaceChat({ userId, threadId, role, onBack }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  async function loadListingInfo() {
+    const { data } = await supabase
+      .from('marketplace_threads')
+      .select('listing_id, listing_title, listing_image_url')
+      .eq('id', threadId)
+      .maybeSingle()
+    setListingInfo(data)
+  }
 
   async function loadMessages() {
     setLoading(true)
@@ -68,6 +79,14 @@ export default function MarketplaceChat({ userId, threadId, role, onBack }) {
       <div className="topbar">
         <div className="mark">Plettenberg</div>
         <h1>{role === 'anbieter' ? 'Interessent' : 'Anbieter'}</h1>
+        {listingInfo && (
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+            Zu: {listingInfo.listing_title || 'Anzeige'}{' '}
+            {!listingInfo.listing_id && (
+              <span className="status-pill status-abgelehnt" style={{ fontSize: 10 }}>Inserat gelöscht</span>
+            )}
+          </p>
+        )}
       </div>
       <main style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>

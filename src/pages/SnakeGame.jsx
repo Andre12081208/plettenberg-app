@@ -18,6 +18,7 @@ export default function SnakeGame({ userId, onBack }) {
   const [started, setStarted] = useState(false)
   const [round, setRound] = useState(0)
   const [screen, setScreen] = useState('game') // 'game' | 'settings'
+  const [saveError, setSaveError] = useState('')
 
   const stateRef = useRef({
     snake: [{ x: 8, y: 8 }],
@@ -55,17 +56,21 @@ export default function SnakeGame({ userId, onBack }) {
     const newAllTime = Math.max(highScore, finalScore)
     const newDaily = Math.max(dailyHighScore, finalScore)
 
-    await supabase.from('game_scores').upsert({
+    const { error } = await supabase.from('game_scores').upsert({
       user_id: userId,
       game_key: 'snake',
       high_score: newAllTime,
       daily_high_score: newDaily,
       daily_date: today,
       updated_at: new Date().toISOString()
-    })
+    }, { onConflict: 'user_id,game_key' })
 
-    setHighScore(newAllTime)
-    setDailyHighScore(newDaily)
+    if (error) {
+      setSaveError(error.message)
+    } else {
+      setHighScore(newAllTime)
+      setDailyHighScore(newDaily)
+    }
   }
 
   async function handleResetHighscore() {
@@ -227,6 +232,7 @@ export default function SnakeGame({ userId, onBack }) {
         {gameOver && (
           <div style={{ marginTop: 16, textAlign: 'center' }}>
             <p style={{ fontWeight: 600 }}>Game Over – {score} Punkte</p>
+            {saveError && <p style={{ fontSize: 12, color: 'var(--danger)' }}>Highscore konnte nicht gespeichert werden: {saveError}</p>}
             <button className="btn btn-primary" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => setRound((r) => r + 1)}>
               Nochmal spielen
             </button>

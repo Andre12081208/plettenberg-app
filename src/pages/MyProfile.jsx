@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import ProfileCard from './ProfileCard.jsx'
 
 export default function MyProfile({ userId, profile, onBack, onProfileUpdated }) {
   const [firstName, setFirstName] = useState(profile.first_name || '')
@@ -18,6 +19,7 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [error, setError] = useState('')
+  const [showPreview, setShowPreview] = useState(false)
 
   function handleFileChange(e) {
     const f = e.target.files?.[0]
@@ -87,6 +89,10 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
 
   const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase()
 
+  if (showPreview) {
+    return <ProfileCard contactId={userId} onBack={() => setShowPreview(false)} />
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -96,9 +102,13 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
-        <p className="hint" style={{ marginBottom: 16 }}>
+       <p className="hint" style={{ marginBottom: 16 }}>
           Das ist deine Visitenkarte. Bestätigte Kontakte sehen genau das, was du hier ausfüllst.
         </p>
+
+        <button className="btn btn-secondary" onClick={() => setShowPreview(true)} style={{ marginBottom: 16 }}>
+          👁️ So sehen dich deine Kontakte
+        </button>
 
         <div className="card">
           {error && <div className="error-box">{error}</div>}

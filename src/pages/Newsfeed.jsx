@@ -85,7 +85,7 @@ export default function Newsfeed({ userId, onBack, embedded }) {
       <>
         <div className="topbar">
           <div className="mark">Plettenberg</div>
-          <h1>Neuigkeiten</h1>
+          <h1>Newsfeed</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>{content}</main>
       </>
@@ -96,7 +96,7 @@ export default function Newsfeed({ userId, onBack, embedded }) {
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>Neuigkeiten</h1>
+        <h1>Newsfeed</h1>
       </div>
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>

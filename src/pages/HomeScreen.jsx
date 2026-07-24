@@ -22,7 +22,7 @@ const SYSTEM_APP_META = {
   snake: { icon: '🐍', label: 'Snake' }
 }
 
-export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated }) {
+export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated, onPasswordChanged }) {
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_activeTab') || 'apps')
   const [openApp, setOpenApp] = useState(() => {
     const saved = sessionStorage.getItem('pb_openApp')
@@ -196,7 +196,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
     return <Calendar userId={userId} onBack={() => setOpenApp(null)} />
   }
   if (openApp === 'settings') {
-    return <Settings profile={profile} onBack={() => setOpenApp(null)} onProfileUpdated={onProfileUpdated} />
+    return <Settings profile={profile} onBack={() => setOpenApp(null)} onProfileUpdated={onProfileUpdated} onPasswordChanged={onPasswordChanged} />
   }
 
   if (openApp === 'channels') {

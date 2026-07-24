@@ -35,6 +35,7 @@ html, body {
   display: flex;
   flex-direction: column;
   background: var(--paper);
+  padding-bottom: 90px;
 }
 
 .topbar {
@@ -255,8 +256,12 @@ main {
 }
 
 .tab-bar {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
+  max-width: 480px;
+  margin: 0 auto;
   display: flex;
   border-top: 1px solid var(--line);
   background: var(--paper);

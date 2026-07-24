@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
 import HomeScreen from './pages/HomeScreen.jsx'
 import PasswordChangedCountdown from './pages/PasswordChangedCountdown.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 import AccountBlocked from './pages/AccountBlocked.jsx'
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
   const [chosenType, setChosenType] = useState(null)
   const [view, setView] = useState('dashboard')
   const [passwordJustChanged, setPasswordJustChanged] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -33,6 +35,14 @@ export default function App() {
           setJustConfirmedMsg('Deine Email-Adresse wurde bestätigt. Du kannst dich jetzt anmelden.')
         })
         return
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecovery(true)
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecovery(true)
       }
 
       if (event === 'SIGNED_IN') {
@@ -51,6 +61,7 @@ export default function App() {
       setProfile(null)
       setProfileType(null)
       setPasswordJustChanged(false)
+      setPasswordRecovery(false)
       return
     }
     loadProfile(session.user.id)
@@ -118,8 +129,12 @@ export default function App() {
     return <div className="loading-dot">Einen Moment...</div>
   }
 
-  if (!session) {
+ if (!session) {
     return <Auth confirmedMessage={justConfirmedMsg} />
+  }
+
+  if (passwordRecovery) {
+    return <ResetPassword onDone={() => setPasswordRecovery(false)} />
   }
 
   if (passwordJustChanged) {

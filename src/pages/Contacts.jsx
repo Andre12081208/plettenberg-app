@@ -75,11 +75,12 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
     const withNames = await Promise.all(
       accepted.map(async (c) => {
         const otherId = c.requester_id === userId ? c.addressee_id : c.requester_id
-        const [{ data: username }, { data: displayName }] = await Promise.all([
+        const [{ data: username }, { data: displayName }, { data: avatarUrl }] = await Promise.all([
           supabase.rpc('get_username', { target_id: otherId }),
-          supabase.rpc('get_display_name', { target_id: otherId })
+          supabase.rpc('get_display_name', { target_id: otherId }),
+          supabase.rpc('get_avatar_url', { target_id: otherId })
         ])
-        return { ...c, otherId, otherUsername: username, otherDisplayName: displayName }
+        return { ...c, otherId, otherUsername: username, otherDisplayName: displayName, otherAvatarUrl: avatarUrl }
       })
     )
 
@@ -203,7 +204,7 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
       <ContactSearch
         connections={connections}
         onBack={() => setView('list')}
-        onMessage={(c) => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername, otherDisplayName: c.otherDisplayName })}
+        onMessage={(c) => setOpenChat({ connectionId: c.id, otherUsername: c.otherUsername, otherDisplayName: c.otherDisplayName, otherAvatarUrl: c.otherAvatarUrl })}
         onViewCalendar={(c) => { setCalendarTarget(c.otherId); setView('viewCalendar') }}
         onViewProfile={(c) => { setProfileCardTarget(c.otherId); setView('viewProfileCard') }}
       />
@@ -349,11 +350,16 @@ function ContactSearch({ connections, onBack, onMessage, onViewCalendar, onViewP
         {filtered.map((c) => (
           <div className="card" key={c.id}>
             <button
-              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 0 }}
+              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 10 }}
               onClick={() => setOpenActionsFor(openActionsFor === c.id ? null : c.id)}
             >
-              <h3 style={{ margin: 0 }}>{c.otherDisplayName}</h3>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>@{c.otherUsername}</p>
+              <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                {c.otherAvatarUrl ? <img src={c.otherAvatarUrl} alt="" /> : '👤'}
+              </div>
+              <div>
+                <h3 style={{ margin: 0 }}>{c.otherDisplayName}</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>@{c.otherUsername}</p>
+              </div>
             </button>
 
             {openActionsFor === c.id && (

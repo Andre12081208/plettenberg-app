@@ -117,18 +117,43 @@ export default function Marketplace({ userId, onBack }) {
 
         {!loading && listings.map((listing) => {
           const isOwn = listing.seller_id === userId
+          const photos = listing.image_urls?.length ? listing.image_urls : (listing.image_url ? [listing.image_url] : [])
           return (
             <div className="card" key={listing.id}>
-              {listing.image_url && (
-                <img src={listing.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 180, objectFit: 'cover' }} />
+              {photos.length > 0 && (
+                <>
+                  <img src={photos[0]} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 8, maxHeight: 180, objectFit: 'cover' }} />
+                  {photos.length > 1 && (
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                      {photos.slice(1).map((url, i) => (
+                        <img key={i} src={url} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6 }} />
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
               <h3 style={{ margin: '0 0 4px' }}>{listing.title}</h3>
-              {listing.price != null && (
+
+              {listing.is_free ? (
+                <p style={{ margin: '0 0 6px', fontWeight: 600, color: 'var(--forest)' }}>Zu verschenken</p>
+              ) : listing.price != null ? (
                 <p style={{ margin: '0 0 6px', fontWeight: 600, color: 'var(--forest)' }}>{listing.price} €</p>
-              )}
+              ) : null}
+
               {listing.description && (
                 <p style={{ margin: '0 0 10px', fontSize: 14 }}>{listing.description}</p>
               )}
+
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                {listing.pickup_available && (
+                  <span className="status-pill status-live" style={{ fontSize: 11 }}>📍 Abholung möglich</span>
+                )}
+                {listing.delivery_available && (
+                  <span className="status-pill status-live" style={{ fontSize: 11 }}>
+                    🚗 Lieferung {listing.delivery_fee > 0 ? `(${listing.delivery_fee} € Gebühr)` : '(kostenlos)'}
+                  </span>
+                )}
+              </div>
 
               {isOwn ? (
                 <span className="hint">Deine Anzeige</span>

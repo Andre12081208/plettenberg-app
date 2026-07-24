@@ -218,7 +218,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
   }
 
   if (openApp === 'snake') {
-    return <SnakeGame onBack={() => setOpenApp(null)} />
+    return <SnakeGame userId={userId} onBack={() => setOpenApp(null)} />
   }
 
   if (openApp === 'store') {

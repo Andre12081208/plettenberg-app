@@ -36,7 +36,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
   const [movableTiles, setMovableTiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
+  const [unreadChatCount, setUnreadChatCount] = useState(0)
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
   const [initialChannelCode, setInitialChannelCode] = useState(null)
@@ -68,13 +68,8 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
   }, [])
 
   async function checkUnreadMessages() {
-    const { data } = await supabase
-      .from('messages')
-      .select('id')
-      .is('read_at', null)
-      .neq('sender_id', userId)
-      .limit(1)
-    setHasUnreadMessages((data || []).length > 0)
+    const { data } = await supabase.rpc('get_unread_chat_count')
+    setUnreadChatCount(data || 0)
   }
 
   async function loadInstalled() {
@@ -365,8 +360,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated 
         >
           <span className="tab-bar-icon">🤝</span>
           Kontakte
-          {hasUnreadMessages && (
-            <span style={{ position: 'absolute', top: 6, right: '30%', width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)' }} />
+          {unreadChatCount > 0 && (
+            <span style={{ position: 'absolute', top: 2, right: '20%', minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+              {unreadChatCount}
+            </span>
           )}
         </button>
         <button

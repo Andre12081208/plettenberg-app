@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 
 const GRID_SIZE = 16
 const CELL_SIZE = 20
 const SPEED_MS = 140
 
-export default function SnakeGame({ onBack }) {
+export default function SnakeGame({ userId, onBack }) {
   const canvasRef = useRef(null)
   const [score, setScore] = useState(0)
+  const [highScore, setHighScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [started, setStarted] = useState(false)
+  const [round, setRound] = useState(0)
+  const [screen, setScreen] = useState('game') // 'game' | 'settings'
 
   const stateRef = useRef({
     snake: [{ x: 8, y: 8 }],
@@ -16,6 +20,41 @@ export default function SnakeGame({ onBack }) {
     nextDirection: { x: 1, y: 0 },
     food: { x: 12, y: 8 }
   })
+
+  useEffect(() => {
+    loadHighScore()
+    // eslint-disable-next-line
+  }, [])
+
+  async function loadHighScore() {
+    const { data } = await supabase
+      .from('game_scores')
+      .select('high_score')
+      .eq('user_id', userId)
+      .eq('game_key', 'snake')
+      .maybeSingle()
+    setHighScore(data?.high_score || 0)
+  }
+
+  useEffect(() => {
+    if (!gameOver) return
+    if (score > highScore) {
+      setHighScore(score)
+      supabase.from('game_scores').upsert({
+        user_id: userId,
+        game_key: 'snake',
+        high_score: score,
+        updated_at: new Date().toISOString()
+      })
+    }
+    // eslint-disable-next-line
+  }, [gameOver])
+
+  async function handleResetHighscore() {
+    if (!window.confirm('Highscore wirklich zurücksetzen?')) return
+    await supabase.from('game_scores').delete().eq('user_id', userId).eq('game_key', 'snake')
+    setHighScore(0)
+  }
 
   useEffect(() => {
     if (!started) return
@@ -107,7 +146,7 @@ export default function SnakeGame({ onBack }) {
       clearInterval(interval)
       window.removeEventListener('keydown', handleKey)
     }
-  }, [started])
+  }, [started, round])
 
   function setDirection(dx, dy) {
     const s = stateRef.current
@@ -115,16 +154,41 @@ export default function SnakeGame({ onBack }) {
     if (dy !== 0 && s.direction.y === 0) s.nextDirection = { x: 0, y: dy }
   }
 
+  if (screen === 'settings') {
+    return (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Snake · Einstellungen</h1>
+        </div>
+        <main>
+          <button className="link-text" onClick={() => setScreen('game')} style={{ marginBottom: 16 }}>← Zurück zum Spiel</button>
+
+          <div className="card">
+            <p style={{ margin: '0 0 14px' }}>Aktueller Highscore: <strong>{highScore}</strong></p>
+            <button className="btn btn-secondary" onClick={handleResetHighscore}>Highscore zurücksetzen</button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>Snake</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1>Snake</h1>
+          <button className="link-text" onClick={() => setScreen('settings')}>⚙️</button>
+        </div>
       </div>
       <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16, alignSelf: 'flex-start' }}>← Zurück</button>
 
-        <p style={{ fontWeight: 600, marginBottom: 10 }}>Punkte: {score}</p>
+        <div style={{ display: 'flex', gap: 20, marginBottom: 10 }}>
+          <p style={{ fontWeight: 600, margin: 0 }}>Punkte: {score}</p>
+          <p style={{ fontWeight: 600, margin: 0, color: 'var(--clay)' }}>Highscore: {highScore}</p>
+        </div>
 
         <canvas
           ref={canvasRef}
@@ -142,7 +206,7 @@ export default function SnakeGame({ onBack }) {
         {gameOver && (
           <div style={{ marginTop: 16, textAlign: 'center' }}>
             <p style={{ fontWeight: 600 }}>Game Over – {score} Punkte</p>
-            <button className="btn btn-primary" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => setStarted(false) || setStarted(true)}>
+            <button className="btn btn-primary" style={{ width: 'auto', padding: '10px 24px' }} onClick={() => setRound((r) => r + 1)}>
               Nochmal spielen
             </button>
           </div>

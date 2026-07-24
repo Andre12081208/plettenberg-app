@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useLanguage } from '../lib/LanguageContext.jsx'
+import { translations, LANGUAGE_NAMES } from '../lib/translations.js'
 
 export default function Settings({ profile, onBack, onProfileUpdated, onPasswordChanged }) {
+  const { t, language, setLanguage } = useLanguage()
   const [themePreference, setThemePreference] = useState(profile.theme_preference || 'auto')
   const [themeSaving, setThemeSaving] = useState(false)
   const [themeMsg, setThemeMsg] = useState('')
+  const [languageSaving, setLanguageSaving] = useState(false)
 
   const [newEmail, setNewEmail] = useState('')
   const [emailSaving, setEmailSaving] = useState(false)
@@ -98,6 +102,14 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
     }
   }
 
+  async function handleChangeLanguage(newLang) {
+    setLanguageSaving(true)
+    setLanguage(newLang)
+    const { error } = await supabase.from('private_profiles').update({ language_preference: newLang }).eq('id', profile.id)
+    if (!error) onProfileUpdated?.()
+    setLanguageSaving(false)
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
   }
@@ -106,20 +118,31 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>Einstellungen</h1>
+        <h1>{t('settings.title')}</h1>
       </div>
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Erscheinungsbild</h3>
+          <h3 style={{ marginTop: 0 }}>{t('settings.language')}</h3>
+          <div className="field">
+            <select value={language} disabled={languageSaving} onChange={(e) => handleChangeLanguage(e.target.value)}>
+              {Object.keys(translations).map((code) => (
+                <option key={code} value={code}>{LANGUAGE_NAMES[code] || code}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>{t('settings.appearance')}</h3>
           {themeMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{themeMsg}</div>}
           <form onSubmit={handleSaveTheme}>
             <div className="field">
               <select value={themePreference} onChange={(e) => setThemePreference(e.target.value)}>
-                <option value="auto">Automatisch (nach Geräteeinstellung)</option>
-                <option value="hell">Hell</option>
-                <option value="dunkel">Dunkel</option>
+               <option value="auto">{t('settings.auto')}</option>
+              <option value="hell">{t('settings.light')}</option>
+              <option value="dunkel">{t('settings.dark')}</option>
               </select>
             </div>
             <button className="btn btn-secondary" type="submit" disabled={themeSaving}>
@@ -129,7 +152,7 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
         </div>
 
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Email ändern</h3>
+          <h3 style={{ marginTop: 0 }}>{t('settings.changeEmail')}</h3>
           {emailError && <div className="error-box">{emailError}</div>}
           {emailMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{emailMsg}</div>}
           <form onSubmit={handleChangeEmail}>
@@ -151,7 +174,7 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
         </div>
 
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Passwort ändern</h3>
+          <h3 style={{ marginTop: 0 }}>{t('settings.changePassword')}</h3>
 
           {!currentPasswordVerified ? (
             <>
@@ -212,7 +235,7 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
           )}
         </div>
 
-        <button className="btn btn-secondary" onClick={handleLogout}>Abmelden</button>
+        <button className="btn btn-secondary" onClick={handleLogout}>{t('settings.logout')}</button>
       </main>
     </div>
   )

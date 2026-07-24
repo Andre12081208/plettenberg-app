@@ -43,6 +43,8 @@ export default function MarketplaceInbox({ userId, onOpenThread, onBack }) {
 
         {!loading && threads.map((t) => {
           const role = t.buyer_id === userId ? 'interessent' : 'anbieter'
+          const isDeleted = !t.listing_id
+          const title = t.marketplace_listings?.title || t.listing_title || 'Anzeige'
           return (
             <button
               key={t.id}
@@ -50,8 +52,13 @@ export default function MarketplaceInbox({ userId, onOpenThread, onBack }) {
               onClick={() => onOpenThread(t.id, role)}
             >
               <span className="eyebrow">{role === 'anbieter' ? 'Du bist Anbieter' : 'Du bist Interessent'}</span>
-              <h3>{t.marketplace_listings?.title}</h3>
-              {t.marketplace_listings?.price != null && (
+              <h3>
+                {title}{' '}
+                {isDeleted && (
+                  <span className="status-pill status-abgelehnt" style={{ fontSize: 10 }}>Inserat gelöscht</span>
+                )}
+              </h3>
+              {!isDeleted && t.marketplace_listings?.price != null && (
                 <p>{t.marketplace_listings.price} €</p>
               )}
             </button>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function Chat({ userId, connectionId, otherUsername, otherDisplayName, onBack }) {
+export default function Chat({ userId, connectionId, otherUsername, otherDisplayName, otherAvatarUrl, onBack }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -195,8 +195,15 @@ export default function Chat({ userId, connectionId, otherUsername, otherDisplay
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-       <h1>{otherDisplayName || `@${otherUsername}`}</h1>
-        <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink-soft)' }}>@{otherUsername}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+            {otherAvatarUrl ? <img src={otherAvatarUrl} alt="" /> : '👤'}
+          </div>
+          <div>
+            <h1 style={{ margin: 0 }}>{otherDisplayName || `@${otherUsername}`}</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink-soft)' }}>@{otherUsername}</p>
+          </div>
+        </div>
       </div>
       <main style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>

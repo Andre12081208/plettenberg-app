@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 export default function Settings({ profile, onBack, onProfileUpdated }) {
@@ -19,11 +19,23 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
   const [newPassword1, setNewPassword1] = useState('')
   const [newPassword2, setNewPassword2] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
-  const [passwordMsg, setPasswordMsg] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [logoutCountdown, setLogoutCountdown] = useState(null)
 
   const passwordsDontMatch = newPassword1.length > 0 && newPassword2.length > 0 && newPassword1 !== newPassword2
   const canSubmitNewPassword = newPassword1.length >= 6 && newPassword2.length >= 6 && newPassword1 === newPassword2 && !passwordSaving
+
+  useEffect(() => {
+    if (logoutCountdown === null) return
+
+    if (logoutCountdown <= 0) {
+      supabase.auth.signOut({ scope: 'global' })
+      return
+    }
+
+    const timer = setTimeout(() => setLogoutCountdown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [logoutCountdown])
 
   async function handleSaveTheme(e) {
     e.preventDefault()
@@ -74,7 +86,6 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
   async function handleChangePassword(e) {
     e.preventDefault()
     setPasswordError('')
-    setPasswordMsg('')
 
     if (newPassword1.length < 6) {
       setPasswordError('Das Passwort muss mindestens 6 Zeichen haben.')
@@ -93,14 +104,10 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
 
     if (error) {
       setPasswordError(error.message)
+      setPasswordSaving(false)
     } else {
-      setPasswordMsg('Passwort geändert.')
-      setNewPassword1('')
-      setNewPassword2('')
-      setCurrentPassword('')
-      setCurrentPasswordVerified(false)
+      setLogoutCountdown(3)
     }
-    setPasswordSaving(false)
   }
 
   async function handleLogout() {
@@ -158,7 +165,11 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Passwort ändern</h3>
 
-          {!currentPasswordVerified ? (
+          {logoutCountdown !== null ? (
+            <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>
+              Dein Passwort wurde geändert. Du wirst jetzt auf allen Geräten abgemeldet in {logoutCountdown}...
+            </div>
+          ) : !currentPasswordVerified ? (
             <>
               {currentPasswordError && <div className="error-box">{currentPasswordError}</div>}
               <form onSubmit={handleVerifyCurrentPassword}>
@@ -184,7 +195,6 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
               {passwordsDontMatch && !passwordError && (
                 <div className="error-box">Die beiden Passwörter stimmen nicht überein.</div>
               )}
-              {passwordMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{passwordMsg}</div>}
               <form onSubmit={handleChangePassword}>
                 <div className="field">
                   <label htmlFor="newPassword1">Neues Passwort</label>

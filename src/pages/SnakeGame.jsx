@@ -5,10 +5,15 @@ const GRID_SIZE = 16
 const CELL_SIZE = 20
 const SPEED_MS = 140
 
+function todayStr() {
+  return new Date().toLocaleDateString('en-CA') // ergibt JJJJ-MM-TT nach lokaler Zeit
+}
+
 export default function SnakeGame({ userId, onBack }) {
   const canvasRef = useRef(null)
   const [score, setScore] = useState(0)
   const [highScore, setHighScore] = useState(0)
+  const [dailyHighScore, setDailyHighScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [started, setStarted] = useState(false)
   const [round, setRound] = useState(0)
@@ -22,38 +27,62 @@ export default function SnakeGame({ userId, onBack }) {
   })
 
   useEffect(() => {
-    loadHighScore()
+    loadHighScores()
     // eslint-disable-next-line
   }, [])
 
-  async function loadHighScore() {
+  async function loadHighScores() {
     const { data } = await supabase
       .from('game_scores')
-      .select('high_score')
+      .select('high_score, daily_high_score, daily_date')
       .eq('user_id', userId)
       .eq('game_key', 'snake')
       .maybeSingle()
+
     setHighScore(data?.high_score || 0)
+    setDailyHighScore(data?.daily_date === todayStr() ? (data?.daily_high_score || 0) : 0)
   }
 
   useEffect(() => {
     if (!gameOver) return
-    if (score > highScore) {
-      setHighScore(score)
-      supabase.from('game_scores').upsert({
-        user_id: userId,
-        game_key: 'snake',
-        high_score: score,
-        updated_at: new Date().toISOString()
-      })
-    }
+    updateHighScores(score)
     // eslint-disable-next-line
   }, [gameOver])
 
+  async function updateHighScores(finalScore) {
+    const today = todayStr()
+
+    const { data } = await supabase
+      .from('game_scores')
+      .select('high_score, daily_high_score, daily_date')
+      .eq('user_id', userId)
+      .eq('game_key', 'snake')
+      .maybeSingle()
+
+    const currentAllTime = data?.high_score || 0
+    const currentDaily = data?.daily_date === today ? (data?.daily_high_score || 0) : 0
+
+    const newAllTime = Math.max(currentAllTime, finalScore)
+    const newDaily = Math.max(currentDaily, finalScore)
+
+    await supabase.from('game_scores').upsert({
+      user_id: userId,
+      game_key: 'snake',
+      high_score: newAllTime,
+      daily_high_score: newDaily,
+      daily_date: today,
+      updated_at: new Date().toISOString()
+    })
+
+    setHighScore(newAllTime)
+    setDailyHighScore(newDaily)
+  }
+
   async function handleResetHighscore() {
-    if (!window.confirm('Highscore wirklich zurücksetzen?')) return
+    if (!window.confirm('Highscore (gesamt und heute) wirklich zurücksetzen?')) return
     await supabase.from('game_scores').delete().eq('user_id', userId).eq('game_key', 'snake')
     setHighScore(0)
+    setDailyHighScore(0)
   }
 
   useEffect(() => {
@@ -165,7 +194,8 @@ export default function SnakeGame({ userId, onBack }) {
           <button className="link-text" onClick={() => setScreen('game')} style={{ marginBottom: 16 }}>← Zurück zum Spiel</button>
 
           <div className="card">
-            <p style={{ margin: '0 0 14px' }}>Aktueller Highscore: <strong>{highScore}</strong></p>
+            <p style={{ margin: '0 0 6px' }}>Highscore gesamt: <strong>{highScore}</strong></p>
+            <p style={{ margin: '0 0 14px' }}>Highscore heute: <strong>{dailyHighScore}</strong></p>
             <button className="btn btn-secondary" onClick={handleResetHighscore}>Highscore zurücksetzen</button>
           </div>
         </main>
@@ -185,9 +215,10 @@ export default function SnakeGame({ userId, onBack }) {
       <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16, alignSelf: 'flex-start' }}>← Zurück</button>
 
-        <div style={{ display: 'flex', gap: 20, marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
           <p style={{ fontWeight: 600, margin: 0 }}>Punkte: {score}</p>
-          <p style={{ fontWeight: 600, margin: 0, color: 'var(--clay)' }}>Highscore: {highScore}</p>
+          <p style={{ fontWeight: 600, margin: 0, color: 'var(--clay)' }}>Heute: {dailyHighScore}</p>
+          <p style={{ fontWeight: 600, margin: 0, color: 'var(--forest)' }}>Gesamt: {highScore}</p>
         </div>
 
         <canvas

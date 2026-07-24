@@ -240,17 +240,32 @@ export default function Kiosk({ userId, onBack }) {
         {loading && <div className="loading-dot">Lädt...</div>}
         {!loading && products.length === 0 && <p className="center-note">Aktuell keine Produkte verfügbar.</p>}
 
-        {!loading && products.map((product) => (
-          <div className="card" key={product.id}>
-            {product.image_url && (
-              <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 160, objectFit: 'cover' }} />
-            )}
-            <h3 style={{ margin: '0 0 4px' }}>{product.name}</h3>
-            <p style={{ margin: '0 0 6px', fontWeight: 600, color: 'var(--forest)' }}>{product.price.toFixed(2)} €</p>
-            {product.description && <p style={{ margin: '0 0 10px', fontSize: 14 }}>{product.description}</p>}
-            <button className="btn btn-primary" onClick={() => addToCart(product)}>In den Warenkorb</button>
-          </div>
-        ))}
+       {!loading && products.map((product) => {
+          const isSoldOut = product.stock_status === 'sold_out'
+          const isTemporarilyUnavailable = product.stock_status === 'temporarily_unavailable'
+          const isUnavailable = isSoldOut || isTemporarilyUnavailable
+
+          return (
+            <div className="card" key={product.id}>
+              {product.image_url && (
+                <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 160, objectFit: 'cover', opacity: isUnavailable ? 0.5 : 1 }} />
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <h3 style={{ margin: 0 }}>{product.name}</h3>
+                {isSoldOut && <span className="status-pill status-abgelehnt">Ausverkauft</span>}
+                {isTemporarilyUnavailable && <span className="status-pill status-abgelehnt">Vorübergehend nicht verfügbar</span>}
+                {!isUnavailable && product.stock_quantity != null && product.stock_quantity <= 5 && (
+                  <span className="status-pill status-live">Nur noch {product.stock_quantity}x</span>
+                )}
+              </div>
+              <p style={{ margin: '0 0 6px', fontWeight: 600, color: 'var(--forest)' }}>{product.price.toFixed(2)} €</p>
+              {product.description && <p style={{ margin: '0 0 10px', fontSize: 14 }}>{product.description}</p>}
+              <button className="btn btn-primary" onClick={() => addToCart(product)} disabled={isUnavailable}>
+                {isUnavailable ? 'Nicht verfügbar' : 'In den Warenkorb'}
+              </button>
+            </div>
+          )
+        })}
       </main>
     </div>
   )

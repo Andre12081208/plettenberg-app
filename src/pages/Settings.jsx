@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function Settings({ profile, onBack, onProfileUpdated }) {
+export default function Settings({ profile, onBack, onProfileUpdated, onPasswordChanged }) {
   const [themePreference, setThemePreference] = useState(profile.theme_preference || 'auto')
   const [themeSaving, setThemeSaving] = useState(false)
   const [themeMsg, setThemeMsg] = useState('')
@@ -20,22 +20,8 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
   const [newPassword2, setNewPassword2] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordError, setPasswordError] = useState('')
-  const [logoutCountdown, setLogoutCountdown] = useState(null)
-
   const passwordsDontMatch = newPassword1.length > 0 && newPassword2.length > 0 && newPassword1 !== newPassword2
   const canSubmitNewPassword = newPassword1.length >= 6 && newPassword2.length >= 6 && newPassword1 === newPassword2 && !passwordSaving
-
-  useEffect(() => {
-    if (logoutCountdown === null) return
-
-    if (logoutCountdown <= 0) {
-      supabase.auth.signOut({ scope: 'global' })
-      return
-    }
-
-    const timer = setTimeout(() => setLogoutCountdown((c) => c - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [logoutCountdown])
 
   async function handleSaveTheme(e) {
     e.preventDefault()
@@ -108,7 +94,7 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
       setPasswordError(error.message)
       setPasswordSaving(false)
     } else {
-      setLogoutCountdown(3)
+      onPasswordChanged?.()
     }
   }
 
@@ -167,11 +153,7 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Passwort ändern</h3>
 
-          {logoutCountdown !== null ? (
-            <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>
-              Dein Passwort wurde geändert. Du wirst jetzt auf allen Geräten abgemeldet in {logoutCountdown}...
-            </div>
-          ) : !currentPasswordVerified ? (
+          {!currentPasswordVerified ? (
             <>
               {currentPasswordError && <div className="error-box">{currentPasswordError}</div>}
               <form onSubmit={handleVerifyCurrentPassword}>

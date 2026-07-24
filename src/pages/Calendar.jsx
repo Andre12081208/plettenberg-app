@@ -196,7 +196,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
                 onClick={() => setSelectedDate(day)}
                 style={{
                   aspectRatio: '1', borderRadius: 8, border: isToday ? '1px solid var(--forest)' : '1px solid var(--line)',
-                  background: isSelected ? 'var(--forest)' : '#fff',
+                  background: isSelected ? 'var(--forest)' : 'var(--surface)',
                   color: isSelected ? '#fff' : 'var(--ink)',
                   fontSize: 13, cursor: 'pointer', position: 'relative', padding: 0
                 }}

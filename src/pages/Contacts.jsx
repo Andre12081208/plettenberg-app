@@ -213,11 +213,11 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
   const combined = [
     ...chats.map((c) => ({
       type: 'dm', key: `dm-${c.connection_id}`, title: c.display_name,
-      subtitle: c.last_message, lastAt: c.last_message_at, hasUnread: c.has_unread, raw: c
+      subtitle: c.last_message, lastAt: c.last_message_at, unreadCount: c.unread_count || 0, avatarUrl: c.avatar_url, raw: c
     })),
     ...groups.map((g) => ({
       type: 'group', key: `group-${g.group_id}`, title: g.name,
-      subtitle: g.last_message, lastAt: g.last_message_at, hasUnread: false, raw: g
+      subtitle: g.last_message, lastAt: g.last_message_at, unreadCount: 0, avatarUrl: null, raw: g
     }))
   ].sort((a, b) => new Date(b.lastAt || 0) - new Date(a.lastAt || 0))
 
@@ -247,29 +247,34 @@ export default function Contacts({ userId, profile, onBack, embedded, onUnreadCh
       {combined.map((item) => (
         <div key={item.key} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button
-            style={{ background: 'none', border: 'none', textAlign: 'left', flex: 1, cursor: 'pointer', padding: 0 }}
+            style={{ background: 'none', border: 'none', textAlign: 'left', flex: 1, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 10 }}
             onClick={() => {
               if (item.type === 'dm') {
-                setOpenChat({ connectionId: item.raw.connection_id, otherUsername: item.raw.username, otherDisplayName: item.raw.display_name })
+                setOpenChat({ connectionId: item.raw.connection_id, otherUsername: item.raw.username, otherDisplayName: item.raw.display_name, otherAvatarUrl: item.raw.avatar_url })
               } else {
                 setOpenGroup({ id: item.raw.group_id, name: item.raw.name, isAdmin: item.raw.is_admin })
               }
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <h3 style={{ margin: 0, fontSize: 16 }}>
-                {item.type === 'group' ? '👥 ' : ''}{item.title}
-              </h3>
-              {item.hasUnread && (
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)', display: 'inline-block' }} />
-              )}
-              {item.type === 'group' && item.raw.pending_count > 0 && (
-                <span className="status-pill status-pruefung" style={{ fontSize: 10 }}>{item.raw.pending_count} wartet</span>
-              )}
+            <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+              {item.type === 'group' ? '👥' : (item.avatarUrl ? <img src={item.avatarUrl} alt="" /> : '👤')}
             </div>
-            <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-              {item.subtitle ? (item.subtitle.length > 40 ? item.subtitle.slice(0, 40) + '…' : item.subtitle) : ''}
-            </p>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 16 }}>{item.title}</h3>
+                {item.type === 'group' && item.raw.pending_count > 0 && (
+                  <span className="status-pill status-pruefung" style={{ fontSize: 10 }}>{item.raw.pending_count} wartet</span>
+                )}
+              </div>
+              <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                {item.subtitle ? (item.subtitle.length > 40 ? item.subtitle.slice(0, 40) + '…' : item.subtitle) : ''}
+              </p>
+            </div>
+            {item.unreadCount > 0 && (
+              <span style={{ minWidth: 22, height: 22, borderRadius: 11, background: 'var(--clay)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', flexShrink: 0 }}>
+                {item.unreadCount}
+              </span>
+            )}
           </button>
           {item.type === 'dm' && (
             <button

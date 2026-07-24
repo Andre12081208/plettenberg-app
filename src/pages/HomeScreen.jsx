@@ -169,12 +169,17 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
-  if (openApp === 'stadtverwaltung') {
-    return <StadtverwaltungApp onBack={() => setOpenApp(null)} />
+  function goToTab(tab) {
+    setActiveTab(tab)
+    setOpenApp(null)
   }
 
-  if (openApp === 'profile') {
-    return (
+  let content
+
+  if (openApp === 'stadtverwaltung') {
+    content = <StadtverwaltungApp onBack={() => setOpenApp(null)} />
+  } else if (openApp === 'profile') {
+    content = (
       <MyProfile
         userId={userId}
         profile={profile}
@@ -182,25 +187,16 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
         onProfileUpdated={onProfileUpdated}
       />
     )
-  }
-
-  if (openApp === 'marketplace') {
-    return <Marketplace userId={userId} onBack={() => setOpenApp(null)} />
-  }
-
-  if (openApp === 'kiosk') {
-    return <Kiosk userId={userId} onBack={() => setOpenApp(null)} />
-  }
-
-  if (openApp === 'calendar') {
-    return <Calendar userId={userId} onBack={() => setOpenApp(null)} />
-  }
-  if (openApp === 'settings') {
-    return <Settings profile={profile} onBack={() => setOpenApp(null)} onProfileUpdated={onProfileUpdated} onPasswordChanged={onPasswordChanged} />
-  }
-
-  if (openApp === 'channels') {
-    return (
+  } else if (openApp === 'marketplace') {
+    content = <Marketplace userId={userId} onBack={() => setOpenApp(null)} />
+  } else if (openApp === 'kiosk') {
+    content = <Kiosk userId={userId} onBack={() => setOpenApp(null)} />
+  } else if (openApp === 'calendar') {
+    content = <Calendar userId={userId} onBack={() => setOpenApp(null)} />
+  } else if (openApp === 'settings') {
+    content = <Settings profile={profile} onBack={() => setOpenApp(null)} onProfileUpdated={onProfileUpdated} onPasswordChanged={onPasswordChanged} />
+  } else if (openApp === 'channels') {
+    content = (
       <ChannelsHub
         userId={userId}
         onBack={() => setOpenApp(null)}
@@ -208,154 +204,154 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
         onConsumedInitial={() => setInitialChannelCode(null)}
       />
     )
-  }if (openApp === 'gastro') {
-    return <GastroHub onBack={() => setOpenApp(null)} />
-  }
-
-  if (openApp === 'snake') {
-    return <SnakeGame userId={userId} onBack={() => setOpenApp(null)} />
-  }
-
-  if (openApp === 'store') {
-    return (
+  } else if (openApp === 'gastro') {
+    content = <GastroHub onBack={() => setOpenApp(null)} />
+  } else if (openApp === 'snake') {
+    content = <SnakeGame userId={userId} onBack={() => setOpenApp(null)} />
+  } else if (openApp === 'store') {
+    content = (
       <AppStore
         userId={userId}
         onBack={() => { setOpenApp(null); loadInstalled() }}
         onChanged={loadInstalled}
       />
     )
-  }
+  } else if (openApp && typeof openApp === 'object' && openApp.id) {
+    content = <BusinessMiniApp app={openApp} onBack={() => setOpenApp(null)} />
+  } else {
+    content = (
+      <>
+        {activeTab === 'feed' && <Newsfeed userId={userId} embedded />}
 
-  if (openApp && typeof openApp === 'object' && openApp.id) {
-    return <BusinessMiniApp app={openApp} onBack={() => setOpenApp(null)} />
+        {activeTab === 'contacts' && (
+          <Contacts
+            userId={userId}
+            profile={profile}
+            embedded
+            onUnreadChanged={checkUnreadMessages}
+            initialUsername={initialUsername}
+            initialGroupCode={initialGroupCode}
+            onConsumedInitial={() => { setInitialUsername(null); setInitialGroupCode(null) }}
+          />
+        )}
+
+        {activeTab === 'admin' && isAdmin && <AdminPanel embedded />}
+
+        {activeTab === 'apps' && (
+          <>
+            <div className="topbar">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="mark">Plettenberg</div>
+                <button className="link-text" onClick={() => setEditMode(!editMode)}>
+                  {editMode ? 'Fertig' : 'Anordnen'}
+                </button>
+              </div>
+              <h1>Apps</h1>
+            </div>
+            <main style={{ paddingBottom: 90 }}>
+              <div className="app-grid">
+                <button className="app-tile" onClick={() => setOpenApp('profile')}>
+                  <div className="app-tile-icon">
+                    {profile.avatar_url
+                      ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
+                      : '👤'}
+                  </div>
+                  <div className="app-tile-label">Mein Profil</div>
+                </button>
+
+                <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
+                  <div className="app-tile-icon">🏛️</div>
+                  <div className="app-tile-label">Stadtverwaltung</div>
+                </button>
+
+                <button className="app-tile" onClick={() => setOpenApp('channels')}>
+                  <div className="app-tile-icon">📢</div>
+                  <div className="app-tile-label">Channels</div>
+                </button>
+
+                <button className="app-tile" onClick={() => setOpenApp('marketplace')}>
+                  <div className="app-tile-icon">🛍️</div>
+                  <div className="app-tile-label">Marktplatz</div>
+                </button>
+
+                <button className="app-tile" onClick={() => setOpenApp('kiosk')}>
+                  <div className="app-tile-icon">🏪</div>
+                  <div className="app-tile-label">Kiosk</div>
+                </button>
+                <button className="app-tile" onClick={() => setOpenApp('gastro')}>
+                  <div className="app-tile-icon">🍽️</div>
+                  <div className="app-tile-label">Gastro</div>
+                </button>
+                <button className="app-tile" onClick={() => setOpenApp('settings')}>
+                  <div className="app-tile-icon">⚙️</div>
+                  <div className="app-tile-label">Einstellungen</div>
+                </button>
+
+                <button className="app-tile" onClick={() => setOpenApp('store')}>
+                  <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>
+                  <div className="app-tile-label">App Store</div>
+                </button>
+
+                {!loading && movableTiles.map((tile, index) => {
+                  const icon = tile.type === 'business'
+                    ? (tile.data.logo_url
+                        ? <img src={tile.data.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
+                        : tile.data.company_name[0])
+                    : (SYSTEM_APP_META[tile.key]?.icon || '❓')
+                  const label = tile.type === 'business' ? tile.data.company_name : (SYSTEM_APP_META[tile.key]?.label || tile.key)
+                  const tileKey = tile.type === 'business' ? `business-${tile.data.id}` : `system-${tile.key}`
+
+                  return (
+                    <div key={tileKey} style={{ position: 'relative' }}>
+                      <button
+                        className="app-tile"
+                        style={{ width: '100%' }}
+                        onClick={editMode ? undefined : () => setOpenApp(tile.type === 'business' ? tile.data : tile.key)}
+                      >
+                        <div className="app-tile-icon">{icon}</div>
+                        <div className="app-tile-label">{label}</div>
+                      </button>
+
+                      {editMode && (
+                        <>
+                          <button
+                            onClick={() => removeTile(tile)}
+                            style={{ position: 'absolute', top: -6, right: 6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', color: '#fff', border: 'none', fontSize: 12, lineHeight: '20px', cursor: 'pointer' }}
+                          >
+                            ✕
+                          </button>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 2 }}>
+                            <button className="link-text" style={{ fontSize: 13 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
+                            <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </main>
+          </>
+        )}
+      </>
+    )
   }
 
   return (
     <div className="app-shell">
-      {activeTab === 'feed' && <Newsfeed userId={userId} embedded />}
-
-      {activeTab === 'contacts' && (
-        <Contacts
-          userId={userId}
-          profile={profile}
-          embedded
-          onUnreadChanged={checkUnreadMessages}
-          initialUsername={initialUsername}
-          initialGroupCode={initialGroupCode}
-          onConsumedInitial={() => { setInitialUsername(null); setInitialGroupCode(null) }}
-        />
-      )}
-
-      {activeTab === 'admin' && isAdmin && <AdminPanel embedded />}
-
-      {activeTab === 'apps' && (
-        <>
-          <div className="topbar">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="mark">Plettenberg</div>
-              <button className="link-text" onClick={() => setEditMode(!editMode)}>
-                {editMode ? 'Fertig' : 'Anordnen'}
-              </button>
-            </div>
-            <h1>Apps</h1>
-          </div>
-          <main style={{ paddingBottom: 90 }}>
-            <div className="app-grid">
-              <button className="app-tile" onClick={() => setOpenApp('profile')}>
-                <div className="app-tile-icon">
-                  {profile.avatar_url
-                    ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
-                    : '👤'}
-                </div>
-                <div className="app-tile-label">Mein Profil</div>
-              </button>
-
-              <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
-                <div className="app-tile-icon">🏛️</div>
-                <div className="app-tile-label">Stadtverwaltung</div>
-              </button>
-
-              <button className="app-tile" onClick={() => setOpenApp('channels')}>
-                <div className="app-tile-icon">📢</div>
-                <div className="app-tile-label">Channels</div>
-              </button>
-
-              <button className="app-tile" onClick={() => setOpenApp('marketplace')}>
-                <div className="app-tile-icon">🛍️</div>
-                <div className="app-tile-label">Marktplatz</div>
-              </button>
-
-              <button className="app-tile" onClick={() => setOpenApp('kiosk')}>
-                <div className="app-tile-icon">🏪</div>
-                <div className="app-tile-label">Kiosk</div>
-              </button>
-              <button className="app-tile" onClick={() => setOpenApp('gastro')}>
-                <div className="app-tile-icon">🍽️</div>
-                <div className="app-tile-label">Gastro</div>
-              </button>
-              <button className="app-tile" onClick={() => setOpenApp('settings')}>
-                <div className="app-tile-icon">⚙️</div>
-                <div className="app-tile-label">Einstellungen</div>
-              </button>
-
-              <button className="app-tile" onClick={() => setOpenApp('store')}>
-                <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>
-                <div className="app-tile-label">App Store</div>
-              </button>
-
-              {!loading && movableTiles.map((tile, index) => {
-                const icon = tile.type === 'business'
-                  ? (tile.data.logo_url
-                      ? <img src={tile.data.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
-                      : tile.data.company_name[0])
-                  : (SYSTEM_APP_META[tile.key]?.icon || '❓')
-                const label = tile.type === 'business' ? tile.data.company_name : (SYSTEM_APP_META[tile.key]?.label || tile.key)
-                const tileKey = tile.type === 'business' ? `business-${tile.data.id}` : `system-${tile.key}`
-
-                return (
-                  <div key={tileKey} style={{ position: 'relative' }}>
-                    <button
-                      className="app-tile"
-                      style={{ width: '100%' }}
-                      onClick={editMode ? undefined : () => setOpenApp(tile.type === 'business' ? tile.data : tile.key)}
-                    >
-                      <div className="app-tile-icon">{icon}</div>
-                      <div className="app-tile-label">{label}</div>
-                    </button>
-
-                    {editMode && (
-                      <>
-                        <button
-                          onClick={() => removeTile(tile)}
-                          style={{ position: 'absolute', top: -6, right: 6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', color: '#fff', border: 'none', fontSize: 12, lineHeight: '20px', cursor: 'pointer' }}
-                        >
-                          ✕
-                        </button>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 2 }}>
-                          <button className="link-text" style={{ fontSize: 13 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
-                          <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </main>
-        </>
-      )}
+      {content}
 
       <nav className="tab-bar">
         <button
-          className={`tab-bar-item ${activeTab === 'feed' ? 'active' : ''}`}
-          onClick={() => setActiveTab('feed')}
+          className={`tab-bar-item ${activeTab === 'feed' && !openApp ? 'active' : ''}`}
+          onClick={() => goToTab('feed')}
         >
           <span className="tab-bar-icon">📰</span>
           Neuigkeiten
         </button>
         <button
-          className={`tab-bar-item ${activeTab === 'contacts' ? 'active' : ''}`}
-          onClick={() => setActiveTab('contacts')}
+          className={`tab-bar-item ${activeTab === 'contacts' && !openApp ? 'active' : ''}`}
+          onClick={() => goToTab('contacts')}
           style={{ position: 'relative' }}
         >
           <span className="tab-bar-icon">🤝</span>
@@ -367,16 +363,16 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
           )}
         </button>
         <button
-          className={`tab-bar-item ${activeTab === 'apps' ? 'active' : ''}`}
-          onClick={() => setActiveTab('apps')}
+          className={`tab-bar-item ${activeTab === 'apps' && !openApp ? 'active' : ''}`}
+          onClick={() => goToTab('apps')}
         >
           <span className="tab-bar-icon">🔲</span>
           Apps
         </button>
         {isAdmin && (
           <button
-            className={`tab-bar-item ${activeTab === 'admin' ? 'active' : ''}`}
-            onClick={() => setActiveTab('admin')}
+            className={`tab-bar-item ${activeTab === 'admin' && !openApp ? 'active' : ''}`}
+            onClick={() => goToTab('admin')}
           >
             <span className="tab-bar-icon">🛠️</span>
             Verwaltung

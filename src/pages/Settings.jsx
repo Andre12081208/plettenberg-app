@@ -11,10 +11,19 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
   const [emailMsg, setEmailMsg] = useState('')
   const [emailError, setEmailError] = useState('')
 
-  const [newPassword, setNewPassword] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [currentPasswordVerified, setCurrentPasswordVerified] = useState(false)
+  const [verifyingCurrent, setVerifyingCurrent] = useState(false)
+  const [currentPasswordError, setCurrentPasswordError] = useState('')
+
+  const [newPassword1, setNewPassword1] = useState('')
+  const [newPassword2, setNewPassword2] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordMsg, setPasswordMsg] = useState('')
   const [passwordError, setPasswordError] = useState('')
+
+  const passwordsDontMatch = newPassword1.length > 0 && newPassword2.length > 0 && newPassword1 !== newPassword2
+  const canSubmitNewPassword = newPassword1.length >= 6 && newPassword2.length >= 6 && newPassword1 === newPassword2 && !passwordSaving
 
   async function handleSaveTheme(e) {
     e.preventDefault()
@@ -45,24 +54,55 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
     setEmailSaving(false)
   }
 
+  async function handleVerifyCurrentPassword(e) {
+    e.preventDefault()
+    setCurrentPasswordError('')
+    setVerifyingCurrent(true)
+
+    const { data: userData } = await supabase.auth.getUser()
+    const email = userData?.user?.email
+
+    if (!email) {
+      setCurrentPasswordError('Deine Email-Adresse konnte nicht ermittelt werden. Bitte lade die Seite neu.')
+      setVerifyingCurrent(false)
+      return
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password: currentPassword })
+
+    if (error) {
+      setCurrentPasswordError('Das eingegebene Passwort ist nicht korrekt.')
+    } else {
+      setCurrentPasswordVerified(true)
+    }
+    setVerifyingCurrent(false)
+  }
+
   async function handleChangePassword(e) {
     e.preventDefault()
     setPasswordError('')
     setPasswordMsg('')
 
-    if (newPassword.length < 6) {
+    if (newPassword1.length < 6) {
       setPasswordError('Das Passwort muss mindestens 6 Zeichen haben.')
+      return
+    }
+    if (newPassword1 !== newPassword2) {
+      setPasswordError('Die beiden Passwörter stimmen nicht überein.')
       return
     }
 
     setPasswordSaving(true)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    const { error } = await supabase.auth.updateUser({ password: newPassword1 })
 
     if (error) {
       setPasswordError(error.message)
     } else {
       setPasswordMsg('Passwort geändert.')
-      setNewPassword('')
+      setNewPassword1('')
+      setNewPassword2('')
+      setCurrentPassword('')
+      setCurrentPasswordVerified(false)
     }
     setPasswordSaving(false)
   }
@@ -121,25 +161,65 @@ export default function Settings({ profile, onBack, onProfileUpdated }) {
 
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Passwort ändern</h3>
-          {passwordError && <div className="error-box">{passwordError}</div>}
-          {passwordMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{passwordMsg}</div>}
-          <form onSubmit={handleChangePassword}>
-            <div className="field">
-              <label htmlFor="newPassword">Neues Passwort</label>
-              <input
-                id="newPassword"
-                type="password"
-                required
-                minLength={6}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="mindestens 6 Zeichen"
-              />
-            </div>
-            <button className="btn btn-secondary" type="submit" disabled={passwordSaving}>
-              {passwordSaving ? 'Einen Moment...' : 'Passwort ändern'}
-            </button>
-          </form>
+
+          {!currentPasswordVerified ? (
+            <>
+              {currentPasswordError && <div className="error-box">{currentPasswordError}</div>}
+              <form onSubmit={handleVerifyCurrentPassword}>
+                <div className="field">
+                  <label htmlFor="currentPassword">Aktuelles Passwort</label>
+                  <input
+                    id="currentPassword"
+                    type="password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Dein jetziges Passwort"
+                  />
+                </div>
+                <button className="btn btn-secondary" type="submit" disabled={verifyingCurrent || !currentPassword}>
+                  {verifyingCurrent ? 'Wird geprüft...' : 'Bestätigen'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              {passwordError && <div className="error-box">{passwordError}</div>}
+              {passwordsDontMatch && !passwordError && (
+                <div className="error-box">Die beiden Passwörter stimmen nicht überein.</div>
+              )}
+              {passwordMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{passwordMsg}</div>}
+              <form onSubmit={handleChangePassword}>
+                <div className="field">
+                  <label htmlFor="newPassword1">Neues Passwort</label>
+                  <input
+                    id="newPassword1"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword1}
+                    onChange={(e) => setNewPassword1(e.target.value)}
+                    placeholder="mindestens 6 Zeichen"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="newPassword2">Neues Passwort wiederholen</label>
+                  <input
+                    id="newPassword2"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword2}
+                    onChange={(e) => setNewPassword2(e.target.value)}
+                    placeholder="Passwort erneut eingeben"
+                  />
+                </div>
+                <button className="btn btn-secondary" type="submit" disabled={!canSubmitNewPassword}>
+                  {passwordSaving ? 'Einen Moment...' : 'Passwort ändern'}
+                </button>
+              </form>
+            </>
+          )}
         </div>
 
         <button className="btn btn-secondary" onClick={handleLogout}>Abmelden</button>

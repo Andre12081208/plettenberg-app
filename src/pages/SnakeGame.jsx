@@ -52,18 +52,8 @@ export default function SnakeGame({ userId, onBack }) {
   async function updateHighScores(finalScore) {
     const today = todayStr()
 
-    const { data } = await supabase
-      .from('game_scores')
-      .select('high_score, daily_high_score, daily_date')
-      .eq('user_id', userId)
-      .eq('game_key', 'snake')
-      .maybeSingle()
-
-    const currentAllTime = data?.high_score || 0
-    const currentDaily = data?.daily_date === today ? (data?.daily_high_score || 0) : 0
-
-    const newAllTime = Math.max(currentAllTime, finalScore)
-    const newDaily = Math.max(currentDaily, finalScore)
+    const newAllTime = Math.max(highScore, finalScore)
+    const newDaily = Math.max(dailyHighScore, finalScore)
 
     await supabase.from('game_scores').upsert({
       user_id: userId,

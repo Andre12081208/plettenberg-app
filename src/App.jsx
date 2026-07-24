@@ -8,6 +8,7 @@ import BusinessProfileForm from './pages/BusinessProfileForm.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
 import HomeScreen from './pages/HomeScreen.jsx'
+import PasswordChangedCountdown from './pages/PasswordChangedCountdown.jsx'
 import AccountBlocked from './pages/AccountBlocked.jsx'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
   const [checkingProfile, setCheckingProfile] = useState(false)
   const [chosenType, setChosenType] = useState(null)
   const [view, setView] = useState('dashboard')
+  const [passwordJustChanged, setPasswordJustChanged] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -111,6 +113,10 @@ export default function App() {
     setCheckingProfile(false)
   }
 
+  if (passwordJustChanged) {
+    return <PasswordChangedCountdown />
+  }
+
   if (session === undefined || checkingProfile) {
     return <div className="loading-dot">Einen Moment...</div>
   }
@@ -159,6 +165,7 @@ export default function App() {
         userId={session.user.id}
         isAdmin={isAdmin}
         onProfileUpdated={() => loadProfile(session.user.id)}
+        onPasswordChanged={() => setPasswordJustChanged(true)}
       />
     )
   }

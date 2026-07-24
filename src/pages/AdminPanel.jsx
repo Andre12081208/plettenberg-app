@@ -368,6 +368,8 @@ function ProdukteTab() {
   const [preview, setPreview] = useState(null)
   const [saving, setSaving] = useState(false)
   const [busyId, setBusyId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     loadProducts()
@@ -450,17 +452,78 @@ function ProdukteTab() {
     setBusyId(null)
   }
 
-  async function deleteProduct(product) {
+  async function updateStock(product, updates) {
     setBusyId(product.id)
-    const { error } = await supabase.from('products').delete().eq('id', product.id)
+    const { error } = await supabase.from('products').update(updates).eq('id', product.id)
 
     if (!error) {
-      setProducts((prev) => prev.filter((p) => p.id !== product.id))
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, ...updates } : p)))
     } else {
       setError(error.message)
     }
     setBusyId(null)
   }
+
+  async function archiveProduct(product) {
+    setBusyId(product.id)
+    const archivedAt = new Date().toISOString()
+    const { error } = await supabase.from('products').update({ archived_at: archivedAt }).eq('id', product.id)
+
+    if (!error) {
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, archived_at: archivedAt } : p)))
+      setConfirmDeleteId(null)
+    } else {
+      setError(error.message)
+    }
+    setBusyId(null)
+  }
+
+  async function restoreProduct(product) {
+    setBusyId(product.id)
+    const { error } = await supabase.from('products').update({ archived_at: null }).eq('id', product.id)
+
+    if (!error) {
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, archived_at: null } : p)))
+    } else {
+      setError(error.message)
+    }
+    setBusyId(null)
+  }
+
+  async function hardDeleteProduct(product) {
+    setBusyId(product.id)
+    setError('')
+
+    const { count, error: checkError } = await supabase
+      .from('order_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('product_id', product.id)
+
+    if (checkError) {
+      setError(checkError.message)
+      setBusyId(null)
+      return
+    }
+
+    if (count > 0) {
+      setError('Dieses Produkt wurde bereits in Bestellungen verwendet und kann nicht endgültig gelöscht werden. Bitte stattdessen archivieren.')
+      setBusyId(null)
+      return
+    }
+
+    const { error } = await supabase.from('products').delete().eq('id', product.id)
+
+    if (!error) {
+      setProducts((prev) => prev.filter((p) => p.id !== product.id))
+      setConfirmDeleteId(null)
+    } else {
+      setError(error.message)
+    }
+    setBusyId(null)
+  }
+
+  const activeProducts = products.filter((p) => !p.archived_at)
+  const archivedProducts = products.filter((p) => p.archived_at)
 
   return (
     <>
@@ -509,9 +572,9 @@ function ProdukteTab() {
 
       <h3 style={{ marginBottom: 10 }}>Vorhandene Produkte</h3>
       {loading && <div className="loading-dot">Lädt...</div>}
-      {!loading && products.length === 0 && <p className="center-note">Noch keine Produkte angelegt.</p>}
+      {!loading && activeProducts.length === 0 && <p className="center-note">Noch keine Produkte angelegt.</p>}
 
-{!loading && products.map((product) => (
+      {!loading && activeProducts.map((product) => (
         <div className="card" key={product.id}>
           {product.image_url && (
             <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 160, objectFit: 'cover' }} />
@@ -524,16 +587,92 @@ function ProdukteTab() {
           </div>
           <p style={{ margin: '0 0 10px', fontSize: 14 }}>{product.price} €</p>
 
-          <div className="btn-row">
-            <button className="btn btn-secondary" onClick={() => toggleActive(product)} disabled={busyId === product.id}>
-              {product.active ? 'Deaktivieren' : 'Aktivieren'}
-            </button>
-            <button className="btn btn-secondary" onClick={() => deleteProduct(product)} disabled={busyId === product.id}>
-              Löschen
-            </button>
+          <div className="field">
+            <label>Bestand</label>
+            <select
+              value={product.stock_status}
+              onChange={(e) => {
+                const newStatus = e.target.value
+                updateStock(product, {
+                  stock_status: newStatus,
+                  stock_quantity: newStatus === 'in_stock' ? product.stock_quantity : null
+                })
+              }}
+            >
+              <option value="in_stock">Auf Lager</option>
+              <option value="temporarily_unavailable">Vorübergehend ausverkauft</option>
+              <option value="sold_out">Ausverkauft</option>
+            </select>
           </div>
+
+          {product.stock_status === 'in_stock' && (
+            <div className="field">
+              <label>Stückzahl (optional)</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="z.B. 12"
+                value={product.stock_quantity ?? ''}
+                onChange={(e) => updateStock(product, { stock_quantity: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+              />
+            </div>
+          )}
+
+          {confirmDeleteId === product.id ? (
+            <div>
+              <p style={{ fontSize: 14, marginBottom: 8 }}>Endgültig löschen oder lieber archivieren?</p>
+              <div className="btn-row">
+                <button className="btn btn-secondary" onClick={() => archiveProduct(product)} disabled={busyId === product.id}>
+                  Archivieren
+                </button>
+                <button className="btn btn-secondary" onClick={() => hardDeleteProduct(product)} disabled={busyId === product.id}>
+                  Endgültig löschen
+                </button>
+                <button className="btn btn-secondary" onClick={() => setConfirmDeleteId(null)} disabled={busyId === product.id}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="btn-row">
+              <button className="btn btn-secondary" onClick={() => toggleActive(product)} disabled={busyId === product.id}>
+                {product.active ? 'Deaktivieren' : 'Aktivieren'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setConfirmDeleteId(product.id)} disabled={busyId === product.id}>
+                Löschen
+              </button>
+            </div>
+          )}
         </div>
       ))}
+
+      {archivedProducts.length > 0 && (
+        <>
+          <button
+            className="link-text"
+            onClick={() => setShowArchived((v) => !v)}
+            style={{ marginTop: 20, marginBottom: 10, display: 'block' }}
+          >
+            {showArchived ? '▲ Archiv ausblenden' : `▼ Archiv anzeigen (${archivedProducts.length})`}
+          </button>
+
+          {showArchived && archivedProducts.map((product) => (
+            <div className="card" key={product.id} style={{ opacity: 0.6 }}>
+              {product.image_url && (
+                <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 160, objectFit: 'cover' }} />
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h3 style={{ margin: 0 }}>{product.name}</h3>
+                <span className="status-pill status-abgelehnt">Archiviert</span>
+              </div>
+              <p style={{ margin: '0 0 10px', fontSize: 14 }}>{product.price} €</p>
+              <button className="btn btn-secondary" onClick={() => restoreProduct(product)} disabled={busyId === product.id}>
+                Aus dem Archiv holen
+              </button>
+            </div>
+          ))}
+        </>
+      )}
     </>
   )
 }

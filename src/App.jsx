@@ -50,6 +50,7 @@ export default function App() {
     if (!session) {
       setProfile(null)
       setProfileType(null)
+      setPasswordJustChanged(false)
       return
     }
     loadProfile(session.user.id)
@@ -113,16 +114,21 @@ export default function App() {
     setCheckingProfile(false)
   }
 
-  if (passwordJustChanged) {
-    return <PasswordChangedCountdown />
-  }
-
-  if (session === undefined || checkingProfile) {
+  if (session === undefined) {
     return <div className="loading-dot">Einen Moment...</div>
   }
 
   if (!session) {
     return <Auth confirmedMessage={justConfirmedMsg} />
+  }
+
+  if (passwordJustChanged) {
+    return <PasswordChangedCountdown />
+  }
+
+  if (checkingProfile) {
+    return <div className="loading-dot">Einen Moment...</div>
+  }
   }
 
   if (!profileType && !chosenType) {

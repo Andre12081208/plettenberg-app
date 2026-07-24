@@ -9,6 +9,7 @@ export default function Marketplace({ userId, onBack }) {
   const [view, setView] = useState('browse') // 'browse' | 'create' | 'inbox' | 'mine'
   const [openThread, setOpenThread] = useState(null)
   const [selectedListing, setSelectedListing] = useState(null)
+  const [editingListing, setEditingListing] = useState(null)
   const [listings, setListings] = useState([])
   const [myListings, setMyListings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -119,6 +120,17 @@ export default function Marketplace({ userId, onBack }) {
     )
   }
 
+  if (editingListing) {
+    return (
+      <CreateListing
+        userId={userId}
+        existingListing={editingListing}
+        onDone={() => { setEditingListing(null); loadListings(); loadMyListings() }}
+        onBack={() => setEditingListing(null)}
+      />
+    )
+  }
+
   if (selectedListing) {
     return (
       <ListingDetail
@@ -128,6 +140,7 @@ export default function Marketplace({ userId, onBack }) {
         onDeleted={() => { setSelectedListing(null); loadListings(); loadMyListings() }}
         onContact={contactSeller}
         contacting={busyId === selectedListing.id}
+        onEdit={(listing) => { setSelectedListing(null); setEditingListing(listing) }}
       />
     )
   }

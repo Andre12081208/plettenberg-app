@@ -326,6 +326,8 @@ function IdeaDetail({ userId, idea, onBack, onUpdated }) {
   const [closing, setClosing] = useState(false)
 
   useEffect(() => {
+    supabase.from('ideas').update({ user_last_read_at: new Date().toISOString() }).eq('id', idea.id).then(() => {})
+
     loadMessages()
 
     const channel = supabase

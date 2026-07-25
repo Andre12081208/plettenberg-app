@@ -14,13 +14,15 @@ import Calendar from './Calendar.jsx'
 import Settings from './Settings.jsx'
 import ChannelsHub from './ChannelsHub.jsx'
 import GastroHub from './GastroHub.jsx'
+import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
 
 const SYSTEM_APP_META = {
   calendar: { icon: '📅', label: 'Kalender' },
-  snake: { icon: '🐍', label: 'Snake' }
+  snake: { icon: '🐍', label: 'Snake' },
+  ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' }
 }
 
 export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated, onPasswordChanged }) {
@@ -210,6 +212,8 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
     content = <GastroHub onBack={() => setOpenApp(null)} />
   } else if (openApp === 'snake') {
     content = <SnakeGame userId={userId} onBack={() => setOpenApp(null)} />
+ } else if (openApp === 'ideenwerkstatt') {
+    content = <Ideenwerkstatt userId={userId} onBack={() => setOpenApp(null)} />
   } else if (openApp === 'store') {
     content = (
       <AppStore

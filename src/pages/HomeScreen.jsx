@@ -41,6 +41,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [unreadChatCount, setUnreadChatCount] = useState(0)
+  const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
   const [initialChannelCode, setInitialChannelCode] = useState(null)
@@ -67,9 +68,15 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
 
   useEffect(() => {
     checkUnreadMessages()
-    const interval = setInterval(checkUnreadMessages, 20000)
+    checkUnreadIdeas()
+    const interval = setInterval(() => { checkUnreadMessages(); checkUnreadIdeas() }, 20000)
     return () => clearInterval(interval)
   }, [])
+
+  async function checkUnreadIdeas() {
+    const { data } = await supabase.rpc('get_unread_idea_count')
+    setUnreadIdeaCount(data || 0)
+  }
 
   async function checkUnreadMessages() {
     const { data } = await supabase.rpc('get_unread_chat_count')
@@ -213,7 +220,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
   } else if (openApp === 'snake') {
     content = <SnakeGame userId={userId} onBack={() => setOpenApp(null)} />
  } else if (openApp === 'ideenwerkstatt') {
-    content = <Ideenwerkstatt userId={userId} onBack={() => setOpenApp(null)} />
+    content = <Ideenwerkstatt userId={userId} onBack={() => { setOpenApp(null); checkUnreadIdeas() }} />
   } else if (openApp === 'store') {
     content = (
       <AppStore
@@ -292,6 +299,18 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                   <div className="app-tile-icon">⚙️</div>
                   <div className="app-tile-label">{t('apps.settingsTile')}</div>
                 </button>
+
+                <div style={{ position: 'relative' }}>
+                  <button className="app-tile" style={{ width: '100%' }} onClick={() => setOpenApp('ideenwerkstatt')}>
+                    <div className="app-tile-icon">💡</div>
+                    <div className="app-tile-label">Ideenwerkstatt</div>
+                  </button>
+                  {unreadIdeaCount > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                      {unreadIdeaCount}
+                    </span>
+                  )}
+                </div>
 
                 <button className="app-tile" onClick={() => setOpenApp('store')}>
                   <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>

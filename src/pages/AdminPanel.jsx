@@ -62,6 +62,7 @@ export default function AdminPanel({ onBack, embedded }) {
         <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
         <button className={tab === 'bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('bestellungen')}>Bestellungen</button>
         <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('channels')}>Channels</button>
+        <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')}>Ideenwerkstatt</button>
       </div>
 
       {tab === 'insights' && <InsightsTab />}
@@ -70,6 +71,7 @@ export default function AdminPanel({ onBack, embedded }) {
       {tab === 'produkte' && <ProdukteTab />}
       {tab === 'bestellungen' && <BestellungenTab />}
       {tab === 'channels' && <ChannelsTab />}
+      {tab === 'ideenwerkstatt' && <IdeenwerkstattTab />}
     </>
   )
 
@@ -803,6 +805,219 @@ function ChannelsTab() {
           </div>
         </div>
       ))}
+    </>
+  )
+}
+const IDEA_CATEGORIES = {
+  idee: { icon: '💡', label: 'Neue Idee' },
+  verbesserung: { icon: '✨', label: 'Verbesserung' },
+  fehler: { icon: '🐞', label: 'Fehler melden' }
+}
+
+const IDEA_STATUS_OPTIONS = [
+  { value: 'eingegangen', label: '⚪ Eingegangen' },
+  { value: 'in_pruefung', label: '🟡 In Prüfung' },
+  { value: 'info_benoetigt', label: '🟠 Weitere Informationen benötigt' },
+  { value: 'in_entwicklung', label: '🔵 In Entwicklung' },
+  { value: 'geplant', label: '🟢 Geplant' },
+  { value: 'umgesetzt', label: '✅ Umgesetzt' },
+  { value: 'nicht_geplant', label: '❌ Derzeit nicht geplant' }
+]
+
+function IdeenwerkstattTab() {
+  const [ideas, setIdeas] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadIdeas()
+  }, [])
+
+  async function loadIdeas() {
+    setLoading(true)
+    setError('')
+    const { data, error } = await supabase
+      .from('ideas')
+      .select('*')
+      .order('updated_at', { ascending: false })
+
+    if (error) { setError(error.message); setLoading(false); return }
+
+    const withNames = await Promise.all(
+      (data || []).map(async (idea) => {
+        const { data: username } = await supabase.rpc('get_username', { target_id: idea.user_id })
+        return { ...idea, username }
+      })
+    )
+
+    setIdeas(withNames)
+    setLoading(false)
+  }
+
+  if (selected) {
+    return (
+      <IdeaAdminDetail
+        idea={selected}
+        onBack={() => { setSelected(null); loadIdeas() }}
+      />
+    )
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && ideas.length === 0 && <p className="center-note">Noch keine Ideen eingereicht.</p>}
+
+      {!loading && ideas.map((idea) => (
+        <div className="card" key={idea.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+            <h3 style={{ margin: 0, fontSize: 16 }}>{idea.title}</h3>
+            <span className="status-pill status-live" style={{ fontSize: 11 }}>{idea.idea_number}</span>
+          </div>
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            {IDEA_CATEGORIES[idea.category]?.icon} {IDEA_CATEGORIES[idea.category]?.label} · @{idea.username} · Priorität: {idea.priority}
+          </p>
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            {IDEA_STATUS_OPTIONS.find((s) => s.value === idea.status)?.label}
+            {idea.closed_at && ' · Abgeschlossen'}
+          </p>
+          <button className="btn btn-secondary" onClick={() => setSelected(idea)}>Öffnen</button>
+        </div>
+      ))}
+    </>
+  )
+}
+
+function IdeaAdminDetail({ idea, onBack }) {
+  const [status, setStatus] = useState(idea.status)
+  const [statusSaving, setStatusSaving] = useState(false)
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadMessages()
+
+    const channel = supabase
+      .channel(`idea-messages-admin-${idea.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'idea_messages',
+        filter: `idea_id=eq.${idea.id}`
+      }, (payload) => {
+        setMessages((prev) => [...prev, payload.new])
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+    // eslint-disable-next-line
+  }, [idea.id])
+
+  async function loadMessages() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('idea_messages')
+      .select('*')
+      .eq('idea_id', idea.id)
+      .order('created_at', { ascending: true })
+
+    if (error) setError(error.message)
+    setMessages(data || [])
+    setLoading(false)
+  }
+
+  async function handleStatusChange(newStatus) {
+    setStatusSaving(true)
+    setStatus(newStatus)
+    const { error } = await supabase.from('ideas').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', idea.id)
+    if (error) setError(error.message)
+    setStatusSaving(false)
+  }
+
+  async function sendReply(e) {
+    e.preventDefault()
+    if (!text.trim()) return
+    setSending(true)
+
+    const { data: userData } = await supabase.auth.getUser()
+
+    const { error } = await supabase.from('idea_messages').insert({
+      idea_id: idea.id,
+      sender_id: userData?.user?.id || null,
+      is_developer: true,
+      content: text.trim()
+    })
+
+    if (error) setError(error.message)
+    else setText('')
+    setSending(false)
+  }
+
+  return (
+    <>
+      <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück zur Übersicht</button>
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{idea.title}</h3>
+        <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+          {IDEA_CATEGORIES[idea.category]?.icon} {IDEA_CATEGORIES[idea.category]?.label} · {idea.idea_number} · Priorität: {idea.priority}
+        </p>
+        <p style={{ margin: '0 0 12px', whiteSpace: 'pre-wrap' }}>{idea.description}</p>
+
+        {idea.attachment_urls?.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {idea.attachment_urls.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noreferrer">
+                <img src={url} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+              </a>
+            ))}
+          </div>
+        )}
+
+        <div className="field">
+          <label>Status</label>
+          <select value={status} disabled={statusSaving} onChange={(e) => handleStatusChange(e.target.value)}>
+            {IDEA_STATUS_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <h3 style={{ marginBottom: 10 }}>Verlauf</h3>
+
+      {loading && <div className="loading-dot">Lädt...</div>}
+
+      {!loading && messages.map((m) => (
+        <div key={m.id} className="card" style={{ background: m.is_developer ? 'var(--forest-light)' : 'var(--surface)' }}>
+          {m.is_developer && <span className="status-pill status-live" style={{ fontSize: 10, marginBottom: 6 }}>Entwickler</span>}
+          <p style={{ margin: 0 }}>{m.content}</p>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--ink-soft)' }}>
+            {new Date(m.created_at).toLocaleDateString('de-DE')} · {new Date(m.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      ))}
+
+      <form onSubmit={sendReply} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <input
+          style={{ flex: 1, padding: '10px 12px', borderRadius: 20, border: '1px solid var(--line)' }}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Antwort schreiben..."
+        />
+        <button className="btn btn-primary" style={{ width: 'auto', padding: '10px 18px' }} type="submit" disabled={sending}>
+          Senden
+        </button>
+      </form>
     </>
   )
 }

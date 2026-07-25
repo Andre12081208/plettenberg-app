@@ -11,7 +11,8 @@ const APP_CATEGORIES = [
 
 const SYSTEM_APPS = [
   { key: 'calendar', name: 'Kalender', icon: '📅', description: 'Termine planen, mit Kontakten teilen und Geburtstage sehen.' },
-  { key: 'snake', name: 'Snake', icon: '🐍', description: 'Klassisches Snake-Spiel, direkt in der App spielbar.' }
+  { key: 'snake', name: 'Snake', icon: '🐍', description: 'Klassisches Snake-Spiel, direkt in der App spielbar.' },
+  { key: 'ideenwerkstatt', name: 'Ideenwerkstatt', icon: '💡', description: 'Reiche Ideen, Verbesserungen oder Fehlerberichte direkt beim Entwicklerteam ein.' }
 ]
 
 async function getNextPosition(userId) {

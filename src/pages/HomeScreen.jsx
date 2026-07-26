@@ -300,18 +300,6 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                   <div className="app-tile-label">{t('apps.settingsTile')}</div>
                 </button>
 
-                <div style={{ position: 'relative' }}>
-                  <button className="app-tile" style={{ width: '100%' }} onClick={() => setOpenApp('ideenwerkstatt')}>
-                    <div className="app-tile-icon">💡</div>
-                    <div className="app-tile-label">Ideenwerkstatt</div>
-                  </button>
-                  {unreadIdeaCount > 0 && (
-                    <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                      {unreadIdeaCount}
-                    </span>
-                  )}
-                </div>
-
                 <button className="app-tile" onClick={() => setOpenApp('store')}>
                   <div className="app-tile-icon" style={{ background: 'var(--clay)' }}>+</div>
                   <div className="app-tile-label">{t('apps.appStore')}</div>
@@ -336,6 +324,12 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                         <div className="app-tile-icon">{icon}</div>
                         <div className="app-tile-label">{label}</div>
                       </button>
+
+                      {tile.key === 'ideenwerkstatt' && unreadIdeaCount > 0 && (
+                        <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                          {unreadIdeaCount}
+                        </span>
+                      )}
 
                       {editMode && (
                         <>

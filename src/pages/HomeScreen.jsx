@@ -42,6 +42,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
   const [editMode, setEditMode] = useState(false)
   const [unreadChatCount, setUnreadChatCount] = useState(0)
   const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
+  const [calendarNotificationCount, setCalendarNotificationCount] = useState(0)
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
   const [initialChannelCode, setInitialChannelCode] = useState(null)
@@ -69,13 +70,19 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
   useEffect(() => {
     checkUnreadMessages()
     checkUnreadIdeas()
-    const interval = setInterval(() => { checkUnreadMessages(); checkUnreadIdeas() }, 20000)
+    checkCalendarNotifications()
+    const interval = setInterval(() => { checkUnreadMessages(); checkUnreadIdeas(); checkCalendarNotifications() }, 20000)
     return () => clearInterval(interval)
   }, [])
 
   async function checkUnreadIdeas() {
     const { data } = await supabase.rpc('get_unread_idea_count')
     setUnreadIdeaCount(data || 0)
+  }
+
+  async function checkCalendarNotifications() {
+    const { data } = await supabase.rpc('get_calendar_notification_count')
+    setCalendarNotificationCount(data || 0)
   }
 
   async function checkUnreadMessages() {
@@ -203,7 +210,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
   } else if (openApp === 'kiosk') {
     content = <Kiosk userId={userId} onBack={() => setOpenApp(null)} />
   } else if (openApp === 'calendar') {
-    content = <Calendar userId={userId} onBack={() => setOpenApp(null)} />
+    content = <Calendar userId={userId} onBack={() => { setOpenApp(null); checkCalendarNotifications() }} />
   } else if (openApp === 'settings') {
     content = <Settings profile={profile} onBack={() => setOpenApp(null)} onProfileUpdated={onProfileUpdated} onPasswordChanged={onPasswordChanged} />
   } else if (openApp === 'channels') {
@@ -325,7 +332,13 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                         <div className="app-tile-label">{label}</div>
                       </button>
 
-                      {tile.key === 'ideenwerkstatt' && unreadIdeaCount > 0 && (
+                      {tile.key === 'calendar' && calendarNotificationCount > 0 && (
+        <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+          {calendarNotificationCount}
+        </span>
+      )}
+
+      {tile.key === 'ideenwerkstatt' && unreadIdeaCount > 0 && (
                         <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
                           {unreadIdeaCount}
                         </span>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 import { translations, LANGUAGE_NAMES } from '../lib/translations.js'
+import CalendarShareSettings from './CalendarShareSettings.jsx'
 
 export default function Settings({ profile, onBack, onProfileUpdated, onPasswordChanged }) {
   const { t, language, setLanguage } = useLanguage()
@@ -9,6 +10,7 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
   const [themeSaving, setThemeSaving] = useState(false)
   const [themeMsg, setThemeMsg] = useState('')
   const [languageSaving, setLanguageSaving] = useState(false)
+  const [showCalendarSharing, setShowCalendarSharing] = useState(false)
 
   const [newEmail, setNewEmail] = useState('')
   const [emailSaving, setEmailSaving] = useState(false)
@@ -114,6 +116,10 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
     await supabase.auth.signOut()
   }
 
+  if (showCalendarSharing) {
+    return <CalendarShareSettings userId={profile.id} onBack={() => setShowCalendarSharing(false)} />
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -149,6 +155,12 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
               {themeSaving ? 'Wird gespeichert...' : 'Speichern'}
             </button>
           </form>
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Kalender-Zugriff</h3>
+          <p className="hint" style={{ marginBottom: 12 }}>Verwalte, wer deinen Kalender sehen und Termine vorschlagen darf.</p>
+          <button className="btn btn-secondary" onClick={() => setShowCalendarSharing(true)}>Zugriff verwalten</button>
         </div>
 
         <div className="card">

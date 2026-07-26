@@ -22,6 +22,12 @@ function toKey(date) {
   return `${y}-${m}-${d}`
 }
 
+const STATUS_LABELS = {
+  bestaetigt: { label: '✅ Bestätigt', color: '#16A34A' },
+  ausstehend: { label: '⏳ Ausstehend', color: '#EAB308' },
+  abgelehnt: { label: '❌ Abgelehnt', color: '#EF4444' }
+}
+
 export default function Calendar({ userId, onBack, viewOwnerId }) {
   const [viewDate, setViewDate] = useState(startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(null)
@@ -29,19 +35,44 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
   const [sharedWithMe, setSharedWithMe] = useState([])
   const [events, setEvents] = useState({})
   const [birthdays, setBirthdays] = useState([])
+  const [decisions, setDecisions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [screen, setScreen] = useState('month') // 'month' | 'settings'
   const [editingEvent, setEditingEvent] = useState(null) // null | 'new' | event object
 
- useEffect(() => {
+  useEffect(() => {
     loadSharedWithMe()
     loadBirthdays()
+    loadDecisions()
   }, [])
 
   async function loadBirthdays() {
     const { data } = await supabase.rpc('get_contact_birthdays')
     setBirthdays(data || [])
+  }
+
+  async function loadDecisions() {
+    const { data } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('created_by', userId)
+      .neq('user_id', userId)
+      .neq('status', 'ausstehend')
+      .is('creator_seen_at', null)
+
+    const withNames = await Promise.all(
+      (data || []).map(async (ev) => {
+        const { data: uname } = await supabase.rpc('get_username', { target_id: ev.user_id })
+        return { ...ev, ownerUsername: uname }
+      })
+    )
+    setDecisions(withNames)
+  }
+
+  async function acknowledgeDecision(id) {
+    await supabase.from('calendar_events').update({ creator_seen_at: new Date().toISOString() }).eq('id', id)
+    setDecisions((prev) => prev.filter((d) => d.id !== id))
   }
 
   useEffect(() => {
@@ -81,16 +112,32 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
     if (error) {
       setError(error.message)
       setEvents({})
-    } else {
-      const grouped = {}
-      for (const ev of data || []) {
-        const key = toKey(new Date(ev.start_at))
-        if (!grouped[key]) grouped[key] = []
-        grouped[key].push(ev)
-      }
-      setEvents(grouped)
+      setLoading(false)
+      return
     }
+
+    const withNames = await Promise.all(
+      (data || []).map(async (ev) => {
+        if (ev.created_by === ev.user_id) return ev
+        const { data: uname } = await supabase.rpc('get_username', { target_id: ev.created_by })
+        return { ...ev, creatorUsername: uname }
+      })
+    )
+
+    const grouped = {}
+    for (const ev of withNames) {
+      const key = toKey(new Date(ev.start_at))
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(ev)
+    }
+    setEvents(grouped)
     setLoading(false)
+  }
+
+  async function respondToRequest(event, newStatus) {
+    const { error } = await supabase.from('calendar_events').update({ status: newStatus }).eq('id', event.id)
+    if (error) setError(error.message)
+    else loadEvents()
   }
 
   const isOwnCalendar = viewedOwnerId === userId
@@ -103,6 +150,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
     return (
       <EventForm
         userId={userId}
+        targetUserId={viewedOwnerId}
         date={selectedDate}
         existing={editingEvent === 'new' ? null : editingEvent}
         onDone={() => { setEditingEvent(null); loadEvents() }}
@@ -132,6 +180,15 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
         {error && <div className="error-box">{error}</div>}
+
+        {decisions.length > 0 && decisions.map((d) => (
+          <div key={d.id} className="card" style={{ borderColor: STATUS_LABELS[d.status]?.color }}>
+            <p style={{ margin: '0 0 8px' }}>
+              @{d.ownerUsername} hat deinen Termin <strong>{d.title}</strong> {d.status === 'bestaetigt' ? 'bestätigt' : 'nicht bestätigt'}.
+            </p>
+            <button className="btn btn-secondary" onClick={() => acknowledgeDecision(d.id)}>Gesehen</button>
+          </div>
+        ))}
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           <button
@@ -181,7 +238,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
           {cells.map((day, i) => {
             if (!day) return <div key={i} />
             const key = toKey(day)
-           const hasEvents = (events[key] || []).length > 0
+            const hasEvents = (events[key] || []).length > 0
             const birthdaysOnDay = isOwnCalendar
               ? birthdays.filter((b) => {
                   const bd = new Date(b.birthday)
@@ -202,7 +259,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
                 }}
               >
                 {day.getDate()}
-               {hasEvents && (
+                {hasEvents && (
                   <span style={{
                     position: 'absolute', bottom: 4, left: 'calc(50% - 5px)',
                     width: 4, height: 4, borderRadius: '50%', background: isSelected ? '#fff' : 'var(--clay)'
@@ -240,25 +297,48 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
             })()}
             {selectedEvents.length === 0 && <p className="center-note">Keine Termine an diesem Tag.</p>}
 
-            {selectedEvents.map((ev) => (
-              <div
-                key={ev.id}
-                style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10, cursor: isOwnCalendar ? 'pointer' : 'default' }}
-                onClick={() => isOwnCalendar && setEditingEvent(ev)}
-              >
-                <p style={{ margin: 0, fontWeight: 600 }}>{ev.title}</p>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-                  {ev.all_day ? 'Ganztägig' : `${new Date(ev.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – ${new Date(ev.end_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`}
-                </p>
-                {ev.location && <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>{ev.location}</p>}
-              </div>
-            ))}
+            {selectedEvents.map((ev) => {
+              const isPendingForOwner = isOwnCalendar && ev.status === 'ausstehend'
+              const isMyProposalElsewhere = !isOwnCalendar && ev.created_by === userId
+              const canEdit = isOwnCalendar && ev.status !== 'ausstehend'
 
-            {isOwnCalendar && (
-              <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setEditingEvent('new')}>
-                Termin hinzufügen
-              </button>
-            )}
+              return (
+                <div
+                  key={ev.id}
+                  style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10, cursor: canEdit ? 'pointer' : 'default' }}
+                  onClick={() => canEdit && setEditingEvent(ev)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <p style={{ margin: 0, fontWeight: 600 }}>{ev.title}</p>
+                    {isMyProposalElsewhere && (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: STATUS_LABELS[ev.status]?.color }}>
+                        {STATUS_LABELS[ev.status]?.label}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                    {ev.all_day ? 'Ganztägig' : `${new Date(ev.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – ${new Date(ev.end_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`}
+                  </p>
+                  {ev.location && <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>{ev.location}</p>}
+
+                  {isPendingForOwner && (
+                    <>
+                      <p style={{ margin: '6px 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                        Vorgeschlagen von @{ev.creatorUsername}
+                      </p>
+                      <div className="btn-row" onClick={(e) => e.stopPropagation()}>
+                        <button className="btn btn-secondary" onClick={() => respondToRequest(ev, 'bestaetigt')}>Bestätigen</button>
+                        <button className="btn btn-secondary" onClick={() => respondToRequest(ev, 'abgelehnt')}>Ablehnen</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+
+            <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setEditingEvent('new')}>
+              {isOwnCalendar ? 'Termin hinzufügen' : 'Termin vorschlagen'}
+            </button>
           </div>
         )}
       </main>
@@ -266,7 +346,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
   )
 }
 
-function EventForm({ userId, date, existing, onDone, onCancel }) {
+function EventForm({ userId, targetUserId, date, existing, onDone, onCancel }) {
   const [title, setTitle] = useState(existing?.title || '')
   const [description, setDescription] = useState(existing?.description || '')
   const [location, setLocation] = useState(existing?.location || '')
@@ -275,6 +355,8 @@ function EventForm({ userId, date, existing, onDone, onCancel }) {
   const [endTime, setEndTime] = useState(existing ? new Date(existing.end_at).toTimeString().slice(0, 5) : '10:00')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const isProposal = !existing && targetUserId !== userId
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -294,13 +376,17 @@ function EventForm({ userId, date, existing, onDone, onCancel }) {
     }
 
     const payload = {
-      user_id: userId,
       title: title.trim(),
       description: description.trim() || null,
       location: location.trim() || null,
       all_day: allDay,
       start_at: startAt.toISOString(),
       end_at: endAt.toISOString()
+    }
+
+    if (!existing) {
+      payload.user_id = targetUserId
+      payload.created_by = userId
     }
 
     const { error } = existing
@@ -330,10 +416,16 @@ function EventForm({ userId, date, existing, onDone, onCancel }) {
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>{existing ? 'Termin bearbeiten' : 'Neuer Termin'}</h1>
+        <h1>{existing ? 'Termin bearbeiten' : isProposal ? 'Termin vorschlagen' : 'Neuer Termin'}</h1>
       </div>
       <main>
         <button className="link-text" onClick={onCancel} style={{ marginBottom: 16 }}>← Abbrechen</button>
+
+        {isProposal && (
+          <p className="hint" style={{ marginBottom: 16 }}>
+            Dieser Termin muss von der anderen Person erst bestätigt werden, bevor er endgültig eingetragen ist.
+          </p>
+        )}
 
         {error && <div className="error-box">{error}</div>}
 
@@ -374,7 +466,7 @@ function EventForm({ userId, date, existing, onDone, onCancel }) {
           </div>
 
           <button className="btn btn-primary" type="submit" disabled={saving}>
-            {saving ? 'Wird gespeichert...' : existing ? 'Speichern' : 'Termin anlegen'}
+            {saving ? 'Wird gespeichert...' : existing ? 'Speichern' : isProposal ? 'Vorschlagen' : 'Termin anlegen'}
           </button>
 
           {existing && (

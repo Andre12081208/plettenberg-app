@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import CalendarShareSettings from './CalendarShareSettings.jsx'
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -143,7 +144,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
   const isOwnCalendar = viewedOwnerId === userId
 
   if (screen === 'settings') {
-    return <ShareSettings userId={userId} onBack={() => setScreen('month')} />
+    return <CalendarShareSettings userId={userId} onBack={() => setScreen('month')} />
   }
 
   if (editingEvent) {

@@ -121,6 +121,9 @@ export default function BusinessInbox({ profile }) {
                 <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
                   {inquiry.product_name_snapshot || 'Anfrage'}
                 </p>
+                <span className={`status-pill ${{ angefragt: 'status-pruefung', in_bearbeitung: 'status-vertrag', erledigt: 'status-live' }[inquiry.status] || 'status-pruefung'}`} style={{ fontSize: 11, marginTop: 4, display: 'inline-block' }}>
+                  {{ angefragt: '⚪ Angefragt', in_bearbeitung: '🔵 In Bearbeitung', erledigt: '✅ Erledigt' }[inquiry.status] || '⚪ Angefragt'}
+                </span>
               </div>
             </button>
           </div>

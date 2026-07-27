@@ -43,11 +43,13 @@ export default function BusinessInbox({ profile }) {
 
     const withNames = await Promise.all(
       (data || []).map(async (inquiry) => {
-        const [{ data: displayName }, { data: avatarUrl }] = await Promise.all([
-          supabase.rpc('get_display_name', { target_id: inquiry.buyer_id }),
-          supabase.rpc('get_avatar_url', { target_id: inquiry.buyer_id })
-        ])
-        return { ...inquiry, buyerDisplayName: displayName, buyerAvatarUrl: avatarUrl }
+        const { data: displayRows } = await supabase.rpc('get_inquiry_buyer_display', { target_inquiry_id: inquiry.id })
+        const row = displayRows?.[0]
+        return {
+          ...inquiry,
+          buyerDisplayName: row?.is_anon ? `Interessent #${row.anon_number}` : (row?.display_name || 'Interessent'),
+          buyerAvatarUrl: row?.is_anon ? null : row?.avatar_url
+        }
       })
     )
 
@@ -112,7 +114,7 @@ export default function BusinessInbox({ profile }) {
               onClick={() => setOpenInquiry(inquiry.id)}
             >
               <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
-                {inquiry.buyerAvatarUrl ? <img src={inquiry.buyerAvatarUrl} alt="" /> : '👤'}
+                {inquiry.buyerAvatarUrl ? <img src={inquiry.buyerAvatarUrl} alt="" /> : (inquiry.buyerDisplayName?.startsWith('Interessent #') ? '🕶️' : '👤')}
               </div>
               <div>
                 <h3 style={{ margin: 0 }}>{inquiry.buyerDisplayName || 'Interessent'}</h3>

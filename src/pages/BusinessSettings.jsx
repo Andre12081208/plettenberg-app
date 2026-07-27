@@ -639,7 +639,61 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
               {hotspots.map((h) => (
                 <div key={h.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <p style={{ margin: 0, fontWeight: 600 }}>{h.label}</p>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 600 }}>{h.label}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                        {(hotspotActionsMap[h.id] || []).map((a) => a.label).join(' · ') || 'Keine Aktionen zugewiesen'}
+                      </p>
+                    </div>
+                    <button className="link-text" onClick={() => deleteHotspot(h.id)}>Löschen</button>
+                  </div>
+
+                  <button
+                    className="link-text"
+                    style={{ marginTop: 6 }}
+                    onClick={() => {
+                      const opening = editingHotspotActionsId !== h.id
+                      setEditingHotspotActionsId(opening ? h.id : null)
+                      setEditActionLabel('')
+                      setEditActionType('anfragen')
+                    }}
+                  >
+                    {editingHotspotActionsId === h.id ? 'Fertig' : 'Aktionen bearbeiten'}
+                  </button>
+
+                  {editingHotspotActionsId === h.id && (
+                    <div style={{ marginTop: 8, paddingLeft: 4 }}>
+                      {(hotspotActionsMap[h.id] || []).map((a) => (
+                        <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+                          <span style={{ fontSize: 14 }}>{a.label} <span style={{ color: 'var(--ink-soft)' }}>({ACTION_LABELS[a.action_type]})</span></span>
+                          <button className="link-text" onClick={() => removeActionFromHotspot(h.id, a.id)}>Entfernen</button>
+                        </div>
+                      ))}
+
+                      <div className="field" style={{ marginTop: 10 }}>
+                        <label>Neue Aktion: Beschriftung</label>
+                        <input value={editActionLabel} onChange={(e) => setEditActionLabel(e.target.value)} placeholder="z.B. Frag Andre direkt!" />
+                      </div>
+                      <div className="field">
+                        <label>Verlinkt mit</label>
+                        <select value={editActionType} onChange={(e) => setEditActionType(e.target.value)}>
+                          {Object.entries(ACTION_LABELS).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        disabled={!editActionLabel.trim()}
+                        onClick={() => addActionToHotspot(h.id, editActionLabel, editActionType)}
+                      >
+                        + Aktion hinzufügen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </main>

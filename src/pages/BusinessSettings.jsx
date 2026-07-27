@@ -27,10 +27,14 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const [hotspots, setHotspots] = useState([])
   const [placingHotspot, setPlacingHotspot] = useState(null) // { x, y } | null
   const [newHotspotLabel, setNewHotspotLabel] = useState('')
-  const [newHotspotActions, setNewHotspotActions] = useState(['anfragen'])
+  const [newHotspotActions, setNewHotspotActions] = useState([])
+  const [newActionLabel, setNewActionLabel] = useState('')
+  const [newActionType, setNewActionType] = useState('anfragen')
   const [roomError, setRoomError] = useState('')
   const [hotspotActionsMap, setHotspotActionsMap] = useState({})
   const [editingHotspotActionsId, setEditingHotspotActionsId] = useState(null)
+  const [editActionLabel, setEditActionLabel] = useState('')
+  const [editActionType, setEditActionType] = useState('anfragen')
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedTerminProductId, setSelectedTerminProductId] = useState('')
@@ -90,7 +94,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
       const map = {}
       for (const row of actionRows || []) {
         if (!map[row.hotspot_id]) map[row.hotspot_id] = []
-        map[row.hotspot_id].push(row.action_type)
+        map[row.hotspot_id].push(row)
       }
       setHotspotActionsMap(map)
     } else {
@@ -98,15 +102,23 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
     }
   }
 
-  async function toggleHotspotAction(hotspotId, actionType) {
-    const current = hotspotActionsMap[hotspotId] || []
-    if (current.includes(actionType)) {
-      await supabase.from('business_room_hotspot_actions').delete().eq('hotspot_id', hotspotId).eq('action_type', actionType)
-      setHotspotActionsMap((prev) => ({ ...prev, [hotspotId]: current.filter((a) => a !== actionType) }))
+  async function addActionToHotspot(hotspotId, label, actionType) {
+    if (!label.trim()) return
+    const { data, error } = await supabase.from('business_room_hotspot_actions').insert({
+      hotspot_id: hotspotId, label: label.trim(), action_type: actionType
+    }).select('*').single()
+
+    if (!error) {
+      setHotspotActionsMap((prev) => ({ ...prev, [hotspotId]: [...(prev[hotspotId] || []), data] }))
+      setEditActionLabel('')
     } else {
-      await supabase.from('business_room_hotspot_actions').insert({ hotspot_id: hotspotId, action_type: actionType })
-      setHotspotActionsMap((prev) => ({ ...prev, [hotspotId]: [...current, actionType] }))
+      setRoomError(error.message)
     }
+  }
+
+  async function removeActionFromHotspot(hotspotId, actionId) {
+    await supabase.from('business_room_hotspot_actions').delete().eq('id', actionId)
+    setHotspotActionsMap((prev) => ({ ...prev, [hotspotId]: (prev[hotspotId] || []).filter((a) => a.id !== actionId) }))
   }
 
   function handleRoomFileChange(e) {
@@ -147,13 +159,19 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
     const yPercent = ((e.clientY - rect.top) / rect.height) * 100
     setPlacingHotspot({ x: xPercent, y: yPercent })
     setNewHotspotLabel('')
-    setNewHotspotActions(['anfragen'])
+    setNewHotspotActions([])
+    setNewActionLabel('')
+    setNewActionType('anfragen')
   }
 
-  function toggleNewHotspotAction(actionType) {
-    setNewHotspotActions((prev) =>
-      prev.includes(actionType) ? prev.filter((a) => a !== actionType) : [...prev, actionType]
-    )
+  function addNewHotspotAction() {
+    if (!newActionLabel.trim()) return
+    setNewHotspotActions((prev) => [...prev, { label: newActionLabel.trim(), action_type: newActionType }])
+    setNewActionLabel('')
+  }
+
+  function removeNewHotspotAction(index) {
+    setNewHotspotActions((prev) => prev.filter((_, i) => i !== index))
   }
 
   async function saveHotspot() {
@@ -171,16 +189,17 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
       return
     }
 
-    const { error: actionsError } = await supabase.from('business_room_hotspot_actions').insert(
-      newHotspotActions.map((actionType) => ({ hotspot_id: data.id, action_type: actionType }))
-    )
+    const { data: insertedActions, error: actionsError } = await supabase.from('business_room_hotspot_actions').insert(
+      newHotspotActions.map((a) => ({ hotspot_id: data.id, action_type: a.action_type, label: a.label }))
+    ).select('*')
 
     if (actionsError) {
       setRoomError(actionsError.message)
     }
 
     setHotspots((prev) => [...prev, data])
-    setHotspotActionsMap((prev) => ({ ...prev, [data.id]: newHotspotActions }))
+    setHotspotActionsMap((prev) => ({ ...prev, [data.id]: insertedActions || [] }))
+    setNewHotspotActions([])
     setPlacingHotspot(null)
   }
 
@@ -582,18 +601,32 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
                     <input id="hotspotLabel" value={newHotspotLabel} onChange={(e) => setNewHotspotLabel(e.target.value)} placeholder="z.B. Servicebereich" />
                   </div>
                   <div className="field">
-                    <label>Welche Aktionen soll dieser Bereich anbieten?</label>
-                    {Object.entries(ACTION_LABELS).map(([key, label]) => (
-                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                        <input
-                          type="checkbox"
-                          checked={newHotspotActions.includes(key)}
-                          onChange={() => toggleNewHotspotAction(key)}
-                        />
-                        {label}
-                      </label>
+                    <label>Aktionen für diesen Bereich</label>
+                    {newHotspotActions.length === 0 && <p className="hint">Noch keine Aktion hinzugefügt.</p>}
+                    {newHotspotActions.map((a, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+                        <span style={{ fontSize: 14 }}>{a.label} <span style={{ color: 'var(--ink-soft)' }}>({ACTION_LABELS[a.action_type]})</span></span>
+                        <button className="link-text" onClick={() => removeNewHotspotAction(i)}>Entfernen</button>
+                      </div>
                     ))}
                   </div>
+
+                  <div className="field">
+                    <label htmlFor="newActionLabel">Neue Aktion: Beschriftung</label>
+                    <input id="newActionLabel" value={newActionLabel} onChange={(e) => setNewActionLabel(e.target.value)} placeholder="z.B. Frag Andre direkt!" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="newActionType">Verlinkt mit</label>
+                    <select id="newActionType" value={newActionType} onChange={(e) => setNewActionType(e.target.value)}>
+                      {Object.entries(ACTION_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="btn btn-secondary" type="button" onClick={addNewHotspotAction} disabled={!newActionLabel.trim()} style={{ marginBottom: 16 }}>
+                    + Aktion hinzufügen
+                  </button>
+
                   <div className="btn-row">
                     <button className="btn btn-primary" onClick={saveHotspot} disabled={!newHotspotLabel.trim() || newHotspotActions.length === 0}>Bereich anlegen</button>
                     <button className="btn btn-secondary" onClick={() => setPlacingHotspot(null)}>Abbrechen</button>
@@ -606,39 +639,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
               {hotspots.map((h) => (
                 <div key={h.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 600 }}>{h.label}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-                        {(hotspotActionsMap[h.id] || []).map((a) => ACTION_LABELS[a]).join(' · ') || 'Keine Aktionen zugewiesen'}
-                      </p>
-                    </div>
-                    <button className="link-text" onClick={() => deleteHotspot(h.id)}>Löschen</button>
-                  </div>
-
-                  <button
-                    className="link-text"
-                    style={{ marginTop: 6 }}
-                    onClick={() => setEditingHotspotActionsId(editingHotspotActionsId === h.id ? null : h.id)}
-                  >
-                    {editingHotspotActionsId === h.id ? 'Fertig' : 'Aktionen bearbeiten'}
-                  </button>
-
-                  {editingHotspotActionsId === h.id && (
-                    <div style={{ marginTop: 8, paddingLeft: 4 }}>
-                      {Object.entries(ACTION_LABELS).map(([key, label]) => (
-                        <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 14 }}>
-                          <input
-                            type="checkbox"
-                            checked={(hotspotActionsMap[h.id] || []).includes(key)}
-                            onChange={() => toggleHotspotAction(h.id, key)}
-                          />
-                          {label}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                    <p style={{ margin: 0, fontWeight: 600 }}>{h.label}</p>
             </div>
           )}
         </main>

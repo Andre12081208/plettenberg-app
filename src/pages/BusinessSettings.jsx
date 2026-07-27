@@ -10,6 +10,9 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [productError, setProductError] = useState('')
   const [editingProduct, setEditingProduct] = useState(null) // null | 'new' | product
+  const [productSearch, setProductSearch] = useState('')
+  const [productFilter, setProductFilter] = useState('aktiv') // 'alle' | 'aktiv' | 'inaktiv' | 'geloescht'
+  const [productSort, setProductSort] = useState('neu') // 'neu' | 'preis' | 'az' | 'verfuegbar'
 
   const [hasChannelAddon, setHasChannelAddon] = useState(false)
   const [ownChannel, setOwnChannel] = useState(null)
@@ -36,7 +39,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const [loadingPosts, setLoadingPosts] = useState(false)
   const canPostDirectly = isStadtverwaltung && profile.status === 'live' && profile.account_status !== 'beobachter'
 
-  const terminProducts = products.filter((p) => p.sale_mode === 'termin')
+  const terminProducts = products.filter((p) => p.sale_mode === 'termin' && !p.deleted_at)
 
   useEffect(() => {
     if (canManageProducts) { loadProducts(); loadAppointmentInfo() }
@@ -117,9 +120,27 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   }
 
   async function deleteProduct(product) {
-    const { error } = await supabase.from('business_products').delete().eq('id', product.id)
+    const nowIso = new Date().toISOString()
+    const { error } = await supabase
+      .from('business_products')
+      .update({ active: false, deleted_at: nowIso })
+      .eq('id', product.id)
+
     if (!error) {
-      setProducts((prev) => prev.filter((p) => p.id !== product.id))
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, active: false, deleted_at: nowIso } : p)))
+    } else {
+      setProductError(error.message)
+    }
+  }
+
+  async function restoreProduct(product) {
+    const { error } = await supabase
+      .from('business_products')
+      .update({ active: true, deleted_at: null })
+      .eq('id', product.id)
+
+    if (!error) {
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, active: true, deleted_at: null } : p)))
     } else {
       setProductError(error.message)
     }
@@ -214,6 +235,21 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   }
 
   if (view === 'produkte') {
+    const filtered = products
+      .filter((p) => {
+        if (productFilter === 'aktiv') return p.active && !p.deleted_at
+        if (productFilter === 'inaktiv') return !p.active && !p.deleted_at
+        if (productFilter === 'geloescht') return !!p.deleted_at
+        return true
+      })
+      .filter((p) => p.name.toLowerCase().includes(productSearch.trim().toLowerCase()))
+      .sort((a, b) => {
+        if (productSort === 'preis') return (a.price ?? 0) - (b.price ?? 0)
+        if (productSort === 'az') return a.name.localeCompare(b.name, 'de')
+        if (productSort === 'verfuegbar') return (b.active ? 1 : 0) - (a.active ? 1 : 0)
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+
     return (
       <>
         <div className="topbar">
@@ -223,22 +259,58 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
         <main style={{ paddingBottom: 90 }}>
           <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
 
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>Angebote</h3>
-              <button className="btn btn-secondary" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => setEditingProduct('new')}>
-                + Neu
+          <div className="field">
+            <input
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              placeholder="Angebot suchen..."
+            />
+          </div>
+
+          <div className="btn-row" style={{ marginBottom: 10, flexWrap: 'wrap' }}>
+            {[
+              { value: 'aktiv', label: 'Aktiv' },
+              { value: 'inaktiv', label: 'Inaktiv' },
+              { value: 'geloescht', label: 'Gelöscht' },
+              { value: 'alle', label: 'Alle' }
+            ].map((f) => (
+              <button
+                key={f.value}
+                className={productFilter === f.value ? 'btn btn-primary' : 'btn btn-secondary'}
+                style={{ width: 'auto', padding: '8px 14px' }}
+                onClick={() => setProductFilter(f.value)}
+              >
+                {f.label}
               </button>
-            </div>
+            ))}
+          </div>
 
-            {productError && <div className="error-box">{productError}</div>}
-            {loadingProducts && <div className="loading-dot">Lädt...</div>}
-            {!loadingProducts && products.length === 0 && (
-              <p className="center-note">Noch keine Angebote eingestellt.</p>
-            )}
+          <div className="field" style={{ marginBottom: 16 }}>
+            <label htmlFor="productSort">Sortieren nach</label>
+            <select id="productSort" value={productSort} onChange={(e) => setProductSort(e.target.value)}>
+              <option value="neu">Neueste zuerst</option>
+              <option value="preis">Preis</option>
+              <option value="az">A–Z</option>
+              <option value="verfuegbar">Verfügbar zuerst</option>
+            </select>
+          </div>
 
-            {!loadingProducts && products.map((product) => (
-              <div key={product.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 12, marginTop: 12 }}>
+          <div className="btn-row" style={{ marginBottom: 16 }}>
+            <button className="btn btn-secondary" onClick={() => setEditingProduct('new')}>+ Neues Angebot</button>
+          </div>
+
+          {productError && <div className="error-box">{productError}</div>}
+          {loadingProducts && <div className="loading-dot">Lädt...</div>}
+          {!loadingProducts && filtered.length === 0 && (
+            <p className="center-note">Keine Angebote gefunden.</p>
+          )}
+
+          {!loadingProducts && filtered.map((product) => (
+            <div className="card" key={product.id} style={{ padding: 0, overflow: 'hidden' }}>
+              <button
+                style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 16, display: 'block' }}
+                onClick={() => setEditingProduct(product)}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <div>
                     <p style={{ margin: 0, fontWeight: 600 }}>{product.name}</p>
@@ -246,20 +318,25 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
                       {product.type === 'produkt' ? '📦 Produkt' : '🛠️ Dienstleistung'} · {product.price != null ? `${product.price} €` : 'Ohne Preisangabe'} · {product.sale_mode === 'bestellung' ? 'Bestellung' : product.sale_mode === 'termin' ? 'Termin' : 'Anfrage'}
                     </p>
                   </div>
-                  <span className={`status-pill ${product.active ? 'status-live' : 'status-abgelehnt'}`}>
-                    {product.active ? 'Aktiv' : 'Inaktiv'}
+                  <span className={`status-pill ${product.deleted_at || !product.active ? 'status-abgelehnt' : 'status-live'}`}>
+                    {product.deleted_at ? 'Gelöscht' : product.active ? 'Aktiv' : 'Inaktiv'}
                   </span>
                 </div>
-                <div className="btn-row" style={{ marginTop: 10 }}>
-                  <button className="btn btn-secondary" onClick={() => setEditingProduct(product)}>Bearbeiten</button>
-                  <button className="btn btn-secondary" onClick={() => toggleProductActive(product)}>
-                    {product.active ? 'Deaktivieren' : 'Aktivieren'}
-                  </button>
-                  <button className="btn btn-secondary" onClick={() => deleteProduct(product)}>Löschen</button>
-                </div>
+              </button>
+              <div className="btn-row" style={{ padding: '0 16px 16px' }}>
+                {product.deleted_at ? (
+                  <button className="btn btn-secondary" onClick={() => restoreProduct(product)}>Wiederherstellen</button>
+                ) : (
+                  <>
+                    <button className="btn btn-secondary" onClick={() => toggleProductActive(product)}>
+                      {product.active ? 'Deaktivieren' : 'Aktivieren'}
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => deleteProduct(product)}>Löschen</button>
+                  </>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </main>
       </>
     )

@@ -16,6 +16,11 @@ function isCurrentlyOpen(hours) {
 }
 
 export default function BusinessMiniApp({ app, userId, onBack }) {
+  const [showRoom, setShowRoom] = useState(true)
+  const [hotspots, setHotspots] = useState([])
+  const [hasRoomAddon, setHasRoomAddon] = useState(false)
+  const [terminPicker, setTerminPicker] = useState(false)
+  const [channelInfo, setChannelInfo] = useState(null)
   const [view, setView] = useState('browse') // 'browse' | 'cart' | 'orders' | 'inquiries'
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -46,12 +51,68 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     if (hasShop) {
       loadProducts()
       loadInquiries()
+      loadRoomInfo()
     } else {
       setLoading(false)
     }
     // eslint-disable-next-line
   }, [])
 
+  async function loadRoomInfo() {
+    const [{ data: addonRows }, { data: hotspotRows }] = await Promise.all([
+      supabase.from('business_addons').select('addon_key').eq('business_profile_id', app.id),
+      supabase.from('business_room_hotspots').select('*').eq('business_profile_id', app.id)
+    ])
+    setHasRoomAddon((addonRows || []).some((a) => a.addon_key === 'raum'))
+    setHotspots(hotspotRows || [])
+  }
+
+  async function handleHotspotClick(hotspot) {
+    if (hotspot.action_type === 'kontakt') {
+      setShowRoom(false)
+      return
+    }
+    if (hotspot.action_type === 'angebot') {
+      setShowRoom(false)
+      return
+    }
+    if (hotspot.action_type === 'termine') {
+      setShowRoom(false)
+      setTerminPicker(true)
+      return
+    }
+    if (hotspot.action_type === 'channel') {
+      const { data } = await supabase.from('channels').select('id, name').eq('created_by', app.id).limit(1).maybeSingle()
+      setChannelInfo(data || 'none')
+      setShowRoom(false)
+      return
+    }
+    if (hotspot.action_type === 'anfragen') {
+      setInquiryBusyId('raum')
+      const { data: created, error } = await supabase
+        .from('business_inquiries')
+        .insert({
+          business_profile_id: app.id,
+          buyer_id: userId,
+          product_name_snapshot: hotspot.label,
+          is_anonymous: false
+        })
+        .select('id')
+        .single()
+
+      if (!error) {
+        await supabase.from('business_inquiry_messages').insert({
+          inquiry_id: created.id,
+          sender_id: userId,
+          is_business: false,
+          content: `Ich habe eine Frage zu "${hotspot.label}".`
+        })
+        setShowRoom(false)
+        await openInquiryThread(created.id)
+      }
+      setInquiryBusyId(null)
+    }
+  }
   useEffect(() => {
     if (view === 'orders') loadOrders()
     if (view === 'inquiries') loadInquiries()
@@ -285,6 +346,85 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     setBookingId(null)
   }
 
+  if (showRoom && hasRoomAddon && app.room_image_url) {
+    return (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>{app.company_name}</h1>
+        </div>
+        <main>
+          <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
+          <p className="hint" style={{ marginBottom: 12 }}>Tippe auf einen Bereich, um dort hinzugehen.</p>
+
+          <div style={{ position: 'relative', width: '100%' }}>
+            <img src={app.room_image_url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
+            {hotspots.map((h) => (
+              <button
+                key={h.id}
+                onClick={() => handleHotspotClick(h)}
+                style={{
+                  position: 'absolute', left: `${h.x_percent}%`, top: `${h.y_percent}%`,
+                  transform: 'translate(-50%, -50%)', padding: '8px 14px', borderRadius: 999,
+                  background: 'rgba(31,77,61,0.92)', color: '#fff', border: '2px solid #fff',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
+                }}
+              >
+                {h.label}
+              </button>
+            ))}
+          </div>
+
+          <button className="link-text" onClick={() => setShowRoom(false)} style={{ marginTop: 16 }}>
+            Stattdessen normale Ansicht anzeigen
+          </button>
+        </main>
+      </div>
+    )
+  }
+
+  if (terminPicker) {
+    const terminProducts = products.filter((p) => p.sale_mode === 'termin')
+    return (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Termin auswählen</h1>
+        </div>
+        <main>
+          <button className="link-text" onClick={() => { setTerminPicker(false); setShowRoom(true) }} style={{ marginBottom: 16 }}>← Zurück zum Raum</button>
+          {terminProducts.length === 0 && <p className="center-note">Aktuell keine Termin-Angebote.</p>}
+          {terminProducts.map((p) => (
+            <button key={p.id} className="card-choice" onClick={() => { setTerminPicker(false); openTerminView(p) }}>
+              <h3 style={{ margin: 0 }}>{p.name}</h3>
+            </button>
+          ))}
+        </main>
+      </div>
+    )
+  }
+
+  if (channelInfo) {
+    return (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Newsfeed-Channel</h1>
+        </div>
+        <main>
+          <button className="link-text" onClick={() => { setChannelInfo(null); setShowRoom(true) }} style={{ marginBottom: 16 }}>← Zurück zum Raum</button>
+          {channelInfo === 'none' ? (
+            <p className="center-note">Dieser Betrieb hat noch keinen Channel.</p>
+          ) : (
+            <p style={{ fontSize: 14 }}>
+              Diesen Betrieb findest du unter Channels als <strong>{channelInfo.name}</strong> – dort kannst du folgen, um Neuigkeiten im Newsfeed zu sehen.
+            </p>
+          )}
+        </main>
+      </div>
+    )
+  }
+
   if (openInquiry) {
     return (
       <BusinessInquiryChat
@@ -464,6 +604,11 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
       </div>
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
+        {hasRoomAddon && app.room_image_url && (
+          <button className="link-text" onClick={() => setShowRoom(true)} style={{ marginBottom: 16, marginLeft: 12 }}>
+            🏠 Zurück zum virtuellen Raum
+          </button>
+        )}
 
         {error && <div className="error-box">{error}</div>}
         {placedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{placedMsg}</div>}

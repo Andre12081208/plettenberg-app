@@ -21,9 +21,9 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
   const [openInquiry, setOpenInquiry] = useState(null)
   const [inquiryBusyId, setInquiryBusyId] = useState(null)
 
-  const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
-  const [slots, setSlots] = useState([])
-  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [terminProduct, setTerminProduct] = useState(null) // Produkt, für das gerade Termine angezeigt werden
+  const [terminSlots, setTerminSlots] = useState([])
+  const [loadingTerminSlots, setLoadingTerminSlots] = useState(false)
   const [bookingId, setBookingId] = useState(null)
   const [bookedMsg, setBookedMsg] = useState('')
 
@@ -33,55 +33,11 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     if (hasShop) {
       loadProducts()
       loadInquiries()
-      loadAppointmentInfo()
     } else {
       setLoading(false)
     }
     // eslint-disable-next-line
   }, [])
-
-  async function loadAppointmentInfo() {
-    setLoadingSlots(true)
-    const [{ data: addonRows }, { data: slotRows }] = await Promise.all([
-      supabase.from('business_addons').select('addon_key').eq('business_profile_id', app.id),
-      supabase.from('business_appointment_slots').select('*').eq('business_profile_id', app.id).is('booked_by', null).gte('start_at', new Date().toISOString()).order('start_at', { ascending: true })
-    ])
-
-    setHasAppointmentAddon((addonRows || []).some((a) => a.addon_key === 'termine'))
-    setSlots(slotRows || [])
-    setLoadingSlots(false)
-  }
-
-  async function bookSlot(slot) {
-    setBookingId(slot.id)
-    setError('')
-
-    const { error } = await supabase
-      .from('business_appointment_slots')
-      .update({ booked_by: userId, booked_at: new Date().toISOString() })
-      .eq('id', slot.id)
-      .is('booked_by', null)
-
-    if (error) {
-      setError('Dieser Termin wurde gerade eben von jemand anderem gebucht. Bitte einen anderen wählen.')
-      setBookingId(null)
-      loadAppointmentInfo()
-      return
-    }
-
-    await supabase.from('calendar_events').insert({
-      user_id: userId,
-      created_by: userId,
-      title: `${slot.service_name} bei ${app.company_name}`,
-      start_at: slot.start_at,
-      end_at: slot.end_at,
-      all_day: false
-    })
-
-    setSlots((prev) => prev.filter((s) => s.id !== slot.id))
-    setBookedMsg(`Termin gebucht und in deinen Kalender eingetragen: ${slot.service_name}, ${new Date(slot.start_at).toLocaleDateString('de-DE')}.`)
-    setBookingId(null)
-  }
 
   useEffect(() => {
     if (view === 'orders') loadOrders()
@@ -253,6 +209,54 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     await openInquiryThread(created.id)
   }
 
+  async function openTerminView(product) {
+    setTerminProduct(product)
+    setLoadingTerminSlots(true)
+    const { data, error } = await supabase
+      .from('business_appointment_slots')
+      .select('*')
+      .eq('business_profile_id', app.id)
+      .eq('product_id', product.id)
+      .is('booked_by', null)
+      .gte('start_at', new Date().toISOString())
+      .order('start_at', { ascending: true })
+
+    if (error) setError(error.message)
+    setTerminSlots(data || [])
+    setLoadingTerminSlots(false)
+  }
+
+  async function bookSlot(slot) {
+    setBookingId(slot.id)
+    setError('')
+
+    const { error } = await supabase
+      .from('business_appointment_slots')
+      .update({ booked_by: userId, booked_at: new Date().toISOString() })
+      .eq('id', slot.id)
+      .is('booked_by', null)
+
+    if (error) {
+      setError('Dieser Termin wurde gerade eben von jemand anderem gebucht. Bitte einen anderen wählen.')
+      setBookingId(null)
+      openTerminView(terminProduct)
+      return
+    }
+
+    await supabase.from('calendar_events').insert({
+      user_id: userId,
+      created_by: userId,
+      title: `${slot.service_name || terminProduct.name} bei ${app.company_name}`,
+      start_at: slot.start_at,
+      end_at: slot.end_at,
+      all_day: false
+    })
+
+    setTerminSlots((prev) => prev.filter((s) => s.id !== slot.id))
+    setBookedMsg(`Termin gebucht und in deinen Kalender eingetragen.`)
+    setBookingId(null)
+  }
+
   if (openInquiry) {
     return (
       <BusinessInquiryChat
@@ -261,6 +265,39 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
         isBusiness={false}
         onBack={() => { setOpenInquiry(null); loadInquiries() }}
       />
+    )
+  }
+
+  if (terminProduct) {
+    return (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>{terminProduct.name}</h1>
+        </div>
+        <main>
+          <button className="link-text" onClick={() => { setTerminProduct(null); setBookedMsg('') }} style={{ marginBottom: 16 }}>← Zurück</button>
+
+          {error && <div className="error-box">{error}</div>}
+          {bookedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{bookedMsg}</div>}
+
+          {loadingTerminSlots && <div className="loading-dot">Lädt...</div>}
+          {!loadingTerminSlots && terminSlots.length === 0 && (
+            <p className="center-note">Aktuell keine freien Termine für dieses Angebot.</p>
+          )}
+
+          {!loadingTerminSlots && terminSlots.map((slot) => (
+            <div className="card" key={slot.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ margin: 0, fontSize: 14 }}>
+                {new Date(slot.start_at).toLocaleDateString('de-DE')}, {new Date(slot.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <button className="btn btn-primary" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => bookSlot(slot)} disabled={bookingId === slot.id}>
+                {bookingId === slot.id ? '...' : 'Buchen'}
+              </button>
+            </div>
+          ))}
+        </main>
+      </div>
     )
   }
 
@@ -360,7 +397,6 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
               key={inquiry.id}
               className="card-choice"
               onClick={() => openInquiryThread(inquiry.id)}
-              style={{ position: 'relative' }}
             >
               <h3 style={{ margin: 0 }}>
                 {inquiry.product_name_snapshot || 'Anfrage'}
@@ -423,34 +459,10 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
               </button>
             </div>
 
-            {hasAppointmentAddon && (
-              <>
-                <h3 style={{ margin: '20px 0 10px' }}>Termin vereinbaren</h3>
-                {bookedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{bookedMsg}</div>}
-                {loadingSlots && <div className="loading-dot">Lädt...</div>}
-                {!loadingSlots && slots.length === 0 && (
-                  <p className="center-note">Aktuell keine freien Termine.</p>
-                )}
-                {!loadingSlots && slots.map((slot) => (
-                  <div className="card" key={slot.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 600 }}>{slot.service_name}</p>
-                      <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
-                        {new Date(slot.start_at).toLocaleDateString('de-DE')}, {new Date(slot.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    <button className="btn btn-primary" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => bookSlot(slot)} disabled={bookingId === slot.id}>
-                      {bookingId === slot.id ? '...' : 'Buchen'}
-                    </button>
-                  </div>
-                ))}
-              </>
-            )}
-
             <h3 style={{ margin: '20px 0 10px' }}>Angebot</h3>
             {loading && <div className="loading-dot">Lädt...</div>}
             {!loading && products.length === 0 && (
-              <p className="center-note">Noch keine Produkte eingestellt.</p>
+              <p className="center-note">Noch keine Angebote eingestellt.</p>
             )}
 
             {!loading && products.map((product) => (
@@ -458,18 +470,25 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
                 {product.image_url && (
                   <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 10, maxHeight: 160, objectFit: 'cover' }} />
                 )}
+                <p style={{ margin: '0 0 4px', fontSize: 12, color: 'var(--ink-soft)' }}>
+                  {product.type === 'produkt' ? '📦 Produkt' : '🛠️ Dienstleistung'}
+                </p>
                 <h3 style={{ margin: '0 0 4px' }}>{product.name}</h3>
                 {product.price != null && (
                   <p style={{ margin: '0 0 6px', fontWeight: 600, color: 'var(--forest)' }}>{product.price} €</p>
                 )}
                 {product.description && <p style={{ margin: '0 0 10px', fontSize: 14 }}>{product.description}</p>}
 
-                {product.sale_mode === 'bestellung' ? (
+                {product.sale_mode === 'bestellung' && (
                   <button className="btn btn-primary" onClick={() => addToCart(product)}>In den Warenkorb</button>
-                ) : (
+                )}
+                {product.sale_mode === 'anfrage' && (
                   <button className="btn btn-primary" onClick={() => startInquiry(product)} disabled={inquiryBusyId === product.id}>
                     {inquiryBusyId === product.id ? 'Einen Moment...' : 'Anfrage senden'}
                   </button>
+                )}
+                {product.sale_mode === 'termin' && (
+                  <button className="btn btn-primary" onClick={() => openTerminView(product)}>Termin auswählen</button>
                 )}
               </div>
             ))}

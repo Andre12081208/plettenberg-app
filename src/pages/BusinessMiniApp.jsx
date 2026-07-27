@@ -18,6 +18,7 @@ function isCurrentlyOpen(hours) {
 export default function BusinessMiniApp({ app, userId, onBack }) {
   const [showRoom, setShowRoom] = useState(true)
   const [hotspots, setHotspots] = useState([])
+  const [hotspotActionsMap, setHotspotActionsMap] = useState({})
   const [hasRoomAddon, setHasRoomAddon] = useState(false)
   const [terminPicker, setTerminPicker] = useState(false)
   const [channelInfo, setChannelInfo] = useState(null)
@@ -66,6 +67,21 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     ])
     setHasRoomAddon((addonRows || []).some((a) => a.addon_key === 'raum'))
     setHotspots(hotspotRows || [])
+
+    const hotspotIds = (hotspotRows || []).map((h) => h.id)
+    if (hotspotIds.length > 0) {
+      const { data: actionRows } = await supabase
+        .from('business_room_hotspot_actions')
+        .select('*')
+        .in('hotspot_id', hotspotIds)
+
+      const map = {}
+      for (const row of actionRows || []) {
+        if (!map[row.hotspot_id]) map[row.hotspot_id] = []
+        map[row.hotspot_id].push(row.action_type)
+      }
+      setHotspotActionsMap(map)
+    }
   }
 
  async function goToKontakt() {
@@ -402,23 +418,34 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
                 <p className="hint" style={{ marginBottom: 14 }}>Was möchtest du hier tun?</p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <button className="btn btn-primary" onClick={() => goToAnfragen(activeHotspotModal.label)}>
-                    💬 Frage stellen / Chat
-                  </button>
-                  {hasTerminOffers && (
+                  {(hotspotActionsMap[activeHotspotModal.id] || []).length === 0 && (
+                    <p className="center-note">Für diesen Bereich ist noch nichts hinterlegt.</p>
+                  )}
+                  {(hotspotActionsMap[activeHotspotModal.id] || []).includes('anfragen') && (
+                    <button className="btn btn-primary" onClick={() => goToAnfragen(activeHotspotModal.label)}>
+                      💬 Frage stellen / Chat
+                    </button>
+                  )}
+                  {(hotspotActionsMap[activeHotspotModal.id] || []).includes('termine') && hasTerminOffers && (
                     <button className="btn btn-secondary" onClick={goToTermine}>
                       📅 Termin buchen
                     </button>
                   )}
-                  <button className="btn btn-secondary" onClick={goToAngebot}>
-                    🛍️ Angebot ansehen
-                  </button>
-                  <button className="btn btn-secondary" onClick={goToChannel}>
-                    📢 Neuigkeiten (Channel)
-                  </button>
-                  <button className="btn btn-secondary" onClick={goToKontakt}>
-                    📍 Kontaktinfos
-                  </button>
+                  {(hotspotActionsMap[activeHotspotModal.id] || []).includes('angebot') && (
+                    <button className="btn btn-secondary" onClick={goToAngebot}>
+                      🛍️ Angebot ansehen
+                    </button>
+                  )}
+                  {(hotspotActionsMap[activeHotspotModal.id] || []).includes('channel') && (
+                    <button className="btn btn-secondary" onClick={goToChannel}>
+                      📢 Neuigkeiten (Channel)
+                    </button>
+                  )}
+                  {(hotspotActionsMap[activeHotspotModal.id] || []).includes('kontakt') && (
+                    <button className="btn btn-secondary" onClick={goToKontakt}>
+                      📍 Kontaktinfos
+                    </button>
+                  )}
                   <button className="link-text" onClick={() => setActiveHotspotModal(null)} style={{ marginTop: 6 }}>
                     Abbrechen
                   </button>

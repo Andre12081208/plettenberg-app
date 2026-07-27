@@ -138,7 +138,6 @@ export default function Newsfeed({ userId, onBack, embedded }) {
       ))}
     </>
   )
-</parameter>
 
   if (embedded) {
     return content

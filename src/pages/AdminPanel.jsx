@@ -264,6 +264,7 @@ function InsightsTab() {
 
 function GewerbeTab() {
   const [entries, setEntries] = useState([])
+  const [addons, setAddons] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState(null)
@@ -275,15 +276,16 @@ function GewerbeTab() {
   async function loadEntries() {
     setLoading(true)
     setError('')
-    const { data, error } = await supabase
-      .from('business_profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const [{ data, error }, { data: addonRows }] = await Promise.all([
+      supabase.from('business_profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('business_addons').select('*')
+    ])
 
     if (error) {
       setError(error.message)
     } else {
       setEntries(data || [])
+      setAddons(addonRows || [])
     }
     setLoading(false)
   }
@@ -299,6 +301,49 @@ function GewerbeTab() {
       setError(error.message)
     } else {
       setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, status: newStatus } : e)))
+    }
+    setSavingId(null)
+  }
+
+  async function updatePlan(id, newPlan) {
+    setSavingId(id)
+    const { error } = await supabase
+      .from('business_profiles')
+      .update({ plan: newPlan })
+      .eq('id', id)
+
+    if (error) {
+      setError(error.message)
+    } else {
+      setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, plan: newPlan } : e)))
+    }
+    setSavingId(null)
+  }
+
+  function hasAddon(businessId, key) {
+    return addons.some((a) => a.business_profile_id === businessId && a.addon_key === key)
+  }
+
+  async function toggleAddon(businessId, key) {
+    setSavingId(businessId)
+    if (hasAddon(businessId, key)) {
+      const { error } = await supabase
+        .from('business_addons')
+        .delete()
+        .eq('business_profile_id', businessId)
+        .eq('addon_key', key)
+
+      if (!error) setAddons((prev) => prev.filter((a) => !(a.business_profile_id === businessId && a.addon_key === key)))
+      else setError(error.message)
+    } else {
+      const { data, error } = await supabase
+        .from('business_addons')
+        .insert({ business_profile_id: businessId, addon_key: key })
+        .select('*')
+        .single()
+
+      if (!error) setAddons((prev) => [...prev, data])
+      else setError(error.message)
     }
     setSavingId(null)
   }
@@ -352,6 +397,35 @@ function GewerbeTab() {
               ))}
             </select>
           </div>
+
+          {entry.category !== 'gastro' && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+              <div className="field">
+                <label>Paket</label>
+                <select
+                  value={entry.plan}
+                  disabled={savingId === entry.id}
+                  onChange={(e) => updatePlan(entry.id, e.target.value)}
+                >
+                  <option value="kostenlos">Kein Paket gebucht</option>
+                  <option value="basis">Basis (virtueller Laden)</option>
+                </select>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={hasAddon(entry.id, 'channel')}
+                  disabled={savingId === entry.id || entry.plan === 'kostenlos'}
+                  onChange={() => toggleAddon(entry.id, 'channel')}
+                />
+                Zusatz: Eigener Channel
+              </label>
+              {entry.plan === 'kostenlos' && (
+                <p className="hint" style={{ marginTop: 4 }}>Zusatzfunktionen brauchen zuerst das Basis-Paket.</p>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </>

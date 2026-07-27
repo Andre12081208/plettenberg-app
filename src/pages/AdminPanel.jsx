@@ -421,6 +421,16 @@ function GewerbeTab() {
                 />
                 Zusatz: Eigener Channel
               </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={hasAddon(entry.id, 'termine')}
+                  disabled={savingId === entry.id || entry.plan === 'kostenlos'}
+                  onChange={() => toggleAddon(entry.id, 'termine')}
+                />
+                Zusatz: Termine anbieten
+              </label>
               {entry.plan === 'kostenlos' && (
                 <p className="hint" style={{ marginTop: 4 }}>Zusatzfunktionen brauchen zuerst das Basis-Paket.</p>
               )}

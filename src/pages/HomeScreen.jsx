@@ -15,6 +15,7 @@ import Settings from './Settings.jsx'
 import ChannelsHub from './ChannelsHub.jsx'
 import GastroHub from './GastroHub.jsx'
 import Ideenwerkstatt from './Ideenwerkstatt.jsx'
+import Kontakte from './Kontakte.jsx'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
@@ -55,10 +56,13 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
     const g = params.get('g')
     const c = params.get('c')
 
-    if (u || g) {
+    if (u) {
+      setOpenApp('kontakte')
+      setInitialUsername(u)
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (g) {
       setTimeout(() => setActiveTab('contacts'), 0)
-      if (u) setInitialUsername(u)
-      if (g) setInitialGroupCode(g)
+      setInitialGroupCode(g)
       window.history.replaceState({}, '', window.location.pathname)
     } else if (c) {
       setOpenApp('channels')
@@ -226,7 +230,17 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
     content = <GastroHub onBack={() => setOpenApp(null)} />
   } else if (openApp === 'snake') {
     content = <SnakeGame userId={userId} onBack={() => setOpenApp(null)} />
- } else if (openApp === 'ideenwerkstatt') {
+ } else if (openApp === 'kontakte') {
+    content = (
+      <Kontakte
+        userId={userId}
+        profile={profile}
+        onBack={() => setOpenApp(null)}
+        initialUsername={initialUsername}
+        onConsumedInitial={() => setInitialUsername(null)}
+      />
+    )
+  } else if (openApp === 'ideenwerkstatt') {
     content = <Ideenwerkstatt userId={userId} onBack={() => { setOpenApp(null); checkUnreadIdeas() }} />
   } else if (openApp === 'store') {
     content = (
@@ -246,12 +260,10 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
         {activeTab === 'contacts' && (
           <Contacts
             userId={userId}
-            profile={profile}
             embedded
             onUnreadChanged={checkUnreadMessages}
-            initialUsername={initialUsername}
             initialGroupCode={initialGroupCode}
-            onConsumedInitial={() => { setInitialUsername(null); setInitialGroupCode(null) }}
+            onConsumedInitial={() => setInitialGroupCode(null)}
           />
         )}
 
@@ -277,6 +289,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                       : '👤'}
                   </div>
                   <div className="app-tile-label">{t('apps.myProfile')}</div>
+                </button>
+
+               <button className="app-tile" onClick={() => setOpenApp('kontakte')}>
+                  <div className="app-tile-icon">🤝</div>
+                  <div className="app-tile-label">{t('apps.contacts')}</div>
                 </button>
 
                 <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
@@ -386,8 +403,8 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
           onClick={() => goToTab('contacts')}
           style={{ position: 'relative' }}
         >
-          <span className="tab-bar-icon">🤝</span>
-          {t('nav.contacts')}
+          <span className="tab-bar-icon">💬</span>
+          {t('nav.chats')}
           {unreadChatCount > 0 && (
             <span style={{ position: 'absolute', top: 2, right: '20%', minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
               {unreadChatCount}

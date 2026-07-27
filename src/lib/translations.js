@@ -11,7 +11,7 @@ export const LANGUAGE_NAMES = {
 export const translations = {
   de: {
     common: { back: '← Zurück', loading: 'Lädt...', save: 'Speichern', saving: 'Wird gespeichert...' },
-    nav: { contacts: 'Kontakte', apps: 'Apps', admin: 'Verwaltung' },
+    nav: { chats: 'Chats', apps: 'Apps', admin: 'Verwaltung' },
     settings: {
       title: 'Einstellungen', appearance: 'Erscheinungsbild',
       auto: 'Automatisch (nach Geräteeinstellung)', light: 'Hell', dark: 'Dunkel',
@@ -20,12 +20,13 @@ export const translations = {
     apps: {
       title: 'Apps', arrange: 'Anordnen', done: 'Fertig', myProfile: 'Mein Profil',
       cityHall: 'Stadtverwaltung', channels: 'Channels', marketplace: 'Marktplatz',
-      kiosk: 'Kiosk', gastro: 'Gastro', settingsTile: 'Einstellungen', appStore: 'App Store'
+      kiosk: 'Kiosk', gastro: 'Gastro', settingsTile: 'Einstellungen', appStore: 'App Store',
+      contacts: 'Kontakte'
     }
   },
   en: {
     common: { back: '← Back', loading: 'Loading...', save: 'Save', saving: 'Saving...' },
-    nav: { contacts: 'Contacts', apps: 'Apps', admin: 'Admin' },
+    nav: { chats: 'Chats', apps: 'Apps', admin: 'Admin' },
     settings: {
       title: 'Settings', appearance: 'Appearance',
       auto: 'Automatic (follow device setting)', light: 'Light', dark: 'Dark',
@@ -34,12 +35,13 @@ export const translations = {
     apps: {
       title: 'Apps', arrange: 'Arrange', done: 'Done', myProfile: 'My profile',
       cityHall: 'City hall', channels: 'Channels', marketplace: 'Marketplace',
-      kiosk: 'Kiosk', gastro: 'Restaurants', settingsTile: 'Settings', appStore: 'App store'
+      kiosk: 'Kiosk', gastro: 'Restaurants', settingsTile: 'Settings', appStore: 'App store',
+      contacts: 'Contacts'
     }
   },
   tr: {
     common: { back: '← Geri', loading: 'Yükleniyor...', save: 'Kaydet', saving: 'Kaydediliyor...' },
-    nav: { contacts: 'Kişiler', apps: 'Uygulamalar', admin: 'Yönetim' },
+    nav: { chats: 'Sohbetler', apps: 'Uygulamalar', admin: 'Yönetim' },
     settings: {
       title: 'Ayarlar', appearance: 'Görünüm',
       auto: 'Otomatik (cihaz ayarına göre)', light: 'Açık', dark: 'Koyu',
@@ -48,12 +50,13 @@ export const translations = {
     apps: {
       title: 'Uygulamalar', arrange: 'Düzenle', done: 'Bitti', myProfile: 'Profilim',
       cityHall: 'Belediye', channels: 'Kanallar', marketplace: 'Pazar Yeri',
-      kiosk: 'Kiosk', gastro: 'Restoranlar', settingsTile: 'Ayarlar', appStore: 'Uygulama Mağazası'
+      kiosk: 'Kiosk', gastro: 'Restoranlar', settingsTile: 'Ayarlar', appStore: 'Uygulama Mağazası',
+      contacts: 'Kişiler'
     }
   },
   pl: {
     common: { back: '← Wstecz', loading: 'Ładowanie...', save: 'Zapisz', saving: 'Zapisywanie...' },
-    nav: { contacts: 'Kontakty', apps: 'Aplikacje', admin: 'Administracja' },
+    nav: { chats: 'Czaty', apps: 'Aplikacje', admin: 'Administracja' },
     settings: {
       title: 'Ustawienia', appearance: 'Wygląd',
       auto: 'Automatycznie (wg ustawień urządzenia)', light: 'Jasny', dark: 'Ciemny',
@@ -62,12 +65,13 @@ export const translations = {
     apps: {
       title: 'Aplikacje', arrange: 'Uporządkuj', done: 'Gotowe', myProfile: 'Mój profil',
       cityHall: 'Urząd miasta', channels: 'Kanały', marketplace: 'Rynek',
-      kiosk: 'Kiosk', gastro: 'Restauracje', settingsTile: 'Ustawienia', appStore: 'Sklep z aplikacjami'
+      kiosk: 'Kiosk', gastro: 'Restauracje', settingsTile: 'Ustawienia', appStore: 'Sklep z aplikacjami',
+      contacts: 'Kontakty'
     }
   },
   ru: {
     common: { back: '← Назад', loading: 'Загрузка...', save: 'Сохранить', saving: 'Сохранение...' },
-    nav: { contacts: 'Контакты', apps: 'Приложения', admin: 'Администрация' },
+    nav: { chats: 'Чаты', apps: 'Приложения', admin: 'Администрация' },
     settings: {
       title: 'Настройки', appearance: 'Внешний вид',
       auto: 'Автоматически (по настройке устройства)', light: 'Светлая', dark: 'Тёмная',
@@ -76,12 +80,13 @@ export const translations = {
     apps: {
       title: 'Приложения', arrange: 'Упорядочить', done: 'Готово', myProfile: 'Мой профиль',
       cityHall: 'Городская администрация', channels: 'Каналы', marketplace: 'Барахолка',
-      kiosk: 'Киоск', gastro: 'Рестораны', settingsTile: 'Настройки', appStore: 'Магазин приложений'
+      kiosk: 'Киоск', gastro: 'Рестораны', settingsTile: 'Настройки', appStore: 'Магазин приложений',
+      contacts: 'Контакты'
     }
   },
   uk: {
     common: { back: '← Назад', loading: 'Завантаження...', save: 'Зберегти', saving: 'Збереження...' },
-    nav: { contacts: 'Контакти', apps: 'Додатки', admin: 'Адміністрація' },
+    nav: { chats: 'Чати', apps: 'Додатки', admin: 'Адміністрація' },
     settings: {
       title: 'Налаштування', appearance: 'Зовнішній вигляд',
       auto: 'Автоматично (за налаштуванням пристрою)', light: 'Світла', dark: 'Темна',
@@ -90,12 +95,13 @@ export const translations = {
     apps: {
       title: 'Додатки', arrange: 'Упорядкувати', done: 'Готово', myProfile: 'Мій профіль',
       cityHall: 'Міська адміністрація', channels: 'Канали', marketplace: 'Барахолка',
-      kiosk: 'Кіоск', gastro: 'Ресторани', settingsTile: 'Налаштування', appStore: 'Магазин додатків'
+      kiosk: 'Кіоск', gastro: 'Ресторани', settingsTile: 'Налаштування', appStore: 'Магазин додатків',
+      contacts: 'Контакти'
     }
   },
   ro: {
     common: { back: '← Înapoi', loading: 'Se încarcă...', save: 'Salvează', saving: 'Se salvează...' },
-    nav: { contacts: 'Contacte', apps: 'Aplicații', admin: 'Administrare' },
+    nav: { chats: 'Chat-uri', apps: 'Aplicații', admin: 'Administrare' },
     settings: {
       title: 'Setări', appearance: 'Aspect',
       auto: 'Automat (după setarea dispozitivului)', light: 'Luminos', dark: 'Întunecat',
@@ -104,7 +110,8 @@ export const translations = {
     apps: {
       title: 'Aplicații', arrange: 'Aranjează', done: 'Gata', myProfile: 'Profilul meu',
       cityHall: 'Primăria', channels: 'Canale', marketplace: 'Piață',
-      kiosk: 'Chioșc', gastro: 'Restaurante', settingsTile: 'Setări', appStore: 'Magazin de aplicații'
+      kiosk: 'Chioșc', gastro: 'Restaurante', settingsTile: 'Setări', appStore: 'Magazin de aplicații',
+      contacts: 'Contacte'
     }
   }
 }

@@ -8,6 +8,7 @@ export default function BusinessInbox({ profile, onInquiryRead }) {
   const [inquiries, setInquiries] = useState([])
   const [loadingInquiries, setLoadingInquiries] = useState(true)
   const [openInquiry, setOpenInquiry] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('alle')
 
   useEffect(() => {
     loadOrders()
@@ -40,7 +41,7 @@ export default function BusinessInbox({ profile, onInquiryRead }) {
         .from('business_inquiries')
         .select('*')
         .eq('business_profile_id', profile.id)
-        .order('created_at', { ascending: false }),
+        .order('updated_at', { ascending: false }),
       supabase.rpc('get_business_inquiry_unread_map')
     ])
 
@@ -111,10 +112,31 @@ export default function BusinessInbox({ profile, onInquiryRead }) {
         ))}
 
         <h3 style={{ margin: '24px 0 10px' }}>Anfragen</h3>
-        {loadingInquiries && <div className="loading-dot">Lädt...</div>}
-        {!loadingInquiries && inquiries.length === 0 && <p className="center-note">Noch keine Anfragen.</p>}
 
-        {!loadingInquiries && inquiries.map((inquiry) => (
+        <div className="btn-row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+          {[
+            { value: 'alle', label: 'Alle' },
+            { value: 'angefragt', label: '⚪ Angefragt' },
+            { value: 'in_bearbeitung', label: '🔵 In Bearbeitung' },
+            { value: 'erledigt', label: '✅ Erledigt' }
+          ].map((f) => (
+            <button
+              key={f.value}
+              className={statusFilter === f.value ? 'btn btn-primary' : 'btn btn-secondary'}
+              style={{ width: 'auto', padding: '8px 14px' }}
+              onClick={() => setStatusFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {loadingInquiries && <div className="loading-dot">Lädt...</div>}
+        {!loadingInquiries && inquiries.filter((i) => statusFilter === 'alle' || i.status === statusFilter).length === 0 && (
+          <p className="center-note">Keine Anfragen in dieser Kategorie.</p>
+        )}
+
+        {!loadingInquiries && inquiries.filter((i) => statusFilter === 'alle' || i.status === statusFilter).map((inquiry) => (
           <div className="card" key={inquiry.id} style={{ padding: 0, overflow: 'hidden' }}>
             <button
               style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}

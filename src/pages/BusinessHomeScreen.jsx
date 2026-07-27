@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import BusinessOverview from './BusinessOverview.jsx'
 import BusinessSettings from './BusinessSettings.jsx'
 import MyBusinessPage from './MyBusinessPage.jsx'
@@ -6,6 +7,23 @@ import BusinessInbox from './BusinessInbox.jsx'
 
 export default function BusinessHomeScreen({ profile, isAdmin, onOpenAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
+
+  useEffect(() => {
+    checkUnreadInquiries()
+    const interval = setInterval(checkUnreadInquiries, 20000)
+    return () => clearInterval(interval)
+  }, [])
+
+  async function checkUnreadInquiries() {
+    const { data } = await supabase.rpc('get_unread_business_inquiry_count')
+    setUnreadInquiryCount(data || 0)
+  }
+
+  function goToTab(tab) {
+    setActiveTab(tab)
+    if (tab !== 'inbox') checkUnreadInquiries()
+  }
 
   let content
   if (activeTab === 'dashboard') {
@@ -13,7 +31,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, onOpenAdmin, onPr
   } else if (activeTab === 'mypage') {
     content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} />
   } else if (activeTab === 'inbox') {
-    content = <BusinessInbox profile={profile} />
+    content = <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
   } else if (activeTab === 'settings') {
     content = <BusinessSettings profile={profile} onProfileUpdated={onProfileUpdated} />
   }
@@ -23,19 +41,24 @@ export default function BusinessHomeScreen({ profile, isAdmin, onOpenAdmin, onPr
       {content}
 
       <nav className="tab-bar">
-        <button className={`tab-bar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+        <button className={`tab-bar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => goToTab('dashboard')}>
           <span className="tab-bar-icon">🏠</span>
           Dashboard
         </button>
-        <button className={`tab-bar-item ${activeTab === 'mypage' ? 'active' : ''}`} onClick={() => setActiveTab('mypage')}>
+        <button className={`tab-bar-item ${activeTab === 'mypage' ? 'active' : ''}`} onClick={() => goToTab('mypage')}>
           <span className="tab-bar-icon">🏬</span>
           Meine Seite
         </button>
-        <button className={`tab-bar-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => setActiveTab('inbox')}>
+        <button className={`tab-bar-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => goToTab('inbox')} style={{ position: 'relative' }}>
           <span className="tab-bar-icon">💬</span>
           Nachrichten
+          {unreadInquiryCount > 0 && (
+            <span style={{ position: 'absolute', top: 2, right: '20%', minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+              {unreadInquiryCount}
+            </span>
+          )}
         </button>
-        <button className={`tab-bar-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+        <button className={`tab-bar-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => goToTab('settings')}>
           <span className="tab-bar-icon">⚙️</span>
           Einstellungen
         </button>

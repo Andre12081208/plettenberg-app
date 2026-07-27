@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import CreateChannel from './CreateChannel.jsx'
+import ChannelDetail from './ChannelDetail.jsx'
 
 const STATUS_LABELS = {
   in_pruefung: { text: 'In Prüfung', cls: 'status-pruefung' },
@@ -9,25 +11,34 @@ const STATUS_LABELS = {
 }
 
 export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }) {
-  const [content, setContent] = useState('')
-  const [posting, setPosting] = useState(false)
-  const [postError, setPostError] = useState('')
-  const [posts, setPosts] = useState([])
-  const [loadingPosts, setLoadingPosts] = useState(false)
-
   const [products, setProducts] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [productError, setProductError] = useState('')
   const [editingProduct, setEditingProduct] = useState(null) // null | 'new' | product
 
-  const canPost = profileType === 'business' && profile.profile_kind === 'anbieter' && profile.status === 'live' && profile.account_status !== 'beobachter'
+  const [hasChannelAddon, setHasChannelAddon] = useState(false)
+  const [ownChannel, setOwnChannel] = useState(null)
+  const [loadingChannel, setLoadingChannel] = useState(false)
+  const [view, setView] = useState(null) // null | 'createChannel' | 'channelDetail'
+
+  const isStadtverwaltung = profileType === 'business' && profile.category === 'stadtverwaltung'
   const canManageProducts = profileType === 'business' && profile.profile_kind === 'anbieter' && profile.status === 'live' && profile.plan === 'basis' && profile.account_status !== 'beobachter'
+  const canManageChannel = profileType === 'business' && profile.status === 'live' && profile.account_status !== 'beobachter' && !isStadtverwaltung
+
+  const [content, setContentText] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [postError, setPostError] = useState('')
+  const [posts, setPosts] = useState([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
+
+  const canPostDirectly = isStadtverwaltung && profile.status === 'live' && profile.account_status !== 'beobachter'
 
   useEffect(() => {
-    if (canPost) loadPosts()
+    if (canPostDirectly) loadPosts()
     if (canManageProducts) loadProducts()
+    if (canManageChannel) loadChannelInfo()
     // eslint-disable-next-line
-  }, [canPost, canManageProducts])
+  }, [canPostDirectly, canManageProducts, canManageChannel])
 
   async function loadPosts() {
     setLoadingPosts(true)
@@ -54,10 +65,23 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
     if (error) {
       setPostError(error.message)
     } else {
-      setContent('')
+      setContentText('')
       loadPosts()
     }
     setPosting(false)
+  }
+
+  async function loadChannelInfo() {
+    setLoadingChannel(true)
+
+    const [{ data: addonRows }, { data: channelRows }] = await Promise.all([
+      supabase.from('business_addons').select('addon_key').eq('business_profile_id', profile.id),
+      supabase.from('channels').select('*').eq('created_by', profile.id).order('created_at', { ascending: false }).limit(1)
+    ])
+
+    setHasChannelAddon((addonRows || []).some((a) => a.addon_key === 'channel'))
+    setOwnChannel(channelRows?.[0] || null)
+    setLoadingChannel(false)
   }
 
   async function loadProducts() {
@@ -111,6 +135,29 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
     )
   }
 
+  if (view === 'createChannel') {
+    return (
+      <CreateChannel
+        userId={profile.id}
+        onBack={() => setView(null)}
+        onDone={(channelId, channelName) => {
+          setOwnChannel({ id: channelId, name: channelName, created_by: profile.id })
+          setView('channelDetail')
+        }}
+      />
+    )
+  }
+
+  if (view === 'channelDetail' && ownChannel) {
+    return (
+      <ChannelDetail
+        userId={profile.id}
+        channelId={ownChannel.id}
+        onBack={() => { setView(null); loadChannelInfo() }}
+      />
+    )
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -147,7 +194,7 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
               {profile.status === 'abgelehnt' &&
                 'Dein Profil wurde aktuell nicht freigeschaltet.'}
             </p>
-            {profile.status === 'live' && (
+            {profile.status === 'live' && !isStadtverwaltung && (
               <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
                 Paket: {profile.plan === 'basis' ? 'Basis (virtueller Laden aktiv)' : 'Kein Paket gebucht'}
               </p>
@@ -195,7 +242,36 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
           </div>
         )}
 
-        {canPost && (
+        {canManageChannel && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Newsfeed-Beiträge</h3>
+            {loadingChannel && <div className="loading-dot">Lädt...</div>}
+
+            {!loadingChannel && !hasChannelAddon && (
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-soft)' }}>
+                Um Neuigkeiten zu veröffentlichen, die bei deinen Followern im Newsfeed erscheinen, buche den Zusatz "Eigener Channel".
+              </p>
+            )}
+
+            {!loadingChannel && hasChannelAddon && !ownChannel && (
+              <>
+                <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-soft)' }}>
+                  Du hast den Channel-Zusatz gebucht, aber noch keinen Channel angelegt.
+                </p>
+                <button className="btn btn-primary" onClick={() => setView('createChannel')}>Channel erstellen</button>
+              </>
+            )}
+
+            {!loadingChannel && hasChannelAddon && ownChannel && (
+              <>
+                <p style={{ margin: '0 0 12px', fontSize: 14 }}>Dein Channel: <strong>{ownChannel.name}</strong></p>
+                <button className="btn btn-primary" onClick={() => setView('channelDetail')}>Zum Channel</button>
+              </>
+            )}
+          </div>
+        )}
+
+        {canPostDirectly && (
           <div className="card">
             <h3 style={{ marginTop: 0 }}>News veröffentlichen</h3>
             {postError && <div className="error-box">{postError}</div>}
@@ -205,7 +281,7 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
                   rows={3}
                   required
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={(e) => setContentText(e.target.value)}
                   placeholder="Was gibt's Neues?"
                 />
               </div>

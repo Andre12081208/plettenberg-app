@@ -5,6 +5,8 @@ export default function Newsfeed({ userId, onBack, embedded }) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [newPost, setNewPost] = useState('')
+  const [posting, setPosting] = useState(false)
 
   useEffect(() => {
     loadFeed()
@@ -14,10 +16,11 @@ export default function Newsfeed({ userId, onBack, embedded }) {
     setLoading(true)
     setError('')
 
-    const [{ data: followed }, { data: stadtverwaltung }, { data: channelFollows }] = await Promise.all([
+    const [{ data: followed }, { data: stadtverwaltung }, { data: channelFollows }, { data: residentPosts }] = await Promise.all([
       supabase.from('follows').select('business_profile_id').eq('user_id', userId),
       supabase.from('business_profiles').select('id').eq('category', 'stadtverwaltung').eq('status', 'live'),
-      supabase.from('channel_follows').select('channel_id').eq('user_id', userId)
+      supabase.from('channel_follows').select('channel_id').eq('user_id', userId),
+      supabase.from('resident_posts').select('*').order('created_at', { ascending: false })
     ])
 
     const businessIds = [
@@ -35,22 +38,69 @@ export default function Newsfeed({ userId, onBack, embedded }) {
         : Promise.resolve({ data: [] })
     ])
 
+    const residentPostsWithNames = await Promise.all(
+      (residentPosts || []).map(async (p) => {
+        const [{ data: displayName }, { data: avatarUrl }] = await Promise.all([
+          supabase.rpc('get_display_name', { target_id: p.author_id }),
+          supabase.rpc('get_avatar_url', { target_id: p.author_id })
+        ])
+        return { ...p, kind: 'resident', authorDisplayName: displayName, authorAvatarUrl: avatarUrl }
+      })
+    )
+
     const combined = [
       ...(businessPosts.data || []).map((p) => ({ ...p, kind: 'business' })),
-      ...(channelPosts.data || []).map((p) => ({ ...p, kind: 'channel' }))
+      ...(channelPosts.data || []).map((p) => ({ ...p, kind: 'channel' })),
+      ...residentPostsWithNames
     ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
     setPosts(combined)
     setLoading(false)
   }
 
+  async function handlePost(e) {
+    e.preventDefault()
+    if (!newPost.trim()) return
+    setPosting(true)
+    const { error } = await supabase.from('resident_posts').insert({ author_id: userId, content: newPost.trim() })
+    if (error) {
+      setError(error.message)
+    } else {
+      setNewPost('')
+      loadFeed()
+    }
+    setPosting(false)
+  }
+
+  async function handleDeletePost(id) {
+    await supabase.from('resident_posts').delete().eq('id', id)
+    loadFeed()
+  }
+
   const content = (
     <>
       {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <form onSubmit={handlePost}>
+          <div className="field">
+            <textarea
+              rows={3}
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+              placeholder="Was gibt's Neues? Nur deine bestätigten Kontakte sehen das."
+            />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={posting || !newPost.trim()}>
+            {posting ? 'Wird veröffentlicht...' : 'Veröffentlichen'}
+          </button>
+        </form>
+      </div>
+
       {loading && <div className="loading-dot">Lädt...</div>}
 
       {!loading && posts.length === 0 && (
-        <p className="center-note">Noch keine Neuigkeiten. Folge Anbietern oder Channels im App Store, um hier ihre News zu sehen.</p>
+        <p className="center-note">Noch keine Neuigkeiten. Folge Anbietern oder Channels im App Store, oder schreib selbst etwas.</p>
       )}
 
       {!loading && posts.map((post) => (
@@ -62,12 +112,16 @@ export default function Newsfeed({ userId, onBack, embedded }) {
                   ? <img src={post.business_profiles.logo_url} alt="" />
                   : post.business_profiles?.company_name?.[0]}
               </div>
-            ) : (
+            ) : post.kind === 'channel' ? (
               <div className="avatar-preview" style={{ width: 36, height: 36, fontSize: 14 }}>📢</div>
+            ) : (
+              <div className="avatar-preview" style={{ width: 36, height: 36, fontSize: 14 }}>
+                {post.authorAvatarUrl ? <img src={post.authorAvatarUrl} alt="" /> : '👤'}
+              </div>
             )}
             <div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>
-                {post.kind === 'business' ? post.business_profiles?.company_name : post.channels?.name}
+                {post.kind === 'business' ? post.business_profiles?.company_name : post.kind === 'channel' ? post.channels?.name : post.authorDisplayName}
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink-soft)' }}>
                 {new Date(post.created_at).toLocaleDateString('de-DE')}
@@ -75,21 +129,19 @@ export default function Newsfeed({ userId, onBack, embedded }) {
             </div>
           </div>
           <p style={{ margin: 0, fontSize: 14 }}>{post.content}</p>
+          {post.kind === 'resident' && post.author_id === userId && (
+            <button className="link-text" style={{ fontSize: 12, marginTop: 8 }} onClick={() => handleDeletePost(post.id)}>
+              Löschen
+            </button>
+          )}
         </div>
       ))}
     </>
   )
+</parameter>
 
   if (embedded) {
-    return (
-      <>
-        <div className="topbar">
-          <div className="mark">Plettenberg</div>
-          <h1>Newsfeed</h1>
-        </div>
-        <main style={{ paddingBottom: 90 }}>{content}</main>
-      </>
-    )
+    return content
   }
 
   return (

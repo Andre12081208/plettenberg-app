@@ -4,6 +4,8 @@ import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 
 export default function BusinessSettings({ profile, onProfileUpdated }) {
+  const [view, setView] = useState(null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
+
   const [products, setProducts] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [productError, setProductError] = useState('')
@@ -12,7 +14,6 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const [hasChannelAddon, setHasChannelAddon] = useState(false)
   const [ownChannel, setOwnChannel] = useState(null)
   const [loadingChannel, setLoadingChannel] = useState(false)
-  const [view, setView] = useState(null) // null | 'createChannel' | 'channelDetail'
 
   const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
   const [slots, setSlots] = useState([])
@@ -38,9 +39,9 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const terminProducts = products.filter((p) => p.sale_mode === 'termin')
 
   useEffect(() => {
-    if (canPostDirectly) loadPosts()
     if (canManageProducts) { loadProducts(); loadAppointmentInfo() }
     if (canManageChannel) loadChannelInfo()
+    if (canPostDirectly) loadPosts()
     // eslint-disable-next-line
   }, [])
 
@@ -193,7 +194,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
     return (
       <CreateChannel
         userId={profile.id}
-        onBack={() => setView(null)}
+        onBack={() => setView('news')}
         onDone={(channelId, channelName) => {
           setOwnChannel({ id: channelId, name: channelName, created_by: profile.id })
           setView('channelDetail')
@@ -207,22 +208,24 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
       <ChannelDetail
         userId={profile.id}
         channelId={ownChannel.id}
-        onBack={() => { setView(null); loadChannelInfo() }}
+        onBack={() => { setView('news'); loadChannelInfo() }}
       />
     )
   }
 
-  return (
-    <>
-      <div className="topbar">
-        <div className="mark">Plettenberg</div>
-        <h1>Einstellungen</h1>
-      </div>
-      <main style={{ paddingBottom: 90 }}>
-        {canManageProducts && (
+  if (view === 'produkte') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Meine Angebote</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>Meine Angebote</h3>
+              <h3 style={{ margin: 0 }}>Angebote</h3>
               <button className="btn btn-secondary" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => setEditingProduct('new')}>
                 + Neu
               </button>
@@ -257,12 +260,22 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
               </div>
             ))}
           </div>
-        )}
+        </main>
+      </>
+    )
+  }
 
-        {canManageProducts && hasAppointmentAddon && (
+  if (view === 'termine') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Meine Termine</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>Meine Termine</h3>
-
             {slotError && <div className="error-box">{slotError}</div>}
 
             {terminProducts.length === 0 ? (
@@ -322,11 +335,22 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
               )
             })}
           </div>
-        )}
+        </main>
+      </>
+    )
+  }
 
-        {canManageChannel && (
+  if (view === 'news') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Newsfeed-Beiträge</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>Newsfeed-Beiträge</h3>
             {loadingChannel && <div className="loading-dot">Lädt...</div>}
 
             {!loadingChannel && !hasChannelAddon && (
@@ -351,11 +375,22 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
               </>
             )}
           </div>
-        )}
+        </main>
+      </>
+    )
+  }
 
-        {canPostDirectly && (
+  if (view === 'newsDirect') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>News veröffentlichen</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>News veröffentlichen</h3>
             {postError && <div className="error-box">{postError}</div>}
             <form onSubmit={handlePost}>
               <div className="field">
@@ -385,9 +420,49 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
               </div>
             )}
           </div>
-        )}
+        </main>
+      </>
+    )
+  }
 
-        <button className="btn btn-secondary" onClick={handleLogout}>Abmelden</button>
+  return (
+    <>
+      <div className="topbar">
+        <div className="mark">Plettenberg</div>
+        <h1>Einstellungen</h1>
+      </div>
+      <main style={{ paddingBottom: 90 }}>
+        <div className="app-grid">
+          {canManageProducts && (
+            <button className="app-tile" onClick={() => setView('produkte')}>
+              <div className="app-tile-icon">🛍️</div>
+              <div className="app-tile-label">Meine Angebote</div>
+            </button>
+          )}
+
+          {canManageProducts && hasAppointmentAddon && (
+            <button className="app-tile" onClick={() => setView('termine')}>
+              <div className="app-tile-icon">📅</div>
+              <div className="app-tile-label">Meine Termine</div>
+            </button>
+          )}
+
+          {canManageChannel && (
+            <button className="app-tile" onClick={() => setView('news')}>
+              <div className="app-tile-icon">📢</div>
+              <div className="app-tile-label">Newsfeed-Beiträge</div>
+            </button>
+          )}
+
+          {canPostDirectly && (
+            <button className="app-tile" onClick={() => setView('newsDirect')}>
+              <div className="app-tile-icon">📢</div>
+              <div className="app-tile-label">News veröffentlichen</div>
+            </button>
+          )}
+        </div>
+
+        <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 24 }}>Abmelden</button>
       </main>
     </>
   )

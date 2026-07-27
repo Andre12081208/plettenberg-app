@@ -77,7 +77,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
     checkUnreadIdeas()
     checkCalendarNotifications()
     checkBusinessInquiries()
-   {tile.key === 'calendar' && calendarNotificationCount > 0  checkCalendarNotifications(); checkBusinessInquiries() }, 20000)
+   const interval = setInterval(() => { checkUnreadMessages(); checkUnreadIdeas(); checkCalendarNotifications(); checkBusinessInquiries() }, 20000)
     return () => clearInterval(interval)
   }, [])
 

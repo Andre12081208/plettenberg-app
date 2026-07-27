@@ -44,6 +44,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
   const [unreadChatCount, setUnreadChatCount] = useState(0)
   const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
   const [calendarNotificationCount, setCalendarNotificationCount] = useState(0)
+  const [businessInquiryCounts, setBusinessInquiryCounts] = useState({})
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
   const [initialChannelCode, setInitialChannelCode] = useState(null)
@@ -75,13 +76,21 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
     checkUnreadMessages()
     checkUnreadIdeas()
     checkCalendarNotifications()
-    const interval = setInterval(() => { checkUnreadMessages(); checkUnreadIdeas(); checkCalendarNotifications() }, 20000)
+    checkBusinessInquiries()
+   {tile.key === 'calendar' && calendarNotificationCount > 0  checkCalendarNotifications(); checkBusinessInquiries() }, 20000)
     return () => clearInterval(interval)
   }, [])
 
   async function checkUnreadIdeas() {
     const { data } = await supabase.rpc('get_unread_idea_count')
     setUnreadIdeaCount(data || 0)
+  }
+
+  async function checkBusinessInquiries() {
+    const { data } = await supabase.rpc('get_unread_business_inquiry_counts')
+    const map = {}
+    for (const row of data || []) map[row.business_profile_id] = row.unread_count
+    setBusinessInquiryCounts(map)
   }
 
   async function checkCalendarNotifications() {
@@ -251,7 +260,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
       />
     )
   } else if (openApp && typeof openApp === 'object' && openApp.id) {
-    content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => setOpenApp(null)} />
+    content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries() }} />
   } else {
     content = (
       <>
@@ -349,6 +358,11 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                         <div className="app-tile-label">{label}</div>
                       </button>
 
+                      {tile.type === 'business' && businessInquiryCounts[tile.data.id] > 0 && (
+  <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+    {businessInquiryCounts[tile.data.id]}
+  </span>
+)}
                       {tile.key === 'calendar' && calendarNotificationCount > 0 && (
         <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
           {calendarNotificationCount}

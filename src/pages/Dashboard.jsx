@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
+import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 
 const STATUS_LABELS = {
   in_pruefung: { text: 'In Prüfung', cls: 'status-pruefung' },
@@ -15,6 +16,12 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [productError, setProductError] = useState('')
   const [editingProduct, setEditingProduct] = useState(null) // null | 'new' | product
+
+  const [orders, setOrders] = useState([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
+  const [inquiries, setInquiries] = useState([])
+  const [loadingInquiries, setLoadingInquiries] = useState(false)
+  const [openInquiry, setOpenInquiry] = useState(null)
 
   const [hasChannelAddon, setHasChannelAddon] = useState(false)
   const [ownChannel, setOwnChannel] = useState(null)
@@ -35,11 +42,10 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
 
   useEffect(() => {
     if (canPostDirectly) loadPosts()
-    if (canManageProducts) loadProducts()
+    if (canManageProducts) { loadProducts(); loadOrders(); loadInquiries() }
     if (canManageChannel) loadChannelInfo()
     // eslint-disable-next-line
   }, [canPostDirectly, canManageProducts, canManageChannel])
-
   async function loadPosts() {
     setLoadingPosts(true)
     const { data } = await supabase
@@ -120,8 +126,50 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
     }
   }
 
+  async function loadOrders() {
+    setLoadingOrders(true)
+    const { data } = await supabase
+      .from('business_orders')
+      .select('*, business_order_items(*)')
+      .eq('business_profile_id', profile.id)
+      .order('created_at', { ascending: false })
+
+    setOrders(data || [])
+    setLoadingOrders(false)
+  }
+
+  async function updateOrderStatus(orderId, newStatus) {
+    const { error } = await supabase.from('business_orders').update({ status: newStatus }).eq('id', orderId)
+    if (!error) {
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
+    }
+  }
+
+  async function loadInquiries() {
+    setLoadingInquiries(true)
+    const { data } = await supabase
+      .from('business_inquiries')
+      .select('*')
+      .eq('business_profile_id', profile.id)
+      .order('created_at', { ascending: false })
+
+    setInquiries(data || [])
+    setLoadingInquiries(false)
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
+  }
+
+  if (openInquiry) {
+    return (
+      <BusinessInquiryChat
+        userId={profile.id}
+        inquiryId={openInquiry}
+        isBusiness
+        onBack={() => setOpenInquiry(null)}
+      />
+    )
   }
 
   if (editingProduct) {
@@ -238,6 +286,59 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
                   <button className="btn btn-secondary" onClick={() => deleteProduct(product)}>Löschen</button>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+
+        {canManageProducts && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Bestellungen</h3>
+            {loadingOrders && <div className="loading-dot">Lädt...</div>}
+            {!loadingOrders && orders.length === 0 && <p className="center-note">Noch keine Bestellungen.</p>}
+
+            {!loadingOrders && orders.map((order) => (
+              <div key={order.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 12, marginTop: 12 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+                  {new Date(order.created_at).toLocaleDateString('de-DE')}
+                </p>
+                {order.business_order_items?.map((item) => (
+                  <p key={item.id} style={{ margin: '2px 0', fontSize: 14 }}>
+                    {item.quantity}× {item.product_name}
+                  </p>
+                ))}
+                {order.note && <p style={{ margin: '4px 0', fontSize: 13, fontStyle: 'italic' }}>„{order.note}"</p>}
+                <select
+                  value={order.status}
+                  onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                  style={{ marginTop: 8 }}
+                >
+                  <option value="neu">Neu</option>
+                  <option value="bestaetigt">Bestätigt</option>
+                  <option value="abgeschlossen">Abgeschlossen</option>
+                  <option value="abgelehnt">Abgelehnt</option>
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {canManageProducts && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Anfragen</h3>
+            {loadingInquiries && <div className="loading-dot">Lädt...</div>}
+            {!loadingInquiries && inquiries.length === 0 && <p className="center-note">Noch keine Anfragen.</p>}
+
+            {!loadingInquiries && inquiries.map((inquiry) => (
+              <button
+                key={inquiry.id}
+                className="card-choice"
+                onClick={() => setOpenInquiry(inquiry.id)}
+              >
+                <h3 style={{ margin: 0 }}>{inquiry.product_name_snapshot || 'Anfrage'}</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+                  {new Date(inquiry.created_at).toLocaleDateString('de-DE')}
+                </p>
+              </button>
             ))}
           </div>
         )}

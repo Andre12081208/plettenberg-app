@@ -80,6 +80,7 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
         .select('*')
         .eq('business_profile_id', app.id)
         .eq('buyer_id', userId)
+        .eq('buyer_mailbox_status', 'inbox')
         .order('updated_at', { ascending: false }),
       supabase.rpc('get_resident_inquiry_unread_map')
     ])

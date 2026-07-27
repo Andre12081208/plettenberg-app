@@ -331,4 +331,19 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onGoToSettin
               {!loadingProducts && products.map((product) => (
                 <div key={product.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
                   {product.image_url && (
-                    <img src={product.image_url} alt="" style={{ width: '100%',
+                   {product.image_url && (
+                    <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 8, maxHeight: 140, objectFit: 'cover' }} />
+                  )}
+                  <p style={{ margin: 0, fontWeight: 600 }}>{product.name}</p>
+                  {product.price != null && (
+                    <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>{product.price} €</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </main>
+    </>
+  )
+}

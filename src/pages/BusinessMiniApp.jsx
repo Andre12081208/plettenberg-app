@@ -163,9 +163,12 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     }
   }
 
-  async function startInquiry(product) {
+  const [pendingInquiryProduct, setPendingInquiryProduct] = useState(null)
+
+  async function startInquiry(product, isAnonymous) {
     setInquiryBusyId(product.id)
     setError('')
+    setPendingInquiryProduct(null)
 
     const { data: existing } = await supabase
       .from('business_inquiries')
@@ -187,13 +190,18 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
         business_profile_id: app.id,
         product_id: product.id,
         product_name_snapshot: product.name,
-        buyer_id: userId
+        buyer_id: userId,
+        is_anonymous: isAnonymous
       })
       .select('id')
       .single()
 
     if (createError) {
-      setError(createError.message)
+      setError(
+        isAnonymous
+          ? 'Anonyme Anfrage nicht möglich. Bitte versuch es mit deinem Profil.'
+          : createError.message
+      )
       setInquiryBusyId(null)
       return
     }
@@ -483,9 +491,19 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
                   <button className="btn btn-primary" onClick={() => addToCart(product)}>In den Warenkorb</button>
                 )}
                 {product.sale_mode === 'anfrage' && (
-                  <button className="btn btn-primary" onClick={() => startInquiry(product)} disabled={inquiryBusyId === product.id}>
-                    {inquiryBusyId === product.id ? 'Einen Moment...' : 'Anfrage senden'}
-                  </button>
+                  pendingInquiryProduct?.id === product.id ? (
+                    <div>
+                      <p style={{ fontSize: 13, margin: '0 0 8px' }}>Wie möchtest du anfragen?</p>
+                      <div className="btn-row">
+                        <button className="btn btn-secondary" onClick={() => startInquiry(product, true)}>Anonym</button>
+                        <button className="btn btn-secondary" onClick={() => startInquiry(product, false)}>Mit meinem Profil</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button className="btn btn-primary" onClick={() => setPendingInquiryProduct(product)} disabled={inquiryBusyId === product.id}>
+                      {inquiryBusyId === product.id ? 'Einen Moment...' : 'Anfrage senden'}
+                    </button>
+                  )
                 )}
                 {product.sale_mode === 'termin' && (
                   <button className="btn btn-primary" onClick={() => openTerminView(product)}>Termin auswählen</button>

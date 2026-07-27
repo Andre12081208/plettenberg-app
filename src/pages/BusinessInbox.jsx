@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 
-export default function BusinessInbox({ profile }) {
+export default function BusinessInbox({ profile, onInquiryRead }) {
   const [orders, setOrders] = useState([])
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [inquiries, setInquiries] = useState([])
@@ -35,11 +35,17 @@ export default function BusinessInbox({ profile }) {
 
   async function loadInquiries() {
     setLoadingInquiries(true)
-    const { data } = await supabase
-      .from('business_inquiries')
-      .select('*')
-      .eq('business_profile_id', profile.id)
-      .order('created_at', { ascending: false })
+    const [{ data }, { data: unreadRows }] = await Promise.all([
+      supabase
+        .from('business_inquiries')
+        .select('*')
+        .eq('business_profile_id', profile.id)
+        .order('created_at', { ascending: false }),
+      supabase.rpc('get_business_inquiry_unread_map')
+    ])
+
+    const unreadMap = {}
+    for (const row of unreadRows || []) unreadMap[row.inquiry_id] = row.unread_count
 
     const withNames = await Promise.all(
       (data || []).map(async (inquiry) => {
@@ -48,7 +54,8 @@ export default function BusinessInbox({ profile }) {
         return {
           ...inquiry,
           buyerDisplayName: row?.is_anon ? `Interessent #${row.anon_number}` : (row?.display_name || 'Interessent'),
-          buyerAvatarUrl: row?.is_anon ? null : row?.avatar_url
+          buyerAvatarUrl: row?.is_anon ? null : row?.avatar_url,
+          unreadCount: unreadMap[inquiry.id] || 0
         }
       })
     )
@@ -63,7 +70,7 @@ export default function BusinessInbox({ profile }) {
         userId={profile.id}
         inquiryId={openInquiry}
         isBusiness
-        onBack={() => setOpenInquiry(null)}
+        onBack={() => { setOpenInquiry(null); loadInquiries(); onInquiryRead?.() }}
       />
     )
   }
@@ -116,7 +123,7 @@ export default function BusinessInbox({ profile }) {
               <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
                 {inquiry.buyerAvatarUrl ? <img src={inquiry.buyerAvatarUrl} alt="" /> : (inquiry.buyerDisplayName?.startsWith('Interessent #') ? '🕶️' : '👤')}
               </div>
-              <div>
+              <div style={{ flex: 1 }}>
                 <h3 style={{ margin: 0 }}>{inquiry.buyerDisplayName || 'Interessent'}</h3>
                 <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
                   {inquiry.product_name_snapshot || 'Anfrage'}
@@ -125,6 +132,11 @@ export default function BusinessInbox({ profile }) {
                   {{ angefragt: '⚪ Angefragt', in_bearbeitung: '🔵 In Bearbeitung', erledigt: '✅ Erledigt' }[inquiry.status] || '⚪ Angefragt'}
                 </span>
               </div>
+              {inquiry.unreadCount > 0 && (
+                <span style={{ minWidth: 22, height: 22, borderRadius: 11, background: 'var(--clay)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', flexShrink: 0 }}>
+                  {inquiry.unreadCount}
+                </span>
+              )}
             </button>
           </div>
         ))}

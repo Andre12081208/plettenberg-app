@@ -16,6 +16,7 @@ import ChannelsHub from './ChannelsHub.jsx'
 import GastroHub from './GastroHub.jsx'
 import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 import Kontakte from './Kontakte.jsx'
+import ResidentInbox from './ResidentInbox.jsx'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
@@ -45,6 +46,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
   const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
   const [calendarNotificationCount, setCalendarNotificationCount] = useState(0)
   const [businessInquiryCounts, setBusinessInquiryCounts] = useState({})
+  const [postfachCount, setPostfachCount] = useState(0)
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
   const [initialChannelCode, setInitialChannelCode] = useState(null)
@@ -77,9 +79,15 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
     checkUnreadIdeas()
     checkCalendarNotifications()
     checkBusinessInquiries()
-   const interval = setInterval(() => { checkUnreadMessages(); checkUnreadIdeas(); checkCalendarNotifications(); checkBusinessInquiries() }, 20000)
+    checkPostfach()
+   const interval = setInterval(() => { checkUnreadMessages(); checkUnreadIdeas(); checkCalendarNotifications(); checkBusinessInquiries(); checkPostfach() }, 20000)
     return () => clearInterval(interval)
   }, [])
+
+  async function checkPostfach() {
+    const { data } = await supabase.rpc('get_resident_unread_inquiry_count')
+    setPostfachCount(data || 0)
+  }
 
   async function checkUnreadIdeas() {
     const { data } = await supabase.rpc('get_unread_idea_count')
@@ -260,7 +268,9 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
       />
     )
   } else if (openApp && typeof openApp === 'object' && openApp.id) {
-    content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries() }} />
+    content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries(); checkPostfach() }} />
+  } else if (openApp === 'postfach') {
+    content = <ResidentInbox userId={userId} onBack={() => { setOpenApp(null); checkPostfach() }} />
   } else {
     content = (
       <>
@@ -304,6 +314,18 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
                   <div className="app-tile-icon">🤝</div>
                   <div className="app-tile-label">{t('apps.contacts')}</div>
                 </button>
+
+                <div style={{ position: 'relative' }}>
+                  <button className="app-tile" style={{ width: '100%' }} onClick={() => setOpenApp('postfach')}>
+                    <div className="app-tile-icon">📥</div>
+                    <div className="app-tile-label">Postfach</div>
+                  </button>
+                  {postfachCount > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                      {postfachCount}
+                    </span>
+                  )}
+                </div>
 
                 <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
                   <div className="app-tile-icon">🏛️</div>

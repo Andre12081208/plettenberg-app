@@ -9,6 +9,16 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
   const [error, setError] = useState('')
   const [otherName, setOtherName] = useState('')
   const [otherAvatarUrl, setOtherAvatarUrl] = useState(null)
+  const [isAnon, setIsAnon] = useState(false)
+  const [buyerId, setBuyerId] = useState(null)
+
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reporting, setReporting] = useState(false)
+  const [reportedMsg, setReportedMsg] = useState('')
+  const [blocking, setBlocking] = useState(false)
+  const [blockedMsg, setBlockedMsg] = useState('')
+
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -56,12 +66,19 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
       .maybeSingle()
 
     if (!inquiry) return
+    setBuyerId(inquiry.buyer_id)
 
     if (isBusiness) {
-      const { data: displayName } = await supabase.rpc('get_display_name', { target_id: inquiry.buyer_id })
-      const { data: avatarUrl } = await supabase.rpc('get_avatar_url', { target_id: inquiry.buyer_id })
-      setOtherName(displayName || 'Interessent')
-      setOtherAvatarUrl(avatarUrl)
+      const { data } = await supabase.rpc('get_inquiry_buyer_display', { target_inquiry_id: inquiryId })
+      const row = data?.[0]
+      setIsAnon(!!row?.is_anon)
+      if (row?.is_anon) {
+        setOtherName(`Interessent #${row.anon_number}`)
+        setOtherAvatarUrl(null)
+      } else {
+        setOtherName(row?.display_name || 'Interessent')
+        setOtherAvatarUrl(row?.avatar_url || null)
+      }
     } else {
       const { data: business } = await supabase
         .from('business_profiles')
@@ -113,6 +130,38 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
     setSending(false)
   }
 
+  async function submitReport() {
+    setReporting(true)
+    const { error } = await supabase.from('business_inquiry_reports').insert({
+      inquiry_id: inquiryId,
+      business_profile_id: userId,
+      reported_user_id: buyerId,
+      reason: reportReason.trim() || null
+    })
+    if (!error) {
+      setReportedMsg('Meldung wurde an die Verwaltung geschickt.')
+      setShowReportForm(false)
+      setReportReason('')
+    } else {
+      setError(error.message)
+    }
+    setReporting(false)
+  }
+
+  async function blockBuyer() {
+    setBlocking(true)
+    const { error } = await supabase.from('business_blocked_users').insert({
+      business_profile_id: userId,
+      blocked_user_id: buyerId
+    })
+    if (!error) {
+      setBlockedMsg('Diese Person kann dich künftig nicht mehr anonym anschreiben.')
+    } else {
+      setError(error.message)
+    }
+    setBlocking(false)
+  }
+
   function formatTime(iso) {
     return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
   }
@@ -134,7 +183,7 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
         <div className="mark">Plettenberg</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
-            {otherAvatarUrl ? <img src={otherAvatarUrl} alt="" /> : (isBusiness ? '👤' : '🏬')}
+            {otherAvatarUrl ? <img src={otherAvatarUrl} alt="" /> : (isBusiness ? '🕶️' : '🏬')}
           </div>
           <div>
             <h1 style={{ margin: 0 }}>{otherName || (isBusiness ? 'Anfrage' : 'Anbieter')}</h1>
@@ -145,6 +194,36 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
         {error && <div className="error-box">{error}</div>}
+        {reportedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{reportedMsg}</div>}
+        {blockedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{blockedMsg}</div>}
+
+        {isBusiness && (
+          <div style={{ marginBottom: 12 }}>
+            {showReportForm ? (
+              <div className="card">
+                <div className="field">
+                  <label htmlFor="reportReason">Grund (optional)</label>
+                  <textarea id="reportReason" rows={2} value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
+                </div>
+                <div className="btn-row">
+                  <button className="btn btn-secondary" onClick={submitReport} disabled={reporting}>
+                    {reporting ? 'Wird gesendet...' : 'Melden'}
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => setShowReportForm(false)}>Abbrechen</button>
+                </div>
+              </div>
+            ) : (
+              <div className="btn-row" style={{ flexWrap: 'wrap' }}>
+                <button className="link-text" onClick={() => setShowReportForm(true)}>Melden</button>
+                {isAnon && (
+                  <button className="link-text" onClick={blockBuyer} disabled={blocking}>
+                    {blocking ? '...' : 'Anonyme Anfragen blockieren'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
           {loading && <div className="loading-dot">Lädt...</div>}

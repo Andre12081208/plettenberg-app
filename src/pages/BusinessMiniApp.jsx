@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 
 export default function BusinessMiniApp({ app, userId, onBack }) {
-  const [view, setView] = useState('browse') // 'browse' | 'cart' | 'orders'
+  const [view, setView] = useState('browse') // 'browse' | 'cart' | 'orders' | 'inquiries'
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -16,19 +16,26 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
 
+  const [inquiries, setInquiries] = useState([])
+  const [inquiriesLoading, setInquiriesLoading] = useState(false)
   const [openInquiry, setOpenInquiry] = useState(null)
   const [inquiryBusyId, setInquiryBusyId] = useState(null)
 
   const hasShop = app.plan === 'basis'
 
   useEffect(() => {
-    if (hasShop) loadProducts()
-    else setLoading(false)
+    if (hasShop) {
+      loadProducts()
+      loadInquiries()
+    } else {
+      setLoading(false)
+    }
     // eslint-disable-next-line
   }, [])
 
   useEffect(() => {
     if (view === 'orders') loadOrders()
+    if (view === 'inquiries') loadInquiries()
   }, [view])
 
   async function loadProducts() {
@@ -57,6 +64,32 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     if (error) setError(error.message)
     setOrders(data || [])
     setOrdersLoading(false)
+  }
+
+  async function loadInquiries() {
+    setInquiriesLoading(true)
+    const { data, error } = await supabase
+      .from('business_inquiries')
+      .select('*')
+      .eq('business_profile_id', app.id)
+      .eq('buyer_id', userId)
+      .order('updated_at', { ascending: false })
+
+    if (error) setError(error.message)
+    setInquiries(data || [])
+    setInquiriesLoading(false)
+  }
+
+  function isUnread(inquiry) {
+    return new Date(inquiry.updated_at) > new Date(inquiry.buyer_last_read_at)
+  }
+
+  const unreadInquiryCount = inquiries.filter(isUnread).length
+
+  async function openInquiryThread(inquiryId) {
+    await supabase.from('business_inquiries').update({ buyer_last_read_at: new Date().toISOString() }).eq('id', inquiryId)
+    setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, buyer_last_read_at: new Date().toISOString() } : i)))
+    setOpenInquiry(inquiryId)
   }
 
   function addToCart(product) {
@@ -138,7 +171,7 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
 
     if (existing) {
       setInquiryBusyId(null)
-      setOpenInquiry(existing.id)
+      await openInquiryThread(existing.id)
       return
     }
 
@@ -167,7 +200,7 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     })
 
     setInquiryBusyId(null)
-    setOpenInquiry(created.id)
+    await openInquiryThread(created.id)
   }
 
   if (openInquiry) {
@@ -176,7 +209,7 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
         userId={userId}
         inquiryId={openInquiry}
         isBusiness={false}
-        onBack={() => setOpenInquiry(null)}
+        onBack={() => { setOpenInquiry(null); loadInquiries() }}
       />
     )
   }
@@ -259,6 +292,42 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     )
   }
 
+  if (view === 'inquiries') {
+    return (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Meine Anfragen</h1>
+        </div>
+        <main>
+          <button className="link-text" onClick={() => setView('browse')} style={{ marginBottom: 16 }}>← Zurück</button>
+
+          {inquiriesLoading && <div className="loading-dot">Lädt...</div>}
+          {!inquiriesLoading && inquiries.length === 0 && <p className="center-note">Noch keine Anfragen bei diesem Betrieb.</p>}
+
+          {!inquiriesLoading && inquiries.map((inquiry) => (
+            <button
+              key={inquiry.id}
+              className="card-choice"
+              onClick={() => openInquiryThread(inquiry.id)}
+              style={{ position: 'relative' }}
+            >
+              <h3 style={{ margin: 0 }}>
+                {inquiry.product_name_snapshot || 'Anfrage'}
+                {isUnread(inquiry) && (
+                  <span style={{ marginLeft: 8, display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)' }} />
+                )}
+              </h3>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+                {isUnread(inquiry) ? 'Neue Antwort vom Betrieb' : new Date(inquiry.updated_at).toLocaleDateString('de-DE')}
+              </p>
+            </button>
+          ))}
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
@@ -289,11 +358,19 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
 
         {hasShop && (
           <>
-            <div className="btn-row" style={{ marginBottom: 14 }}>
+            <div className="btn-row" style={{ marginBottom: 14, flexWrap: 'wrap' }}>
               <button className="btn btn-secondary" onClick={() => setView('cart')}>
                 Warenkorb {cartCount > 0 ? `(${cartCount})` : ''}
               </button>
               <button className="btn btn-secondary" onClick={() => setView('orders')}>Meine Bestellungen</button>
+              <button className="btn btn-secondary" onClick={() => setView('inquiries')} style={{ position: 'relative' }}>
+                Meine Anfragen
+                {unreadInquiryCount > 0 && (
+                  <span style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                    {unreadInquiryCount}
+                  </span>
+                )}
+              </button>
             </div>
 
             <h3 style={{ margin: '20px 0 10px' }}>Angebot</h3>

@@ -41,7 +41,17 @@ export default function BusinessInbox({ profile }) {
       .eq('business_profile_id', profile.id)
       .order('created_at', { ascending: false })
 
-    setInquiries(data || [])
+    const withNames = await Promise.all(
+      (data || []).map(async (inquiry) => {
+        const [{ data: displayName }, { data: avatarUrl }] = await Promise.all([
+          supabase.rpc('get_display_name', { target_id: inquiry.buyer_id }),
+          supabase.rpc('get_avatar_url', { target_id: inquiry.buyer_id })
+        ])
+        return { ...inquiry, buyerDisplayName: displayName, buyerAvatarUrl: avatarUrl }
+      })
+    )
+
+    setInquiries(withNames)
     setLoadingInquiries(false)
   }
 
@@ -96,16 +106,22 @@ export default function BusinessInbox({ profile }) {
         {!loadingInquiries && inquiries.length === 0 && <p className="center-note">Noch keine Anfragen.</p>}
 
         {!loadingInquiries && inquiries.map((inquiry) => (
-          <button
-            key={inquiry.id}
-            className="card-choice"
-            onClick={() => setOpenInquiry(inquiry.id)}
-          >
-            <h3 style={{ margin: 0 }}>{inquiry.product_name_snapshot || 'Anfrage'}</h3>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
-              {new Date(inquiry.created_at).toLocaleDateString('de-DE')}
-            </p>
-          </button>
+          <div className="card" key={inquiry.id} style={{ padding: 0, overflow: 'hidden' }}>
+            <button
+              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}
+              onClick={() => setOpenInquiry(inquiry.id)}
+            >
+              <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                {inquiry.buyerAvatarUrl ? <img src={inquiry.buyerAvatarUrl} alt="" /> : '👤'}
+              </div>
+              <div>
+                <h3 style={{ margin: 0 }}>{inquiry.buyerDisplayName || 'Interessent'}</h3>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                  {inquiry.product_name_snapshot || 'Anfrage'}
+                </p>
+              </div>
+            </button>
+          </div>
         ))}
       </main>
     </>

@@ -267,6 +267,31 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
             />
           </div>
 
+          {productSearch.trim() && (
+            <div className="card" style={{ marginBottom: 16 }}>
+              {products.filter((p) => p.name.toLowerCase().includes(productSearch.trim().toLowerCase())).length === 0 ? (
+                <p className="center-note" style={{ margin: 0 }}>Keine Treffer.</p>
+              ) : (
+                products
+                  .filter((p) => p.name.toLowerCase().includes(productSearch.trim().toLowerCase()))
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: '8px 0', borderTop: '1px solid var(--line)' }}
+                      onClick={() => setEditingProduct(p)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <p style={{ margin: 0, fontWeight: 600 }}>{p.name}</p>
+                        <span className={`status-pill ${p.deleted_at || !p.active ? 'status-abgelehnt' : 'status-live'}`} style={{ fontSize: 11 }}>
+                          {p.deleted_at ? 'Gelöscht' : p.active ? 'Aktiv' : 'Inaktiv'}
+                        </span>
+                      </div>
+                    </button>
+                  ))
+              )}
+            </div>
+          )}
+
           <div className="btn-row" style={{ marginBottom: 10, flexWrap: 'wrap' }}>
             {[
               { value: 'aktiv', label: 'Aktiv' },

@@ -8,6 +8,7 @@ import BusinessProfileForm from './pages/BusinessProfileForm.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
 import HomeScreen from './pages/HomeScreen.jsx'
+import BusinessHomeScreen from './pages/BusinessHomeScreen.jsx'
 import { LanguageProvider } from './lib/LanguageContext.jsx'
 import PasswordChangedCountdown from './pages/PasswordChangedCountdown.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
@@ -194,11 +195,11 @@ export default function App() {
   }
 
   return (
-    <Dashboard
-      profileType={profileType}
+    <BusinessHomeScreen
       profile={profile}
       isAdmin={isAdmin}
       onOpenAdmin={() => setView('admin')}
+      onProfileUpdated={() => loadProfile(session.user.id)}
     />
   )
 }

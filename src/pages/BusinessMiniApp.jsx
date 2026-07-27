@@ -21,6 +21,7 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
   const [hasRoomAddon, setHasRoomAddon] = useState(false)
   const [terminPicker, setTerminPicker] = useState(false)
   const [channelInfo, setChannelInfo] = useState(null)
+  const [activeHotspotModal, setActiveHotspotModal] = useState(null)
   const [view, setView] = useState('browse') // 'browse' | 'cart' | 'orders' | 'inquiries'
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -67,52 +68,57 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     setHotspots(hotspotRows || [])
   }
 
-  async function handleHotspotClick(hotspot) {
-    if (hotspot.action_type === 'kontakt') {
-      setShowRoom(false)
-      return
-    }
-    if (hotspot.action_type === 'angebot') {
-      setShowRoom(false)
-      return
-    }
-    if (hotspot.action_type === 'termine') {
-      setShowRoom(false)
-      setTerminPicker(true)
-      return
-    }
-    if (hotspot.action_type === 'channel') {
-      const { data } = await supabase.from('channels').select('id, name').eq('created_by', app.id).limit(1).maybeSingle()
-      setChannelInfo(data || 'none')
-      setShowRoom(false)
-      return
-    }
-    if (hotspot.action_type === 'anfragen') {
-      setInquiryBusyId('raum')
-      const { data: created, error } = await supabase
-        .from('business_inquiries')
-        .insert({
-          business_profile_id: app.id,
-          buyer_id: userId,
-          product_name_snapshot: hotspot.label,
-          is_anonymous: false
-        })
-        .select('id')
-        .single()
-
-      if (!error) {
-        await supabase.from('business_inquiry_messages').insert({
-          inquiry_id: created.id,
-          sender_id: userId,
-          is_business: false,
-          content: `Ich habe eine Frage zu "${hotspot.label}".`
-        })
-        setShowRoom(false)
-        await openInquiryThread(created.id)
-      }
-      setInquiryBusyId(null)
-    }
+ async function goToKontakt() {
+    setActiveHotspotModal(null)
+    setShowRoom(false)
   }
+
+  async function goToAngebot() {
+    setActiveHotspotModal(null)
+    setShowRoom(false)
+  }
+
+  async function goToTermine() {
+    setActiveHotspotModal(null)
+    setShowRoom(false)
+    setTerminPicker(true)
+  }
+
+  async function goToChannel() {
+    const { data } = await supabase.from('channels').select('id, name').eq('created_by', app.id).limit(1).maybeSingle()
+    setChannelInfo(data || 'none')
+    setActiveHotspotModal(null)
+    setShowRoom(false)
+  }
+
+  async function goToAnfragen(hotspotLabel) {
+    setActiveHotspotModal(null)
+    setInquiryBusyId('raum')
+    const { data: created, error } = await supabase
+      .from('business_inquiries')
+      .insert({
+        business_profile_id: app.id,
+        buyer_id: userId,
+        product_name_snapshot: hotspotLabel,
+        is_anonymous: false
+      })
+      .select('id')
+      .single()
+
+    if (!error) {
+      await supabase.from('business_inquiry_messages').insert({
+        inquiry_id: created.id,
+        sender_id: userId,
+        is_business: false,
+        content: `Ich habe eine Frage zu "${hotspotLabel}".`
+      })
+      setShowRoom(false)
+      await openInquiryThread(created.id)
+    }
+    setInquiryBusyId(null)
+  }
+
+  const hasTerminOffers = products.some((p) => p.sale_mode === 'termin')
   useEffect(() => {
     if (view === 'orders') loadOrders()
     if (view === 'inquiries') loadInquiries()
@@ -362,7 +368,7 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
             {hotspots.map((h) => (
               <button
                 key={h.id}
-                onClick={() => handleHotspotClick(h)}
+                onClick={() => setActiveHotspotModal(h)}
                 style={{
                   position: 'absolute', left: `${h.x_percent}%`, top: `${h.y_percent}%`,
                   transform: 'translate(-50%, -50%)', padding: '8px 14px', borderRadius: 999,
@@ -378,6 +384,48 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
           <button className="link-text" onClick={() => setShowRoom(false)} style={{ marginTop: 16 }}>
             Stattdessen normale Ansicht anzeigen
           </button>
+
+          {activeHotspotModal && (
+            <div
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20
+              }}
+              onClick={() => setActiveHotspotModal(null)}
+            >
+              <div
+                className="card"
+                style={{ maxWidth: 360, width: '100%' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 style={{ marginTop: 0 }}>{activeHotspotModal.label}</h3>
+                <p className="hint" style={{ marginBottom: 14 }}>Was möchtest du hier tun?</p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button className="btn btn-primary" onClick={() => goToAnfragen(activeHotspotModal.label)}>
+                    💬 Frage stellen / Chat
+                  </button>
+                  {hasTerminOffers && (
+                    <button className="btn btn-secondary" onClick={goToTermine}>
+                      📅 Termin buchen
+                    </button>
+                  )}
+                  <button className="btn btn-secondary" onClick={goToAngebot}>
+                    🛍️ Angebot ansehen
+                  </button>
+                  <button className="btn btn-secondary" onClick={goToChannel}>
+                    📢 Neuigkeiten (Channel)
+                  </button>
+                  <button className="btn btn-secondary" onClick={goToKontakt}>
+                    📍 Kontaktinfos
+                  </button>
+                  <button className="link-text" onClick={() => setActiveHotspotModal(null)} style={{ marginTop: 6 }}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     )

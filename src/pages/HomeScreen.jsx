@@ -251,7 +251,7 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
       />
     )
   } else if (openApp && typeof openApp === 'object' && openApp.id) {
-    content = <BusinessMiniApp app={openApp} onBack={() => setOpenApp(null)} />
+    content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => setOpenApp(null)} />
   } else {
     content = (
       <>

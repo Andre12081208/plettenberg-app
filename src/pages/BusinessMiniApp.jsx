@@ -2,6 +2,19 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 
+function isCurrentlyOpen(hours) {
+  if (!hours) return null
+  const jsDayToKey = ['so', 'mo', 'di', 'mi', 'do', 'fr', 'sa']
+  const now = new Date()
+  const today = hours[jsDayToKey[now.getDay()]]
+  if (!today || today.closed || !today.open || !today.close) return false
+
+  const [openH, openM] = today.open.split(':').map(Number)
+  const [closeH, closeM] = today.close.split(':').map(Number)
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM
+}
+
 export default function BusinessMiniApp({ app, userId, onBack }) {
   const [view, setView] = useState('browse') // 'browse' | 'cart' | 'orders' | 'inquiries'
   const [products, setProducts] = useState([])
@@ -455,20 +468,38 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
         {error && <div className="error-box">{error}</div>}
         {placedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{placedMsg}</div>}
 
-        <div className="card">
-          {app.description && <p style={{ fontSize: 14 }}>{app.description}</p>}
-          {app.address && <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{app.address}</p>}
-          {app.phone && <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Tel: {app.phone}</p>}
-          {app.website && (
-            <p style={{ fontSize: 13 }}>
-              <a href={app.website} target="_blank" rel="noreferrer" style={{ color: 'var(--forest)' }}>
-                {app.website}
-              </a>
-            </p>
-          )}
-          {app.contact_person && (
-            <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Ansprechpartner: {app.contact_person}</p>
-          )}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: 120, background: app.banner_url ? undefined : 'var(--forest-light)' }}>
+            {app.banner_url && <img src={app.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+          </div>
+          <div style={{ padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -48, marginBottom: 10 }}>
+              <div className="avatar-preview" style={{ width: 72, height: 72, border: '3px solid #fff' }}>
+                {app.logo_url ? <img src={app.logo_url} alt="" /> : '🏬'}
+              </div>
+            </div>
+
+            {app.tagline && <p style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--forest)', fontWeight: 600 }}>{app.tagline}</p>}
+
+            {isCurrentlyOpen(app.opening_hours_structured) !== null && (
+              <span className={`status-pill ${isCurrentlyOpen(app.opening_hours_structured) ? 'status-live' : 'status-abgelehnt'}`} style={{ marginBottom: 10, display: 'inline-block' }}>
+                {isCurrentlyOpen(app.opening_hours_structured) ? '🟢 Jetzt geöffnet' : '🔴 Geschlossen'}
+              </span>
+            )}
+
+            {app.description && <p style={{ fontSize: 14 }}>{app.description}</p>}
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+              {app.address && <span className="status-pill status-live" style={{ fontSize: 12 }}>📍 {app.address}</span>}
+              {app.phone && <span className="status-pill status-live" style={{ fontSize: 12 }}>📞 {app.phone}</span>}
+              {app.website && (
+                <a href={app.website} target="_blank" rel="noreferrer" className="status-pill status-live" style={{ fontSize: 12, textDecoration: 'none', color: 'inherit' }}>
+                  🌐 Website
+                </a>
+              )}
+            </div>
+            {app.contact_person && <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginTop: 10 }}>Ansprechpartner: {app.contact_person}</p>}
+          </div>
         </div>
 
         {hasShop && (

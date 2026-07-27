@@ -422,6 +422,9 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
                   <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink-soft)' }}>
                     {inquiry.is_anonymous ? '🕶️ Anonym gesendet' : '👤 Mit Profil gesendet'}
                   </p>
+                  <span className={`status-pill ${{ angefragt: 'status-pruefung', in_bearbeitung: 'status-vertrag', erledigt: 'status-live' }[inquiry.status] || 'status-pruefung'}`} style={{ fontSize: 11, marginTop: 4, display: 'inline-block' }}>
+                    {{ angefragt: '⚪ Angefragt', in_bearbeitung: '🔵 In Bearbeitung', erledigt: '✅ Erledigt' }[inquiry.status] || '⚪ Angefragt'}
+                  </span>
                 </div>
               </button>
             </div>

@@ -21,17 +21,67 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
   const [openInquiry, setOpenInquiry] = useState(null)
   const [inquiryBusyId, setInquiryBusyId] = useState(null)
 
+  const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
+  const [slots, setSlots] = useState([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [bookingId, setBookingId] = useState(null)
+  const [bookedMsg, setBookedMsg] = useState('')
+
   const hasShop = app.plan === 'basis'
 
   useEffect(() => {
     if (hasShop) {
       loadProducts()
       loadInquiries()
+      loadAppointmentInfo()
     } else {
       setLoading(false)
     }
     // eslint-disable-next-line
   }, [])
+
+  async function loadAppointmentInfo() {
+    setLoadingSlots(true)
+    const [{ data: addonRows }, { data: slotRows }] = await Promise.all([
+      supabase.from('business_addons').select('addon_key').eq('business_profile_id', app.id),
+      supabase.from('business_appointment_slots').select('*').eq('business_profile_id', app.id).is('booked_by', null).gte('start_at', new Date().toISOString()).order('start_at', { ascending: true })
+    ])
+
+    setHasAppointmentAddon((addonRows || []).some((a) => a.addon_key === 'termine'))
+    setSlots(slotRows || [])
+    setLoadingSlots(false)
+  }
+
+  async function bookSlot(slot) {
+    setBookingId(slot.id)
+    setError('')
+
+    const { error } = await supabase
+      .from('business_appointment_slots')
+      .update({ booked_by: userId, booked_at: new Date().toISOString() })
+      .eq('id', slot.id)
+      .is('booked_by', null)
+
+    if (error) {
+      setError('Dieser Termin wurde gerade eben von jemand anderem gebucht. Bitte einen anderen wählen.')
+      setBookingId(null)
+      loadAppointmentInfo()
+      return
+    }
+
+    await supabase.from('calendar_events').insert({
+      user_id: userId,
+      created_by: userId,
+      title: `${slot.service_name} bei ${app.company_name}`,
+      start_at: slot.start_at,
+      end_at: slot.end_at,
+      all_day: false
+    })
+
+    setSlots((prev) => prev.filter((s) => s.id !== slot.id))
+    setBookedMsg(`Termin gebucht und in deinen Kalender eingetragen: ${slot.service_name}, ${new Date(slot.start_at).toLocaleDateString('de-DE')}.`)
+    setBookingId(null)
+  }
 
   useEffect(() => {
     if (view === 'orders') loadOrders()
@@ -372,6 +422,30 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
                 )}
               </button>
             </div>
+
+            {hasAppointmentAddon && (
+              <>
+                <h3 style={{ margin: '20px 0 10px' }}>Termin vereinbaren</h3>
+                {bookedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{bookedMsg}</div>}
+                {loadingSlots && <div className="loading-dot">Lädt...</div>}
+                {!loadingSlots && slots.length === 0 && (
+                  <p className="center-note">Aktuell keine freien Termine.</p>
+                )}
+                {!loadingSlots && slots.map((slot) => (
+                  <div className="card" key={slot.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 600 }}>{slot.service_name}</p>
+                      <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+                        {new Date(slot.start_at).toLocaleDateString('de-DE')}, {new Date(slot.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <button className="btn btn-primary" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => bookSlot(slot)} disabled={bookingId === slot.id}>
+                      {bookingId === slot.id ? '...' : 'Buchen'}
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
 
             <h3 style={{ margin: '20px 0 10px' }}>Angebot</h3>
             {loading && <div className="loading-dot">Lädt...</div>}

@@ -17,7 +17,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [newServiceName, setNewServiceName] = useState('')
+  const [selectedTerminProductId, setSelectedTerminProductId] = useState('')
   const [newSlotDate, setNewSlotDate] = useState('')
   const [newSlotStart, setNewSlotStart] = useState('')
   const [newSlotEnd, setNewSlotEnd] = useState('')
@@ -34,6 +34,8 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const [posts, setPosts] = useState([])
   const [loadingPosts, setLoadingPosts] = useState(false)
   const canPostDirectly = isStadtverwaltung && profile.status === 'live' && profile.account_status !== 'beobachter'
+
+  const terminProducts = products.filter((p) => p.sale_mode === 'termin')
 
   useEffect(() => {
     if (canPostDirectly) loadPosts()
@@ -137,6 +139,12 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   async function createSlot(e) {
     e.preventDefault()
     setSlotError('')
+
+    if (!selectedTerminProductId) {
+      setSlotError('Bitte zuerst ein Angebot auswählen, für das der Termin gilt.')
+      return
+    }
+
     setSavingSlot(true)
 
     const startAt = new Date(`${newSlotDate}T${newSlotStart}:00`)
@@ -144,7 +152,8 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
 
     const { error } = await supabase.from('business_appointment_slots').insert({
       business_profile_id: profile.id,
-      service_name: newServiceName.trim(),
+      product_id: selectedTerminProductId,
+      service_name: products.find((p) => p.id === selectedTerminProductId)?.name || '',
       start_at: startAt.toISOString(),
       end_at: endAt.toISOString()
     })
@@ -152,7 +161,6 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
     if (error) {
       setSlotError(error.message)
     } else {
-      setNewServiceName('')
       setNewSlotDate('')
       setNewSlotStart('')
       setNewSlotEnd('')
@@ -214,7 +222,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
         {canManageProducts && (
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>Meine Produkte</h3>
+              <h3 style={{ margin: 0 }}>Meine Angebote</h3>
               <button className="btn btn-secondary" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => setEditingProduct('new')}>
                 + Neu
               </button>
@@ -223,7 +231,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
             {productError && <div className="error-box">{productError}</div>}
             {loadingProducts && <div className="loading-dot">Lädt...</div>}
             {!loadingProducts && products.length === 0 && (
-              <p className="center-note">Noch keine Produkte eingestellt.</p>
+              <p className="center-note">Noch keine Angebote eingestellt.</p>
             )}
 
             {!loadingProducts && products.map((product) => (
@@ -232,7 +240,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
                   <div>
                     <p style={{ margin: 0, fontWeight: 600 }}>{product.name}</p>
                     <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-                      {product.price != null ? `${product.price} €` : 'Ohne Preisangabe'} · {product.sale_mode === 'bestellung' ? 'Bestellung' : 'Anfrage'}
+                      {product.type === 'produkt' ? '📦 Produkt' : '🛠️ Dienstleistung'} · {product.price != null ? `${product.price} €` : 'Ohne Preisangabe'} · {product.sale_mode === 'bestellung' ? 'Bestellung' : product.sale_mode === 'termin' ? 'Termin' : 'Anfrage'}
                     </p>
                   </div>
                   <span className={`status-pill ${product.active ? 'status-live' : 'status-abgelehnt'}`}>
@@ -257,47 +265,62 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
 
             {slotError && <div className="error-box">{slotError}</div>}
 
-            <form onSubmit={createSlot} style={{ marginBottom: 16 }}>
-              <div className="field">
-                <label htmlFor="serviceName">Bezeichnung</label>
-                <input id="serviceName" required value={newServiceName} onChange={(e) => setNewServiceName(e.target.value)} placeholder="z.B. Beratungsgespräch" />
-              </div>
-              <div className="field">
-                <label htmlFor="slotDate">Datum</label>
-                <input id="slotDate" type="date" required value={newSlotDate} onChange={(e) => setNewSlotDate(e.target.value)} />
-              </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div className="field" style={{ flex: 1 }}>
-                  <label htmlFor="slotStart">Von</label>
-                  <input id="slotStart" type="time" required value={newSlotStart} onChange={(e) => setNewSlotStart(e.target.value)} />
+            {terminProducts.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-soft)' }}>
+                Lege zuerst unter "Meine Angebote" ein Angebot mit Verkaufsart "Termin" an, dann kannst du hier dafür Zeiten anbieten.
+              </p>
+            ) : (
+              <form onSubmit={createSlot} style={{ marginBottom: 16 }}>
+                <div className="field">
+                  <label htmlFor="terminProduct">Für welches Angebot?</label>
+                  <select id="terminProduct" required value={selectedTerminProductId} onChange={(e) => setSelectedTerminProductId(e.target.value)}>
+                    <option value="">– auswählen –</option>
+                    {terminProducts.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="field" style={{ flex: 1 }}>
-                  <label htmlFor="slotEnd">Bis</label>
-                  <input id="slotEnd" type="time" required value={newSlotEnd} onChange={(e) => setNewSlotEnd(e.target.value)} />
+                <div className="field">
+                  <label htmlFor="slotDate">Datum</label>
+                  <input id="slotDate" type="date" required value={newSlotDate} onChange={(e) => setNewSlotDate(e.target.value)} />
                 </div>
-              </div>
-              <button className="btn btn-primary" type="submit" disabled={savingSlot}>
-                {savingSlot ? 'Wird angelegt...' : 'Termin-Slot anlegen'}
-              </button>
-            </form>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label htmlFor="slotStart">Von</label>
+                    <input id="slotStart" type="time" required value={newSlotStart} onChange={(e) => setNewSlotStart(e.target.value)} />
+                  </div>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label htmlFor="slotEnd">Bis</label>
+                    <input id="slotEnd" type="time" required value={newSlotEnd} onChange={(e) => setNewSlotEnd(e.target.value)} />
+                  </div>
+                </div>
+                <button className="btn btn-primary" type="submit" disabled={savingSlot}>
+                  {savingSlot ? 'Wird angelegt...' : 'Termin-Slot anlegen'}
+                </button>
+              </form>
+            )}
 
             {loadingSlots && <div className="loading-dot">Lädt...</div>}
             {!loadingSlots && slots.length === 0 && <p className="center-note">Noch keine Termine angelegt.</p>}
 
-            {!loadingSlots && slots.map((slot) => (
-              <div key={slot.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
-                <p style={{ margin: 0, fontWeight: 600 }}>{slot.service_name}</p>
-                <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-                  {new Date(slot.start_at).toLocaleDateString('de-DE')}, {new Date(slot.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – {new Date(slot.end_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <p style={{ margin: '2px 0 8px', fontSize: 13 }}>
-                  {slot.booked_by ? '✅ Gebucht' : '⚪ Frei'}
-                </p>
-                {!slot.booked_by && (
-                  <button className="link-text" onClick={() => deleteSlot(slot.id)}>Löschen</button>
-                )}
-              </div>
-            ))}
+            {!loadingSlots && slots.map((slot) => {
+              const linkedProduct = products.find((p) => p.id === slot.product_id)
+              const displayName = linkedProduct?.name || slot.service_name || 'Termin'
+              return (
+                <div key={slot.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{displayName}</p>
+                  <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                    {new Date(slot.start_at).toLocaleDateString('de-DE')}, {new Date(slot.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – {new Date(slot.end_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <p style={{ margin: '2px 0 8px', fontSize: 13 }}>
+                    {slot.booked_by ? '✅ Gebucht' : '⚪ Frei'}
+                  </p>
+                  {!slot.booked_by && (
+                    <button className="link-text" onClick={() => deleteSlot(slot.id)}>Löschen</button>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -371,6 +394,7 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
 }
 
 function ProductForm({ businessId, existing, onDone, onCancel }) {
+  const [type, setType] = useState(existing?.type || 'dienstleistung')
   const [name, setName] = useState(existing?.name || '')
   const [description, setDescription] = useState(existing?.description || '')
   const [price, setPrice] = useState(existing?.price != null ? String(existing.price) : '')
@@ -406,6 +430,7 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
       }
 
       const payload = {
+        type,
         name: name.trim(),
         description: description.trim() || null,
         price: price ? parseFloat(price) : null,
@@ -431,7 +456,7 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
     <>
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>{existing ? 'Produkt bearbeiten' : 'Neues Produkt'}</h1>
+        <h1>{existing ? 'Angebot bearbeiten' : 'Neues Angebot'}</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>
         <button className="link-text" onClick={onCancel} style={{ marginBottom: 16 }}>← Zurück</button>
@@ -448,6 +473,14 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
           </div>
 
           <div className="field">
+            <label htmlFor="type">Art</label>
+            <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
+              <option value="dienstleistung">Dienstleistung</option>
+              <option value="produkt">Produkt</option>
+            </select>
+          </div>
+
+          <div className="field">
             <label htmlFor="name">Name</label>
             <input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
           </div>
@@ -458,10 +491,11 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
           </div>
 
           <div className="field">
-            <label htmlFor="saleMode">Art</label>
+            <label htmlFor="saleMode">Verkaufsart</label>
             <select id="saleMode" value={saleMode} onChange={(e) => setSaleMode(e.target.value)}>
               <option value="anfrage">Anfrage – Einwohner schickt eine Nachricht</option>
               <option value="bestellung">Bestellung – direkt in der App bestellbar</option>
+              <option value="termin">Termin – Zeiten anbieten, die man buchen kann</option>
             </select>
           </div>
 

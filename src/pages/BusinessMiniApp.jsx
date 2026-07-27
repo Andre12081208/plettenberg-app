@@ -74,15 +74,21 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
 
   async function loadInquiries() {
     setInquiriesLoading(true)
-    const { data, error } = await supabase
-      .from('business_inquiries')
-      .select('*')
-      .eq('business_profile_id', app.id)
-      .eq('buyer_id', userId)
-      .order('updated_at', { ascending: false })
+    const [{ data, error }, { data: unreadRows }] = await Promise.all([
+      supabase
+        .from('business_inquiries')
+        .select('*')
+        .eq('business_profile_id', app.id)
+        .eq('buyer_id', userId)
+        .order('updated_at', { ascending: false }),
+      supabase.rpc('get_resident_inquiry_unread_map')
+    ])
+
+    const unreadMap = {}
+    for (const row of unreadRows || []) unreadMap[row.inquiry_id] = row.unread_count
 
     if (error) setError(error.message)
-    setInquiries(data || [])
+    setInquiries((data || []).map((i) => ({ ...i, unreadCount: unreadMap[i.id] || 0 })))
     setInquiriesLoading(false)
   }
 
@@ -412,12 +418,9 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0 }}>
                     {inquiry.product_name_snapshot || 'Anfrage'}
-                    {isUnread(inquiry) && (
-                      <span style={{ marginLeft: 8, display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)' }} />
-                    )}
                   </h3>
                   <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-                    {isUnread(inquiry) ? 'Neue Antwort vom Betrieb' : new Date(inquiry.updated_at).toLocaleDateString('de-DE')}
+                    {inquiry.unreadCount > 0 ? 'Neue Antwort vom Betrieb' : new Date(inquiry.updated_at).toLocaleDateString('de-DE')}
                   </p>
                   <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink-soft)' }}>
                     {inquiry.is_anonymous ? '🕶️ Anonym gesendet' : '👤 Mit Profil gesendet'}
@@ -426,6 +429,11 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
                     {{ angefragt: '⚪ Angefragt', in_bearbeitung: '🔵 In Bearbeitung', erledigt: '✅ Erledigt' }[inquiry.status] || '⚪ Angefragt'}
                   </span>
                 </div>
+                {inquiry.unreadCount > 0 && (
+                  <span style={{ minWidth: 22, height: 22, borderRadius: 11, background: 'var(--clay)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', flexShrink: 0 }}>
+                    {inquiry.unreadCount}
+                  </span>
+                )}
               </button>
             </div>
           ))}

@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
+const STATUS_META = {
+  angefragt: { label: '⚪ Angefragt', cls: 'status-pruefung' },
+  in_bearbeitung: { label: '🔵 In Bearbeitung', cls: 'status-vertrag' },
+  erledigt: { label: '✅ Erledigt', cls: 'status-live' }
+}
+
 export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onBack }) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
@@ -11,6 +17,7 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
   const [otherAvatarUrl, setOtherAvatarUrl] = useState(null)
   const [isAnon, setIsAnon] = useState(false)
   const [buyerId, setBuyerId] = useState(null)
+  const [status, setStatus] = useState('angefragt')
 
   const [showReportForm, setShowReportForm] = useState(false)
   const [reportReason, setReportReason] = useState('')
@@ -23,6 +30,7 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
 
   useEffect(() => {
     loadOtherParty()
+    loadStatusAndMaybeAdvance()
     loadMessages()
 
     const channel = supabase
@@ -88,6 +96,23 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
       setOtherName(business?.company_name || 'Anbieter')
       setOtherAvatarUrl(business?.logo_url || null)
     }
+  }
+
+  async function loadStatusAndMaybeAdvance() {
+    const { data } = await supabase.from('business_inquiries').select('status').eq('id', inquiryId).maybeSingle()
+    let current = data?.status || 'angefragt'
+
+    if (isBusiness && current === 'angefragt') {
+      await supabase.from('business_inquiries').update({ status: 'in_bearbeitung' }).eq('id', inquiryId)
+      current = 'in_bearbeitung'
+    }
+
+    setStatus(current)
+  }
+
+  async function updateStatus(newStatus) {
+    setStatus(newStatus)
+    await supabase.from('business_inquiries').update({ status: newStatus }).eq('id', inquiryId)
   }
 
   async function loadMessages() {
@@ -197,8 +222,16 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
         {reportedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{reportedMsg}</div>}
         {blockedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{blockedMsg}</div>}
 
-        {isBusiness && (
+        {isBusiness ? (
           <div style={{ marginBottom: 12 }}>
+            <div className="field" style={{ marginBottom: 8 }}>
+              <label>Status</label>
+              <select value={status} onChange={(e) => updateStatus(e.target.value)}>
+                <option value="in_bearbeitung">🔵 In Bearbeitung</option>
+                <option value="erledigt">✅ Erledigt</option>
+              </select>
+            </div>
+
             {showReportForm ? (
               <div className="card">
                 <div className="field">
@@ -222,6 +255,10 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
                 )}
               </div>
             )}
+          </div>
+        ) : (
+          <div style={{ marginBottom: 12 }}>
+            <span className={`status-pill ${STATUS_META[status]?.cls}`}>{STATUS_META[status]?.label}</span>
           </div>
         )}
 

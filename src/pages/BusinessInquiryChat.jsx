@@ -7,9 +7,12 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [otherName, setOtherName] = useState('')
+  const [otherAvatarUrl, setOtherAvatarUrl] = useState(null)
   const bottomRef = useRef(null)
 
   useEffect(() => {
+    loadOtherParty()
     loadMessages()
 
     const channel = supabase
@@ -21,6 +24,17 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
         filter: `inquiry_id=eq.${inquiryId}`
       }, (payload) => {
         setMessages((prev) => [...prev, payload.new])
+        if (payload.new.is_business !== isBusiness) {
+          markAsRead()
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'business_inquiry_messages',
+        filter: `inquiry_id=eq.${inquiryId}`
+      }, (payload) => {
+        setMessages((prev) => prev.map((m) => (m.id === payload.new.id ? payload.new : m)))
       })
       .subscribe()
 
@@ -34,6 +48,31 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  async function loadOtherParty() {
+    const { data: inquiry } = await supabase
+      .from('business_inquiries')
+      .select('buyer_id, business_profile_id')
+      .eq('id', inquiryId)
+      .maybeSingle()
+
+    if (!inquiry) return
+
+    if (isBusiness) {
+      const { data: displayName } = await supabase.rpc('get_display_name', { target_id: inquiry.buyer_id })
+      const { data: avatarUrl } = await supabase.rpc('get_avatar_url', { target_id: inquiry.buyer_id })
+      setOtherName(displayName || 'Interessent')
+      setOtherAvatarUrl(avatarUrl)
+    } else {
+      const { data: business } = await supabase
+        .from('business_profiles')
+        .select('company_name, logo_url')
+        .eq('id', inquiry.business_profile_id)
+        .maybeSingle()
+      setOtherName(business?.company_name || 'Anbieter')
+      setOtherAvatarUrl(business?.logo_url || null)
+    }
+  }
+
   async function loadMessages() {
     setLoading(true)
     const { data, error } = await supabase
@@ -45,6 +84,16 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
     if (error) setError(error.message)
     setMessages(data || [])
     setLoading(false)
+    markAsRead()
+  }
+
+  async function markAsRead() {
+    await supabase
+      .from('business_inquiry_messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('inquiry_id', inquiryId)
+      .neq('is_business', isBusiness)
+      .is('read_at', null)
   }
 
   async function sendMessage(e) {
@@ -64,11 +113,33 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
     setSending(false)
   }
 
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  function formatDateLabel(iso) {
+    const date = new Date(iso)
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(today.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) return 'Heute'
+    if (date.toDateString() === yesterday.toDateString()) return 'Gestern'
+    return date.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
   return (
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>{isBusiness ? 'Anfrage' : 'Deine Anfrage'}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+            {otherAvatarUrl ? <img src={otherAvatarUrl} alt="" /> : (isBusiness ? '👤' : '🏬')}
+          </div>
+          <div>
+            <h1 style={{ margin: 0 }}>{otherName || (isBusiness ? 'Anfrage' : 'Anbieter')}</h1>
+          </div>
+        </div>
       </div>
       <main style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
@@ -78,14 +149,35 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
         <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
           {loading && <div className="loading-dot">Lädt...</div>}
 
-          {!loading && messages.map((m) => (
-            <div
-              key={m.id}
-              className={`chat-bubble ${m.sender_id === userId ? 'chat-bubble-own' : 'chat-bubble-other'}`}
-            >
-              <p style={{ margin: 0 }}>{m.content}</p>
-            </div>
-          ))}
+          {!loading && messages.map((m, i) => {
+            const isOwn = m.is_business === isBusiness
+            const currentDay = new Date(m.created_at).toDateString()
+            const previousDay = i > 0 ? new Date(messages[i - 1].created_at).toDateString() : null
+            const showDateDivider = currentDay !== previousDay
+
+            return (
+              <div key={m.id}>
+                {showDateDivider && (
+                  <div style={{ textAlign: 'center', margin: '14px 0' }}>
+                    <span style={{ fontSize: 12, color: 'var(--ink-soft)', background: '#fff', border: '1px solid var(--line)', padding: '3px 12px', borderRadius: 999 }}>
+                      {formatDateLabel(m.created_at)}
+                    </span>
+                  </div>
+                )}
+                <div className={`chat-bubble ${isOwn ? 'chat-bubble-own' : 'chat-bubble-other'}`}>
+                  <p style={{ margin: 0 }}>{m.content}</p>
+                  <div className="chat-meta">
+                    <span>{formatTime(m.created_at)}</span>
+                    {isOwn && (
+                      <span className={m.read_at ? 'chat-check-read' : 'chat-check-sent'}>
+                        {m.read_at ? '✓✓' : '✓'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
           <div ref={bottomRef} />
         </div>
 

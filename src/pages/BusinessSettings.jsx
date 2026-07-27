@@ -19,6 +19,16 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   const [loadingChannel, setLoadingChannel] = useState(false)
 
   const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
+  const [hasRoomAddon, setHasRoomAddon] = useState(false)
+  const [roomImageUrl, setRoomImageUrl] = useState(null)
+  const [roomFile, setRoomFile] = useState(null)
+  const [roomPreview, setRoomPreview] = useState(null)
+  const [uploadingRoom, setUploadingRoom] = useState(false)
+  const [hotspots, setHotspots] = useState([])
+  const [placingHotspot, setPlacingHotspot] = useState(null) // { x, y } | null
+  const [newHotspotLabel, setNewHotspotLabel] = useState('')
+  const [newHotspotAction, setNewHotspotAction] = useState('anfragen')
+  const [roomError, setRoomError] = useState('')
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedTerminProductId, setSelectedTerminProductId] = useState('')
@@ -41,12 +51,98 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
 
   const terminProducts = products.filter((p) => p.sale_mode === 'termin' && !p.deleted_at)
 
+  const ACTION_LABELS = {
+    anfragen: 'Führt zu: Anfragen/Chat',
+    termine: 'Führt zu: Termine buchen',
+    angebot: 'Führt zu: Angebot ansehen',
+    channel: 'Führt zu: Newsfeed-Channel',
+    kontakt: 'Führt zu: Kontaktinfos'
+  }
+
   useEffect(() => {
     if (canManageProducts) { loadProducts(); loadAppointmentInfo() }
     if (canManageChannel) loadChannelInfo()
     if (canPostDirectly) loadPosts()
+    loadRoomInfo()
     // eslint-disable-next-line
   }, [])
+
+  async function loadRoomInfo() {
+    const [{ data: addonRows }, { data: profileRow }, { data: hotspotRows }] = await Promise.all([
+      supabase.from('business_addons').select('addon_key').eq('business_profile_id', profile.id),
+      supabase.from('business_profiles').select('room_image_url').eq('id', profile.id).maybeSingle(),
+      supabase.from('business_room_hotspots').select('*').eq('business_profile_id', profile.id)
+    ])
+
+    setHasRoomAddon((addonRows || []).some((a) => a.addon_key === 'raum'))
+    setRoomImageUrl(profileRow?.room_image_url || null)
+    setHotspots(hotspotRows || [])
+  }
+
+  function handleRoomFileChange(e) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setRoomFile(f)
+    setRoomPreview(URL.createObjectURL(f))
+  }
+
+  async function uploadRoomImage() {
+    if (!roomFile) return
+    setUploadingRoom(true)
+    setRoomError('')
+
+    try {
+      const ext = roomFile.name.split('.').pop()
+      const path = `${profile.id}/room.${ext}`
+      const { error: uploadError } = await supabase.storage.from('room-images').upload(path, roomFile, { upsert: true })
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('room-images').getPublicUrl(path)
+      const { error: dbError } = await supabase.from('business_profiles').update({ room_image_url: data.publicUrl }).eq('id', profile.id)
+      if (dbError) throw dbError
+
+      setRoomImageUrl(data.publicUrl)
+      setRoomFile(null)
+      setRoomPreview(null)
+    } catch (err) {
+      setRoomError(err.message || 'Bild konnte nicht hochgeladen werden.')
+    } finally {
+      setUploadingRoom(false)
+    }
+  }
+
+  function handleRoomImageClick(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const xPercent = ((e.clientX - rect.left) / rect.width) * 100
+    const yPercent = ((e.clientY - rect.top) / rect.height) * 100
+    setPlacingHotspot({ x: xPercent, y: yPercent })
+    setNewHotspotLabel('')
+    setNewHotspotAction('anfragen')
+  }
+
+  async function saveHotspot() {
+    if (!placingHotspot || !newHotspotLabel.trim()) return
+
+    const { data, error } = await supabase.from('business_room_hotspots').insert({
+      business_profile_id: profile.id,
+      label: newHotspotLabel.trim(),
+      x_percent: placingHotspot.x,
+      y_percent: placingHotspot.y,
+      action_type: newHotspotAction
+    }).select('*').single()
+
+    if (!error) {
+      setHotspots((prev) => [...prev, data])
+      setPlacingHotspot(null)
+    } else {
+      setRoomError(error.message)
+    }
+  }
+
+  async function deleteHotspot(id) {
+    await supabase.from('business_room_hotspots').delete().eq('id', id)
+    setHotspots((prev) => prev.filter((h) => h.id !== id))
+  }
 
   async function loadPosts() {
     setLoadingPosts(true)
@@ -367,6 +463,114 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
     )
   }
 
+  if (view === 'raum') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Virtueller Raum</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+
+          {roomError && <div className="error-box">{roomError}</div>}
+
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Raumbild</h3>
+            <p className="hint" style={{ marginBottom: 12 }}>
+              Lad ein Foto oder eine Illustration deines Ladens/Büros hoch. Danach kannst du direkt darauf klicken, um Bereiche festzulegen.
+            </p>
+
+            <label className="link-text" htmlFor="roomImageInput" style={{ cursor: 'pointer' }}>Bild auswählen</label>
+            <input id="roomImageInput" type="file" accept="image/*" onChange={handleRoomFileChange} style={{ display: 'none' }} />
+
+            {roomPreview && (
+              <div style={{ marginTop: 10 }}>
+                <img src={roomPreview} alt="" style={{ width: '100%', borderRadius: 10, maxHeight: 240, objectFit: 'cover' }} />
+                <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={uploadRoomImage} disabled={uploadingRoom}>
+                  {uploadingRoom ? 'Wird hochgeladen...' : 'Dieses Bild verwenden'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {roomImageUrl && (
+            <div className="card">
+              <h3 style={{ marginTop: 0 }}>Bereiche festlegen</h3>
+              <p className="hint" style={{ marginBottom: 12 }}>Klick irgendwo auf das Bild, um dort einen neuen klickbaren Bereich anzulegen.</p>
+
+              <div style={{ position: 'relative', width: '100%' }}>
+                <img
+                  src={roomImageUrl}
+                  alt=""
+                  onClick={handleRoomImageClick}
+                  style={{ width: '100%', borderRadius: 10, display: 'block', cursor: 'crosshair' }}
+                />
+                {hotspots.map((h) => (
+                  <div
+                    key={h.id}
+                    style={{
+                      position: 'absolute', left: `${h.x_percent}%`, top: `${h.y_percent}%`,
+                      transform: 'translate(-50%, -50%)', width: 28, height: 28, borderRadius: '50%',
+                      background: 'var(--clay)', border: '2px solid #fff', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700
+                    }}
+                  >
+                    📍
+                  </div>
+                ))}
+                {placingHotspot && (
+                  <div
+                    style={{
+                      position: 'absolute', left: `${placingHotspot.x}%`, top: `${placingHotspot.y}%`,
+                      transform: 'translate(-50%, -50%)', width: 28, height: 28, borderRadius: '50%',
+                      background: 'var(--forest)', border: '2px solid #fff'
+                    }}
+                  />
+                )}
+              </div>
+
+              {placingHotspot && (
+                <div style={{ marginTop: 16 }}>
+                  <div className="field">
+                    <label htmlFor="hotspotLabel">Beschriftung</label>
+                    <input id="hotspotLabel" value={newHotspotLabel} onChange={(e) => setNewHotspotLabel(e.target.value)} placeholder="z.B. Servicebereich" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="hotspotAction">Was passiert bei Klick?</label>
+                    <select id="hotspotAction" value={newHotspotAction} onChange={(e) => setNewHotspotAction(e.target.value)}>
+                      <option value="anfragen">Anfragen / Direktchat</option>
+                      <option value="termine">Termine buchen</option>
+                      <option value="angebot">Angebot ansehen</option>
+                      <option value="channel">Newsfeed-Channel</option>
+                      <option value="kontakt">Kontaktinfos</option>
+                    </select>
+                  </div>
+                  <div className="btn-row">
+                    <button className="btn btn-primary" onClick={saveHotspot} disabled={!newHotspotLabel.trim()}>Bereich anlegen</button>
+                    <button className="btn btn-secondary" onClick={() => setPlacingHotspot(null)}>Abbrechen</button>
+                  </div>
+                </div>
+              )}
+
+              <h3 style={{ margin: '20px 0 10px' }}>Bestehende Bereiche</h3>
+              {hotspots.length === 0 && <p className="center-note">Noch keine Bereiche angelegt.</p>}
+              {hotspots.map((h) => (
+                <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600 }}>{h.label}</p>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>{ACTION_LABELS[h.action_type]}</p>
+                  </div>
+                  <button className="link-text" onClick={() => deleteHotspot(h.id)}>Löschen</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </>
+    )
+  }
+
   if (view === 'termine') {
     return (
       <>
@@ -546,6 +750,13 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
             <button className="app-tile" onClick={() => setView('termine')}>
               <div className="app-tile-icon">📅</div>
               <div className="app-tile-label">Meine Termine</div>
+            </button>
+          )}
+
+          {canManageProducts && hasRoomAddon && (
+            <button className="app-tile" onClick={() => setView('raum')}>
+              <div className="app-tile-icon">🏠</div>
+              <div className="app-tile-label">Virtueller Raum</div>
             </button>
           )}
 

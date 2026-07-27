@@ -23,6 +23,16 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
   const [loadingInquiries, setLoadingInquiries] = useState(false)
   const [openInquiry, setOpenInquiry] = useState(null)
 
+  const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
+  const [slots, setSlots] = useState([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [newServiceName, setNewServiceName] = useState('')
+  const [newSlotDate, setNewSlotDate] = useState('')
+  const [newSlotStart, setNewSlotStart] = useState('')
+  const [newSlotEnd, setNewSlotEnd] = useState('')
+  const [savingSlot, setSavingSlot] = useState(false)
+  const [slotError, setSlotError] = useState('')
+
   const [hasChannelAddon, setHasChannelAddon] = useState(false)
   const [ownChannel, setOwnChannel] = useState(null)
   const [loadingChannel, setLoadingChannel] = useState(false)
@@ -42,10 +52,54 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
 
   useEffect(() => {
     if (canPostDirectly) loadPosts()
-    if (canManageProducts) { loadProducts(); loadOrders(); loadInquiries() }
+    if (canManageProducts) { loadProducts(); loadOrders(); loadInquiries(); loadAppointmentInfo() }
     if (canManageChannel) loadChannelInfo()
     // eslint-disable-next-line
   }, [canPostDirectly, canManageProducts, canManageChannel])
+
+  async function loadAppointmentInfo() {
+    setLoadingSlots(true)
+    const [{ data: addonRows }, { data: slotRows }] = await Promise.all([
+      supabase.from('business_addons').select('addon_key').eq('business_profile_id', profile.id),
+      supabase.from('business_appointment_slots').select('*').eq('business_profile_id', profile.id).order('start_at', { ascending: true })
+    ])
+
+    setHasAppointmentAddon((addonRows || []).some((a) => a.addon_key === 'termine'))
+    setSlots(slotRows || [])
+    setLoadingSlots(false)
+  }
+
+  async function createSlot(e) {
+    e.preventDefault()
+    setSlotError('')
+    setSavingSlot(true)
+
+    const startAt = new Date(`${newSlotDate}T${newSlotStart}:00`)
+    const endAt = new Date(`${newSlotDate}T${newSlotEnd}:00`)
+
+    const { error } = await supabase.from('business_appointment_slots').insert({
+      business_profile_id: profile.id,
+      service_name: newServiceName.trim(),
+      start_at: startAt.toISOString(),
+      end_at: endAt.toISOString()
+    })
+
+    if (error) {
+      setSlotError(error.message)
+    } else {
+      setNewServiceName('')
+      setNewSlotDate('')
+      setNewSlotStart('')
+      setNewSlotEnd('')
+      loadAppointmentInfo()
+    }
+    setSavingSlot(false)
+  }
+
+  async function deleteSlot(slotId) {
+    await supabase.from('business_appointment_slots').delete().eq('id', slotId)
+    setSlots((prev) => prev.filter((s) => s.id !== slotId))
+  }
   async function loadPosts() {
     setLoadingPosts(true)
     const { data } = await supabase
@@ -339,6 +393,56 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
                   {new Date(inquiry.created_at).toLocaleDateString('de-DE')}
                 </p>
               </button>
+            ))}
+          </div>
+        )}
+
+        {canManageProducts && hasAppointmentAddon && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Meine Termine</h3>
+
+            {slotError && <div className="error-box">{slotError}</div>}
+
+            <form onSubmit={createSlot} style={{ marginBottom: 16 }}>
+              <div className="field">
+                <label htmlFor="serviceName">Bezeichnung</label>
+                <input id="serviceName" required value={newServiceName} onChange={(e) => setNewServiceName(e.target.value)} placeholder="z.B. Beratungsgespräch" />
+              </div>
+              <div className="field">
+                <label htmlFor="slotDate">Datum</label>
+                <input id="slotDate" type="date" required value={newSlotDate} onChange={(e) => setNewSlotDate(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label htmlFor="slotStart">Von</label>
+                  <input id="slotStart" type="time" required value={newSlotStart} onChange={(e) => setNewSlotStart(e.target.value)} />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label htmlFor="slotEnd">Bis</label>
+                  <input id="slotEnd" type="time" required value={newSlotEnd} onChange={(e) => setNewSlotEnd(e.target.value)} />
+                </div>
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={savingSlot}>
+                {savingSlot ? 'Wird angelegt...' : 'Termin-Slot anlegen'}
+              </button>
+            </form>
+
+            {loadingSlots && <div className="loading-dot">Lädt...</div>}
+            {!loadingSlots && slots.length === 0 && <p className="center-note">Noch keine Termine angelegt.</p>}
+
+            {!loadingSlots && slots.map((slot) => (
+              <div key={slot.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
+                <p style={{ margin: 0, fontWeight: 600 }}>{slot.service_name}</p>
+                <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                  {new Date(slot.start_at).toLocaleDateString('de-DE')}, {new Date(slot.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – {new Date(slot.end_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <p style={{ margin: '2px 0 8px', fontSize: 13 }}>
+                  {slot.booked_by ? '✅ Gebucht' : '⚪ Frei'}
+                </p>
+                {!slot.booked_by && (
+                  <button className="link-text" onClick={() => deleteSlot(slot.id)}>Löschen</button>
+                )}
+              </div>
             ))}
           </div>
         )}

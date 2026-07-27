@@ -401,21 +401,30 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
           {!inquiriesLoading && inquiries.length === 0 && <p className="center-note">Noch keine Anfragen bei diesem Betrieb.</p>}
 
           {!inquiriesLoading && inquiries.map((inquiry) => (
-            <button
-              key={inquiry.id}
-              className="card-choice"
-              onClick={() => openInquiryThread(inquiry.id)}
-            >
-              <h3 style={{ margin: 0 }}>
-                {inquiry.product_name_snapshot || 'Anfrage'}
-                {isUnread(inquiry) && (
-                  <span style={{ marginLeft: 8, display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)' }} />
-                )}
-              </h3>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
-                {isUnread(inquiry) ? 'Neue Antwort vom Betrieb' : new Date(inquiry.updated_at).toLocaleDateString('de-DE')}
-              </p>
-            </button>
+            <div className="card" key={inquiry.id} style={{ padding: 0, overflow: 'hidden' }}>
+              <button
+                style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}
+                onClick={() => openInquiryThread(inquiry.id)}
+              >
+                <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                  {app.logo_url ? <img src={app.logo_url} alt="" /> : '🏬'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0 }}>
+                    {inquiry.product_name_snapshot || 'Anfrage'}
+                    {isUnread(inquiry) && (
+                      <span style={{ marginLeft: 8, display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--clay)' }} />
+                    )}
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                    {isUnread(inquiry) ? 'Neue Antwort vom Betrieb' : new Date(inquiry.updated_at).toLocaleDateString('de-DE')}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink-soft)' }}>
+                    {inquiry.is_anonymous ? '🕶️ Anonym gesendet' : '👤 Mit Profil gesendet'}
+                  </p>
+                </div>
+              </button>
+            </div>
           ))}
         </main>
       </div>

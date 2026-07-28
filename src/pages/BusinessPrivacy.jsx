@@ -36,12 +36,16 @@ export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung
     setLoadingHistory(false)
   }
 
-  async function savePreference(field, value, setter) {
+  async function savePreference(field, value, setter, label) {
     setter(value)
     setSaving(true)
     const { error } = await supabase.from('business_profiles').update({ [field]: value }).eq('id', profile.id)
     if (!error) {
-      await supabase.from('business_account_events').insert({ business_profile_id: profile.id, event_type: 'datenschutz_geaendert' })
+      await supabase.from('business_account_events').insert({
+        business_profile_id: profile.id,
+        event_type: 'datenschutz_geaendert',
+        detail: `${label}: ${value ? 'Aktiviert' : 'Deaktiviert'}`
+      })
       onProfileUpdated?.()
       loadHistory()
     }
@@ -143,7 +147,7 @@ export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung
           <h3 style={{ marginTop: 0 }}>Einwilligungen</h3>
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14 }}>
             <span>Marketing-E-Mails erlauben</span>
-            <input type="checkbox" checked={allowMarketing} disabled={saving} onChange={(e) => savePreference('privacy_allow_marketing_emails', e.target.checked, setAllowMarketing)} />
+            <input type="checkbox" checked={allowMarketing} disabled={saving} onChange={(e) => savePreference('privacy_allow_marketing_emails', e.target.checked, setAllowMarketing, 'Marketing-E-Mails erlauben')} />
           </label>
         </div>
 
@@ -154,11 +158,11 @@ export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung
           </p>
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, marginBottom: 10 }}>
             <span>Analyse erlauben</span>
-            <input type="checkbox" checked={allowAnalytics} disabled={saving} onChange={(e) => savePreference('privacy_allow_analytics', e.target.checked, setAllowAnalytics)} />
+            <input type="checkbox" checked={allowAnalytics} disabled={saving} onChange={(e) => savePreference('privacy_allow_analytics', e.target.checked, setAllowAnalytics, 'Analyse erlauben')} />
           </label>
           <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14 }}>
             <span>Personalisierung erlauben</span>
-            <input type="checkbox" checked={allowPersonalization} disabled={saving} onChange={(e) => savePreference('privacy_allow_personalization', e.target.checked, setAllowPersonalization)} />
+            <input type="checkbox" checked={allowPersonalization} disabled={saving} onChange={(e) => savePreference('privacy_allow_personalization', e.target.checked, setAllowPersonalization, 'Personalisierung erlauben')} />
           </label>
         </div>
 
@@ -208,7 +212,7 @@ export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung
           {!loadingHistory && historyEvents.length === 0 && <p className="center-note">Noch keine Änderungen an den Datenschutz-Einstellungen.</p>}
           {!loadingHistory && historyEvents.map((event) => (
             <div key={event.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '6px 0', borderTop: '1px solid var(--line)' }}>
-              <span>{event.event_type === 'datenexport_angefordert' ? 'Datenexport erstellt' : 'Einstellung geändert'}</span>
+              <span>{event.event_type === 'datenexport_angefordert' ? 'Datenexport erstellt' : (event.detail || 'Einstellung geändert')}</span>
               <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{new Date(event.created_at).toLocaleString('de-DE')}</span>
             </div>
           ))}

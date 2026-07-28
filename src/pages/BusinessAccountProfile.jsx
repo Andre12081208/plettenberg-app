@@ -9,6 +9,14 @@ const STATUS_LABELS = {
 }
 
 export default function BusinessAccountProfile({ profile, onBack, onGoToMySeite, onProfileUpdated }) {
+  const [deactivating, setDeactivating] = useState(false)
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState(false)
+
+  const [archiveStep, setArchiveStep] = useState(null) // null | 'explain' | 'password' | 'done'
+  const [archiveChecked, setArchiveChecked] = useState(false)
+  const [archivePassword, setArchivePassword] = useState('')
+  const [archiveError, setArchiveError] = useState('')
+  const [archiveSubmitting, setArchiveSubmitting] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
@@ -66,6 +74,50 @@ export default function BusinessAccountProfile({ profile, onBack, onGoToMySeite,
       onProfileUpdated?.()
     }
     setSaving(false)
+  }
+
+  async function toggleDeactivate() {
+    setDeactivating(true)
+    const { error } = await supabase
+      .from('business_profiles')
+      .update({ is_deactivated_by_owner: !profile.is_deactivated_by_owner })
+      .eq('id', profile.id)
+
+    if (!error) {
+      setConfirmingDeactivate(false)
+      onProfileUpdated?.()
+    }
+    setDeactivating(false)
+  }
+
+  async function submitArchiveRequest(e) {
+    e.preventDefault()
+    setArchiveError('')
+    setArchiveSubmitting(true)
+
+    const { data: verified, error: verifyError } = await supabase.rpc('verify_current_password', { password: archivePassword })
+
+    if (verifyError || verified !== true) {
+      setArchiveError('Das eingegebene Passwort ist nicht korrekt.')
+      setArchiveSubmitting(false)
+      return
+    }
+
+    const { error } = await supabase
+      .from('business_profiles')
+      .update({ account_status: 'archiviert' })
+      .eq('id', profile.id)
+
+    if (error) {
+      setArchiveError(error.message)
+      setArchiveSubmitting(false)
+      return
+    }
+
+    setArchiveStep('done')
+    setTimeout(() => {
+      supabase.auth.signOut()
+    }, 4000)
   }
 
   const currentSubcategory = subcategories.find((s) => s.id === profile.directory_subcategory_id)
@@ -164,10 +216,90 @@ export default function BusinessAccountProfile({ profile, onBack, onGoToMySeite,
 
             <div className="card">
               <h3 style={{ marginTop: 0 }}>Kontostatus</h3>
-              <p style={{ margin: '4px 0', fontSize: 14 }}><strong>Status:</strong> {profile.account_status === 'gesperrt' ? 'Deaktiviert' : 'Aktiv'}</p>
+              <p style={{ margin: '4px 0', fontSize: 14 }}><strong>Status:</strong> {profile.is_deactivated_by_owner ? 'Selbst deaktiviert' : profile.account_status === 'gesperrt' ? 'Gesperrt' : profile.account_status === 'archiviert' ? 'Archiviert' : 'Aktiv'}</p>
               <p style={{ margin: '4px 0', fontSize: 14 }}><strong>Mitglied seit:</strong> {new Date(profile.created_at).toLocaleDateString('de-DE')}</p>
               <p style={{ margin: '4px 0', fontSize: 14 }}><strong>Business-ID:</strong> {profile.id}</p>
               <p style={{ margin: '4px 0', fontSize: 14 }}><strong>Verifizierungsstatus:</strong> {STATUS_LABELS[profile.status] || profile.status}</p>
+            </div>
+
+            <div className="card">
+              <h3 style={{ marginTop: 0 }}>Kontoverwaltung</h3>
+
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ margin: '0 0 10px', fontSize: 14 }}>
+                  {profile.is_deactivated_by_owner
+                    ? 'Dein Profil ist aktuell deaktiviert und für Einwohner nicht sichtbar.'
+                    : 'Du kannst dein Profil vorübergehend ausblenden. Du kannst es jederzeit wieder aktivieren.'}
+                </p>
+                {confirmingDeactivate ? (
+                  <div className="btn-row">
+                    <button className="btn btn-secondary" onClick={toggleDeactivate} disabled={deactivating}>
+                      {deactivating ? '...' : 'Wirklich deaktivieren'}
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => setConfirmingDeactivate(false)}>Abbrechen</button>
+                  </div>
+                ) : (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => (profile.is_deactivated_by_owner ? toggleDeactivate() : setConfirmingDeactivate(true))}
+                    disabled={deactivating}
+                  >
+                    {profile.is_deactivated_by_owner ? 'Profil wieder aktivieren' : 'Profil deaktivieren'}
+                  </button>
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+                {archiveStep === null && (
+                  <button className="link-text" onClick={() => setArchiveStep('explain')}>
+                    Unternehmenskonto zur Löschung einreichen
+                  </button>
+                )}
+
+                {archiveStep === 'explain' && (
+                  <div>
+                    <p style={{ fontSize: 14, margin: '0 0 8px' }}>
+                      Dein Unternehmensprofil wird sofort aus der Plattform entfernt und ist für andere Nutzer nicht mehr sichtbar.
+                    </p>
+                    <p style={{ fontSize: 14, margin: '0 0 8px' }}>
+                      Aus rechtlichen und administrativen Gründen wird dein Konto zunächst archiviert und nicht endgültig gelöscht.
+                    </p>
+                    <p style={{ fontSize: 14, margin: '0 0 14px' }}>
+                      Auf archivierte Konten kann ausschließlich das Plattformteam zugreifen.
+                    </p>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 14, marginBottom: 14 }}>
+                      <input type="checkbox" checked={archiveChecked} onChange={(e) => setArchiveChecked(e.target.checked)} style={{ marginTop: 3 }} />
+                      Ich habe die Hinweise gelesen und möchte mein Unternehmenskonto zur Löschung einreichen.
+                    </label>
+                    <div className="btn-row">
+                      <button className="btn btn-secondary" disabled={!archiveChecked} onClick={() => setArchiveStep('password')}>Weiter</button>
+                      <button className="btn btn-secondary" onClick={() => { setArchiveStep(null); setArchiveChecked(false) }}>Abbrechen</button>
+                    </div>
+                  </div>
+                )}
+
+                {archiveStep === 'password' && (
+                  <form onSubmit={submitArchiveRequest}>
+                    {archiveError && <div className="error-box">{archiveError}</div>}
+                    <div className="field">
+                      <label htmlFor="archivePassword">Bitte gib dein Passwort erneut ein, um zu bestätigen</label>
+                      <input id="archivePassword" type="password" required value={archivePassword} onChange={(e) => setArchivePassword(e.target.value)} />
+                    </div>
+                    <div className="btn-row">
+                      <button className="btn btn-secondary" type="submit" disabled={archiveSubmitting}>
+                        {archiveSubmitting ? 'Wird eingereicht...' : 'Antrag einreichen'}
+                      </button>
+                      <button className="btn btn-secondary" type="button" onClick={() => setArchiveStep(null)}>Abbrechen</button>
+                    </div>
+                  </form>
+                )}
+
+                {archiveStep === 'done' && (
+                  <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>
+                    Dein Antrag wurde eingereicht. Du wirst in Kürze abgemeldet.
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

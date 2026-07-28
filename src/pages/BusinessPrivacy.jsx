@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung, onProfileUpdated }) {
+export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung, onGoToBenachrichtigungen, onProfileUpdated }) {
   const [allowAnalytics, setAllowAnalytics] = useState(profile.privacy_allow_analytics)
   const [allowPersonalization, setAllowPersonalization] = useState(profile.privacy_allow_personalization)
-  const [allowMarketing, setAllowMarketing] = useState(profile.privacy_allow_marketing_emails)
   const [saving, setSaving] = useState(false)
 
   const [exporting, setExporting] = useState(false)
@@ -145,10 +144,10 @@ export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung
 
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Einwilligungen</h3>
-          <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14 }}>
-            <span>Marketing-E-Mails erlauben</span>
-            <input type="checkbox" checked={allowMarketing} disabled={saving} onChange={(e) => savePreference('privacy_allow_marketing_emails', e.target.checked, setAllowMarketing, 'Marketing-E-Mails erlauben')} />
-          </label>
+          <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-soft)' }}>
+            Marketing-E-Mails steuerst du zusammen mit den anderen Benachrichtigungs-Einstellungen an einer Stelle.
+          </p>
+          <button className="btn btn-secondary" onClick={onGoToBenachrichtigungen}>Zu Benachrichtigungen</button>
         </div>
 
         <div className="card">

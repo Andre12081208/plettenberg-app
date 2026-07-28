@@ -151,7 +151,9 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   const [gaugeLow, setGaugeLow] = useState('')
   const [gaugeHigh, setGaugeHigh] = useState('')
   const [showTotal, setShowTotal] = useState(false)
+  const [tileWidth, setTileWidth] = useState('voll')
   const [saving, setSaving] = useState(false)
+  const [editMode, setEditMode] = useState(false)
 
   const info1 = metricInfo(metric1)
   const isNumberMetric = info1?.type === 'number'
@@ -225,6 +227,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
     setGaugeLow('')
     setGaugeHigh('')
     setShowTotal(false)
+    setTileWidth('voll')
     setEditingTileId(null)
   }
 
@@ -237,6 +240,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
     setGaugeLow(tile.gauge_low ?? '')
     setGaugeHigh(tile.gauge_high ?? '')
     setShowTotal(!!tile.show_total)
+    setTileWidth(tile.tile_width || 'voll')
     setEditingTileId(tile.id)
     setShowForm(true)
   }
@@ -255,7 +259,8 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       viz_type: vizType,
       gauge_low: vizType === 'ampel' && gaugeLow !== '' ? Number(gaugeLow) : null,
       gauge_high: vizType === 'ampel' && gaugeHigh !== '' ? Number(gaugeHigh) : null,
-      show_total: vizType === 'balken' ? showTotal : false
+      show_total: vizType === 'balken' ? showTotal : false,
+      tile_width: tileWidth
     }
 
     const { error: saveError } = editingTileId
@@ -334,6 +339,9 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
           <button className="btn btn-secondary" onClick={() => { if (showForm) { resetForm() }; setShowForm(!showForm) }}>
             {showForm ? 'Abbrechen' : '+ Kachel hinzufügen'}
           </button>
+          <button className="btn btn-secondary" onClick={() => setEditMode(!editMode)}>
+            {editMode ? 'Fertig' : 'Ansicht bearbeiten'}
+          </button>
         </div>
 
         {showForm && (
@@ -381,10 +389,20 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
                 {vizOptions.map((v) => (
                   <option key={v} value={v}>
                     {v === 'zahl' ? 'Zahl' : v === 'ampel' ? 'Ampel' : v === 'balken' ? 'Balkendiagramm' : v === 'wachstum' ? 'Wachstum über Zeit' : 'Kreisdiagramm'}
-                  </option>
-                ))}
-              </select>
-            </div>
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="tileWidthMaster">Kachelgröße</label>
+            <select id="tileWidthMaster" value={tileWidth} onChange={(e) => setTileWidth(e.target.value)}>
+              <option value="voll">Volle Breite</option>
+              <option value="halb">Halbe Breite</option>
+              <option value="drittel">Drittelbreite</option>
+              <option value="viertel">Viertelbreite</option>
+            </select>
+          </div>
 
             {vizType === 'ampel' && (
               <div style={{ display: 'flex', gap: 12 }}>
@@ -424,17 +442,19 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
           <p className="center-note">Noch keine Kacheln angelegt.</p>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+        <div className="dashboard-grid">
           {!loading && tiles.map((tile, index) => (
-            <div className="card" key={tile.id}>
+            <div className={`card tile-${tile.tile_width || 'voll'}`} key={tile.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <h3 style={{ margin: 0, fontSize: 15 }}>{tile.title}</h3>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
-                  <button className="link-text" style={{ fontSize: 15 }} disabled={index === tiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
-                  <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
-                  <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
-                </div>
+                {editMode && (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
+                    <button className="link-text" style={{ fontSize: 15 }} disabled={index === tiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
+                    <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
+                    <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
+                  </div>
+                )}
               </div>
               {renderTileContent(tile)}
             </div>

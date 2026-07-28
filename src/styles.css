@@ -384,3 +384,20 @@ body.dark-mode {
     grid-column: span 12;
   }
 }
+.postfach-split { display: flex; gap: 16px; }
+.postfach-list { width: 100%; }
+.postfach-detail { display: none; }
+
+.postfach-split.detail-open .postfach-list { display: none; }
+.postfach-split.detail-open .postfach-detail { display: block; width: 100%; }
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .postfach-list { width: 38%; border-right: 1px solid var(--line); padding-right: 16px; }
+  .postfach-detail { display: block; width: 62%; }
+  .postfach-split.detail-open .postfach-list { display: block; width: 38%; }
+  .postfach-split.detail-open .postfach-detail { display: block; width: 62%; }
+}
+
+.postfach-tag-gewerbe { background: #E5EFEA; color: #1F4D3D; }
+.postfach-tag-stadtverwaltung { background: #E3ECF7; color: #2C4A73; }
+.postfach-tag-ideenwerkstatt { background: #FBF0DE; color: #8A5A1E; }

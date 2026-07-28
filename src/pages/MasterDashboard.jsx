@@ -13,7 +13,8 @@ const METRIC_REGISTRY = [
   { key: 'gewerbe_nach_kategorie', label: 'Betriebe nach Kategorie', type: 'breakdown' },
   { key: 'bestellungen_nach_status', label: 'Bestellungen nach Status', type: 'breakdown' },
   { key: 'anfragen_nach_status', label: 'Anfragen nach Status', type: 'breakdown' },
-  { key: 'nutzer_nach_typ', label: 'Nutzer: Einwohner vs. Gewerbe', type: 'breakdown' }
+  { key: 'nutzer_nach_typ', label: 'Nutzer: Einwohner vs. Gewerbe', type: 'breakdown' },
+  { key: 'einwohner_aktivitaet', label: 'Einwohner-Aktivität (24h/7T/30T/älter)', type: 'breakdown' }
 ]
 
 const PIE_COLORS = ['#1F4D3D', '#3A7A5E', '#6FA98A', '#A8C9B5', '#D9E5DD', '#C4704F', '#8C5A3C']
@@ -23,8 +24,9 @@ function metricInfo(key) {
 }
 
 function BarChart({ data, showTotal }) {
+  const totalValue = data.reduce((sum, d) => sum + d.value, 0)
   const fullData = showTotal
-    ? [...data, { label: 'Gesamt', value: data.reduce((sum, d) => sum + d.value, 0), isTotal: true }]
+    ? [{ label: 'Gesamt', value: totalValue, isTotal: true }, ...data]
     : data
   const max = Math.max(...fullData.map((d) => d.value), 1)
 
@@ -52,7 +54,7 @@ function PieChart({ data }) {
     const start = (cumulative / total) * 360
     cumulative += d.value
     const end = (cumulative / total) * 360
-    return `${PIE_COLORS[i % PIE_COLORS.length]} ${start}deg ${end}deg`
+    return `${d.color || PIE_COLORS[i % PIE_COLORS.length]} ${start}deg ${end}deg`
   })
 
   return (
@@ -61,7 +63,7 @@ function PieChart({ data }) {
       <div>
         {data.map((d, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 4 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color || PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
             {d.label}: {d.value}
           </div>
         ))}
@@ -93,6 +95,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editingTileId, setEditingTileId] = useState(null)
 
   const [title, setTitle] = useState('')
   const [metric1, setMetric1] = useState('einwohner_anzahl')
@@ -164,14 +167,38 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
     return val1
   }
 
-  async function createTile(e) {
+  function resetForm() {
+    setTitle('')
+    setMetric1('einwohner_anzahl')
+    setMetric2('')
+    setCombineMode('summe')
+    setVizType('zahl')
+    setGaugeLow('')
+    setGaugeHigh('')
+    setShowTotal(false)
+    setEditingTileId(null)
+  }
+
+  function startEdit(tile) {
+    setTitle(tile.title)
+    setMetric1(tile.metric_key_1)
+    setMetric2(tile.metric_key_2 || '')
+    setCombineMode(tile.combine_mode || 'summe')
+    setVizType(tile.viz_type)
+    setGaugeLow(tile.gauge_low ?? '')
+    setGaugeHigh(tile.gauge_high ?? '')
+    setShowTotal(!!tile.show_total)
+    setEditingTileId(tile.id)
+    setShowForm(true)
+  }
+
+  async function saveTile(e) {
     e.preventDefault()
     if (!title.trim()) return
     setSaving(true)
     setError('')
 
-    const { error: insertError } = await supabase.from('dashboard_tiles').insert({
-      owner_id: (await supabase.auth.getUser()).data.user.id,
+    const payload = {
       title: title.trim(),
       metric_key_1: metric1,
       metric_key_2: isNumberMetric && metric2 ? metric2 : null,
@@ -179,21 +206,21 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       viz_type: vizType,
       gauge_low: vizType === 'ampel' && gaugeLow !== '' ? Number(gaugeLow) : null,
       gauge_high: vizType === 'ampel' && gaugeHigh !== '' ? Number(gaugeHigh) : null,
-      show_total: vizType === 'balken' ? showTotal : false,
-      sort_order: tiles.length
-    })
+      show_total: vizType === 'balken' ? showTotal : false
+    }
 
-    if (insertError) {
-      setError(insertError.message)
+    const { error: saveError } = editingTileId
+      ? await supabase.from('dashboard_tiles').update(payload).eq('id', editingTileId)
+      : await supabase.from('dashboard_tiles').insert({
+          ...payload,
+          owner_id: (await supabase.auth.getUser()).data.user.id,
+          sort_order: tiles.length
+        })
+
+    if (saveError) {
+      setError(saveError.message)
     } else {
-      setTitle('')
-      setMetric1('einwohner_anzahl')
-      setMetric2('')
-      setCombineMode('einzeln')
-      setVizType('zahl')
-      setGaugeLow('')
-      setGaugeHigh('')
-      setShowTotal(false)
+      resetForm()
       setShowForm(false)
       loadTiles()
     }
@@ -234,13 +261,14 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
         {error && <div className="error-box">{error}</div>}
 
         <div className="btn-row" style={{ marginBottom: 16 }}>
-          <button className="btn btn-secondary" onClick={() => setShowForm(!showForm)}>
+          <button className="btn btn-secondary" onClick={() => { if (showForm) { resetForm() }; setShowForm(!showForm) }}>
             {showForm ? 'Abbrechen' : '+ Kachel hinzufügen'}
           </button>
         </div>
 
         {showForm && (
-          <form onSubmit={createTile} className="card">
+          <form onSubmit={saveTile} className="card">
+            <h3 style={{ marginTop: 0 }}>{editingTileId ? 'Kachel bearbeiten' : 'Neue Kachel'}</h3>
             <div className="field">
               <label htmlFor="tileTitle">Titel</label>
               <input id="tileTitle" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z.B. Nutzer gesamt" />
@@ -304,52 +332,22 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
             {vizType === 'balken' && (
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                 <input type="checkbox" checked={showTotal} onChange={(e) => setShowTotal(e.target.checked)} />
-                Zusätzlichen "Gesamt"-Balken anzeigen (Summe aller Werte)
+                Zusätzlichen "Gesamt"-Balken oben anzeigen (Summe aller Werte)
               </label>
             )}
 
-            <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? 'Wird angelegt...' : 'Kachel anlegen'}
-            </button>
+            <div className="btn-row">
+              <button className="btn btn-primary" type="submit" disabled={saving}>
+                {saving ? 'Wird gespeichert...' : editingTileId ? 'Speichern' : 'Kachel anlegen'}
+              </button>
+              {editingTileId && (
+                <button className="btn btn-secondary" type="button" onClick={() => { resetForm(); setShowForm(false) }}>
+                  Abbrechen
+                </button>
+              )}
+            </div>
           </form>
         )}
 
         {loading && <div className="loading-dot">Lädt...</div>}
-        {!loading && tiles.length === 0 && !showForm && (
-          <p className="center-note">Noch keine Kacheln angelegt.</p>
-        )}
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-          {!loading && tiles.map((tile) => (
-            <div className="card" key={tile.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                <h3 style={{ margin: 0, fontSize: 15 }}>{tile.title}</h3>
-                <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
-              </div>
-              {renderTileContent(tile)}
-            </div>
-          ))}
-        </div>
-      </main>
-
-      <nav className="tab-bar">
-        {hasPrivateProfile && (
-          <button className="tab-bar-item" onClick={() => onChooseMode('private')}>
-            <span className="tab-bar-icon">🧑</span>
-            Einwohner
-          </button>
-        )}
-        {hasBusinessProfile && (
-          <button className="tab-bar-item" onClick={() => onChooseMode('business')}>
-            <span className="tab-bar-icon">🏬</span>
-            Gewerbe
-          </button>
-        )}
-        <button className="tab-bar-item" onClick={() => onChooseMode('admin')}>
-          <span className="tab-bar-icon">🛠️</span>
-          Verwaltung
-        </button>
-      </nav>
-    </div>
-  )
-}
+        {!loading &&

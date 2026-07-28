@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 import BusinessAccountProfile from './BusinessAccountProfile.jsx'
+import BusinessAccessSecurity from './BusinessAccessSecurity.jsx'
 
 export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite }) {
   const [view, setView] = useState(null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
@@ -866,6 +867,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return (
       <PlanUndZusatzpakete profile={profile} onBack={() => setView(null)} />
     )
+  }
+
+  if (view === 'konto-sicherheit') {
+    return <BusinessAccessSecurity onBack={() => setView(null)} />
   }
 
   if (view === 'konto-profil') {

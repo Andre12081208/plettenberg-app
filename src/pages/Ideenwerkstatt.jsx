@@ -37,10 +37,31 @@ export default function Ideenwerkstatt({ userId, onBack }) {
   const [lastIdeaNumber, setLastIdeaNumber] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [unreadMap, setUnreadMap] = useState({})
 
   useEffect(() => {
     if (screen === 'list') loadIdeas()
   }, [screen])
+
+  useEffect(() => {
+    loadUnreadCounts()
+    // eslint-disable-next-line
+  }, [])
+
+  async function loadUnreadCounts() {
+    const { data: myIdeas } = await supabase.from('ideas').select('id, user_last_read_at').eq('user_id', userId)
+    const map = {}
+    for (const idea of myIdeas || []) {
+      const { data: msgs } = await supabase
+        .from('idea_messages')
+        .select('id')
+        .eq('idea_id', idea.id)
+        .eq('is_developer', true)
+        .gt('created_at', idea.user_last_read_at)
+      if ((msgs || []).length > 0) map[idea.id] = msgs.length
+    }
+    setUnreadMap(map)
+  }
 
   async function loadIdeas() {
     setLoading(true)
@@ -120,7 +141,14 @@ export default function Ideenwerkstatt({ userId, onBack }) {
           {!loading && ideas.map((idea) => (
             <div className="card" key={idea.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                <h3 style={{ margin: 0, fontSize: 16 }}>{idea.title}</h3>
+                <h3 style={{ margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {idea.title}
+                  {unreadMap[idea.id] > 0 && (
+                    <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                      {unreadMap[idea.id]}
+                    </span>
+                  )}
+                </h3>
                 <StatusPill status={idea.status} />
               </div>
               <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
@@ -143,7 +171,7 @@ export default function Ideenwerkstatt({ userId, onBack }) {
       <IdeaDetail
         userId={userId}
         idea={selectedIdea}
-        onBack={() => setScreen('list')}
+        onBack={() => { setScreen('list'); loadUnreadCounts() }}
         onUpdated={(updated) => setSelectedIdea(updated)}
       />
     )
@@ -174,8 +202,13 @@ export default function Ideenwerkstatt({ userId, onBack }) {
           </button>
         ))}
 
-        <button className="link-text" onClick={() => setScreen('list')} style={{ marginTop: 10 }}>
+        <button className="link-text" onClick={() => setScreen('list')} style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
           Meine Ideen ansehen →
+          {Object.values(unreadMap).reduce((a, b) => a + b, 0) > 0 && (
+            <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+              {Object.values(unreadMap).reduce((a, b) => a + b, 0)}
+            </span>
+          )}
         </button>
       </main>
     </div>

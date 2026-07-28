@@ -79,6 +79,10 @@ export default function BusinessAccessSecurity({ onBack }) {
       setPasswordError(error.message)
       setPasswordSaving(false)
     } else {
+      const { data: userData } = await supabase.auth.getUser()
+      if (userData?.user?.id) {
+        await supabase.from('business_account_events').insert({ business_profile_id: userData.user.id, event_type: 'passwort_geaendert' })
+      }
       await supabase.auth.signOut({ scope: 'global' })
     }
   }

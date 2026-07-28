@@ -46,8 +46,37 @@ export default function ResidentInbox({ userId, onBack }) {
       .order('is_pinned', { ascending: false })
       .order('last_activity_at', { ascending: false })
 
-    if (error) setError(error.message)
-    setConversations(data || [])
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+
+    const withCounts = await Promise.all(
+      (data || []).map(async (conv) => {
+        let unreadCount = 0
+        if (conv.source_type === 'idea') {
+          const { data: msgs } = await supabase
+            .from('idea_messages')
+            .select('id')
+            .eq('idea_id', conv.source_id)
+            .eq('is_developer', true)
+            .gt('created_at', conv.last_read_at)
+          unreadCount = (msgs || []).length
+        } else {
+          const { data: msgs } = await supabase
+            .from('business_inquiry_messages')
+            .select('id')
+            .eq('inquiry_id', conv.source_id)
+            .eq('is_business', true)
+            .is('read_at', null)
+          unreadCount = (msgs || []).length
+        }
+        return { ...conv, unreadCount }
+      })
+    )
+
+    setConversations(withCounts)
     setLoading(false)
   }
 
@@ -184,10 +213,6 @@ export default function ResidentInbox({ userId, onBack }) {
     <>
       {error && <div className="error-box">{error}</div>}
 
-      <div style={{ background: '#FEF3C7', border: '1px solid #D97706', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, fontFamily: 'monospace' }}>
-        DEBUG: userId={String(userId)} | loading={String(loading)} | error={error || '(keiner)'} | conversations.length={conversations.length} | mailboxTab={mailboxTab} | categoryFilter={categoryFilter} | filtered.length={filtered.length}
-      </div>
-
       <div className="btn-row" style={{ marginBottom: 12 }}>
         <button className="btn btn-primary" onClick={openPicker}>+ Neue Nachricht</button>
       </div>
@@ -229,6 +254,7 @@ export default function ResidentInbox({ userId, onBack }) {
       {!loading && filtered.map((conv) => {
         const meta = CATEGORY_META[conv.category]
         const unread = isUnread(conv)
+        const displayCount = conv.unreadCount > 0 ? conv.unreadCount : (unread ? 1 : 0)
         return (
           <div className="card" key={conv.id} style={{ padding: 0, overflow: 'hidden' }}>
             <button
@@ -248,8 +274,10 @@ export default function ResidentInbox({ userId, onBack }) {
                   {meta.icon} {meta.label}
                 </span>
               </div>
-              {unread && (
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--clay)', flexShrink: 0 }} />
+              {displayCount > 0 && (
+                <span style={{ minWidth: 22, height: 22, borderRadius: 11, background: 'var(--clay)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0 }}>
+                  {displayCount}
+                </span>
               )}
             </button>
 

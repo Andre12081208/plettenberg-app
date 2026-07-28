@@ -253,7 +253,6 @@ export default function App() {
   if (profile?.account_status === 'gesperrt' || profile?.account_status === 'archiviert') {
     return <AccountBlocked status={profile.account_status} />
   }
-  }
 
   if (view === 'admin') {
     return <AdminPanel onBack={() => setView('dashboard')} />

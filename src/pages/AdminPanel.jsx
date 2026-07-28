@@ -50,7 +50,7 @@ function PresenceDot({ lastSeenAt }) {
   return <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: color }} title={label} />
 }
 
-export default function AdminPanel({ onBack, embedded }) {
+export default function AdminPanel({ onBack }) {
   const [tab, setTab] = useState('nutzer')
 
   const content = (
@@ -85,22 +85,19 @@ export default function AdminPanel({ onBack, embedded }) {
     </div>
   )
 
-  if (embedded) {
-    return (
-      <>
-        {header}
-        <main style={{ paddingBottom: 90 }}>{content}</main>
-      </>
-    )
-  }
-
   return (
     <div className="app-shell">
       {header}
-      <main>
-        <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
+      <main style={{ paddingBottom: 90 }}>
         {content}
       </main>
+
+      <nav className="tab-bar">
+        <button className="tab-bar-item active" onClick={onBack}>
+          <span className="tab-bar-icon">🧭</span>
+          Dashboard
+        </button>
+      </nav>
     </div>
   )
 }

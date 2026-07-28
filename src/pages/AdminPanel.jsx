@@ -56,22 +56,20 @@ export default function AdminPanel({ onBack }) {
   const content = (
     <>
       <div className="btn-row" style={{ marginBottom: 18, flexWrap: 'wrap' }}>
-        <button className={tab === 'insights' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('insights')}>Insights</button>
         <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
         <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
-        <button className={tab === 'produkte' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('produkte')}>Produkte</button>
-        <button className={tab === 'bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('bestellungen')}>Bestellungen</button>
         <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('channels')}>Channels</button>
         <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')}>Ideenwerkstatt</button>
+        <button className={tab === 'gewerbe-bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe-bestellungen')}>Gewerbe-Umsätze</button>
+        <button className={tab === 'meldungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('meldungen')}>Meldungen</button>
       </div>
 
-      {tab === 'insights' && <InsightsTab />}
       {tab === 'nutzer' && <NutzerTab />}
       {tab === 'gewerbe' && <GewerbeTab />}
-      {tab === 'produkte' && <ProdukteTab />}
-      {tab === 'bestellungen' && <BestellungenTab />}
       {tab === 'channels' && <ChannelsTab />}
       {tab === 'ideenwerkstatt' && <IdeenwerkstattTab />}
+      {tab === 'gewerbe-bestellungen' && <GewerbeBestellungenTab />}
+      {tab === 'meldungen' && <MeldungenTab />}
     </>
   )
 
@@ -1109,6 +1107,137 @@ function IdeaAdminDetail({ idea, onBack }) {
           Senden
         </button>
       </form>
+    </>
+  )
+}
+function GewerbeBestellungenTab() {
+  const [orders, setOrders] = useState([])
+  const [inquiries, setInquiries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadAll()
+  }, [])
+
+  async function loadAll() {
+    setLoading(true)
+    setError('')
+
+    const [{ data: orderRows, error: orderError }, { data: inquiryRows, error: inquiryError }] = await Promise.all([
+      supabase.from('business_orders').select('*, business_order_items(*), business_profiles(company_name)').order('created_at', { ascending: false }),
+      supabase.from('business_inquiries').select('*, business_profiles(company_name)').order('created_at', { ascending: false })
+    ])
+
+    if (orderError || inquiryError) setError((orderError || inquiryError).message)
+    setOrders(orderRows || [])
+    setInquiries(inquiryRows || [])
+    setLoading(false)
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+
+      <h3 style={{ marginBottom: 10 }}>Bestellungen (alle Betriebe)</h3>
+      {!loading && orders.length === 0 && <p className="center-note">Noch keine Bestellungen.</p>}
+
+      {!loading && orders.map((order) => (
+        <div className="card" key={order.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <h3 style={{ margin: 0, fontSize: 15 }}>{order.business_profiles?.company_name}</h3>
+            <span className="status-pill status-live" style={{ fontSize: 11 }}>{order.status}</span>
+          </div>
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            {new Date(order.created_at).toLocaleDateString('de-DE')}
+          </p>
+          {order.business_order_items?.map((item) => (
+            <p key={item.id} style={{ margin: '2px 0', fontSize: 14 }}>
+              {item.quantity}× {item.product_name}
+            </p>
+          ))}
+        </div>
+      ))}
+
+      <h3 style={{ margin: '24px 0 10px' }}>Anfragen (alle Betriebe)</h3>
+      {!loading && inquiries.length === 0 && <p className="center-note">Noch keine Anfragen.</p>}
+
+      {!loading && inquiries.map((inquiry) => (
+        <div className="card" key={inquiry.id}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>{inquiry.business_profiles?.company_name}</h3>
+          <p style={{ margin: '0 0 4px', fontSize: 14 }}>{inquiry.product_name_snapshot || 'Anfrage'}</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+            {new Date(inquiry.created_at).toLocaleDateString('de-DE')}
+          </p>
+        </div>
+      ))}
+    </>
+  )
+}
+
+function MeldungenTab() {
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadReports()
+  }, [])
+
+  async function loadReports() {
+    setLoading(true)
+    setError('')
+
+    const { data, error } = await supabase
+      .from('business_inquiry_reports')
+      .select('*, business_profiles(company_name)')
+      .order('created_at', { ascending: false })
+
+    if (error) { setError(error.message); setLoading(false); return }
+
+    const withNames = await Promise.all(
+      (data || []).map(async (r) => {
+        const { data: username } = await supabase.rpc('get_username', { target_id: r.reported_user_id })
+        return { ...r, reportedUsername: username }
+      })
+    )
+
+    setReports(withNames)
+    setLoading(false)
+  }
+
+  async function updateStatus(id, newStatus) {
+    const { error } = await supabase.from('business_inquiry_reports').update({ status: newStatus }).eq('id', id)
+    if (!error) {
+      setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)))
+    }
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && reports.length === 0 && <p className="center-note">Keine Meldungen vorhanden.</p>}
+
+      {!loading && reports.map((r) => (
+        <div className="card" key={r.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <h3 style={{ margin: 0, fontSize: 15 }}>{r.business_profiles?.company_name}</h3>
+            <span className="status-pill status-pruefung" style={{ fontSize: 11 }}>{r.status}</span>
+          </div>
+          <p style={{ margin: '0 0 4px', fontSize: 14 }}>Gemeldeter Nutzer: @{r.reportedUsername}</p>
+          {r.reason && <p style={{ margin: '0 0 8px', fontSize: 14, fontStyle: 'italic' }}>„{r.reason}"</p>}
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            {new Date(r.created_at).toLocaleDateString('de-DE')}
+          </p>
+          <select value={r.status} onChange={(e) => updateStatus(r.id, e.target.value)}>
+            <option value="offen">Offen</option>
+            <option value="geprueft">Geprüft</option>
+            <option value="abgeschlossen">Abgeschlossen</option>
+          </select>
+        </div>
+      ))}
     </>
   )
 }

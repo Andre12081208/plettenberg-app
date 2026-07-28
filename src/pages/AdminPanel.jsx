@@ -1027,10 +1027,17 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
       {loading && <div className="loading-dot">Lädt...</div>}
       {!loading && ideas.length === 0 && <p className="center-note">Noch keine Ideen eingereicht.</p>}
 
-      {!loading && ideas.map((idea) => (
+      {!loading && ideas.map((idea) => {
+        const isUnread = !idea.admin_seen_at || new Date(idea.submitter_activity_at) > new Date(idea.admin_seen_at)
+        return (
         <div className="card" key={idea.id}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: 16 }}>{idea.title}</h3>
+            <h3 style={{ margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {idea.title}
+              {isUnread && (
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--clay)', display: 'inline-block' }} />
+              )}
+            </h3>
             <span className="status-pill status-live" style={{ fontSize: 11 }}>{idea.idea_number}</span>
           </div>
           <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
@@ -1042,7 +1049,8 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
           </p>
           <button className="btn btn-secondary" onClick={() => setSelected(idea)}>Öffnen</button>
         </div>
-      ))}
+        )
+      })}
     </>
   )
 }

@@ -378,26 +378,26 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                         style={{ width: '100%' }}
                         onClick={editMode ? undefined : () => setOpenApp(tile.type === 'business' ? tile.data : tile.key)}
                       >
-                        <div className="app-tile-icon">{icon}</div>
+                        <div className="app-tile-icon" style={{ position: 'relative' }}>
+                          {icon}
+                          {tile.type === 'business' && businessInquiryCounts[tile.data.id] > 0 && (
+                            <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                              {businessInquiryCounts[tile.data.id]}
+                            </span>
+                          )}
+                          {tile.key === 'calendar' && calendarNotificationCount > 0 && (
+                            <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                              {calendarNotificationCount}
+                            </span>
+                          )}
+                          {tile.key === 'ideenwerkstatt' && unreadIdeaCount > 0 && (
+                            <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                              {unreadIdeaCount}
+                            </span>
+                          )}
+                        </div>
                         <div className="app-tile-label">{label}</div>
                       </button>
-
-                      {tile.type === 'business' && businessInquiryCounts[tile.data.id] > 0 && (
-  <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-    {businessInquiryCounts[tile.data.id]}
-  </span>
-)}
-                      {tile.key === 'calendar' && calendarNotificationCount > 0 && (
-        <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-          {calendarNotificationCount}
-        </span>
-      )}
-
-      {tile.key === 'ideenwerkstatt' && unreadIdeaCount > 0 && (
-                        <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                          {unreadIdeaCount}
-                        </span>
-                      )}
 
                       {editMode && tile.key !== 'branchenverzeichnis' && (
                         <>

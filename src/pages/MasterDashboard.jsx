@@ -14,7 +14,8 @@ const METRIC_REGISTRY = [
   { key: 'bestellungen_nach_status', label: 'Bestellungen nach Status', type: 'breakdown' },
   { key: 'anfragen_nach_status', label: 'Anfragen nach Status', type: 'breakdown' },
   { key: 'nutzer_nach_typ', label: 'Nutzer: Einwohner vs. Gewerbe', type: 'breakdown' },
-  { key: 'einwohner_aktivitaet', label: 'Einwohner-Aktivität (24h/7T/30T/älter)', type: 'breakdown' }
+  { key: 'einwohner_aktivitaet', label: 'Einwohner-Aktivität (24h/7T/30T/älter)', type: 'breakdown' },
+  { key: 'einwohner_wachstum', label: 'Neue Einwohner (Wachstum über Zeit)', type: 'wachstum' }
 ]
 
 const PIE_COLORS = ['#1F4D3D', '#3A7A5E', '#6FA98A', '#A8C9B5', '#D9E5DD', '#C4704F', '#8C5A3C']
@@ -72,6 +73,40 @@ function PieChart({ data }) {
   )
 }
 
+function Wachstum({ data }) {
+  return (
+    <div>
+      <div style={{ textAlign: 'center', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
+        <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{data.avg_per_day}</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-soft)' }}>Ø neue Einwohner pro Tag</p>
+      </div>
+      {data.windows.map((w, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0' }}>
+          <span>{w.label}</span>
+          <span style={{ fontWeight: 600 }}>{w.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Wachstum({ data }) {
+  return (
+    <div>
+      <div style={{ textAlign: 'center', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
+        <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{data.avg_per_day}</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-soft)' }}>Ø neue Einwohner pro Tag</p>
+      </div>
+      {data.windows.map((w, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0' }}>
+          <span>{w.label}</span>
+          <span style={{ fontWeight: 600 }}>{w.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Ampel({ value, low, high }) {
   let color = 'var(--forest)'
   let label = 'Gut'
@@ -109,9 +144,12 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
 
   const info1 = metricInfo(metric1)
   const isNumberMetric = info1?.type === 'number'
-  const vizOptions = isNumberMetric
-    ? (metric2 ? ['zahl', 'ampel', 'balken'] : ['zahl', 'ampel'])
-    : ['balken', 'kreis']
+  const isWachstumMetric = info1?.type === 'wachstum'
+  const vizOptions = isWachstumMetric
+    ? ['wachstum']
+    : isNumberMetric
+      ? (metric2 ? ['zahl', 'ampel', 'balken'] : ['zahl', 'ampel'])
+      : ['balken', 'kreis']
 
   useEffect(() => {
     loadTiles()
@@ -232,10 +270,31 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
     setTiles((prev) => prev.filter((t) => t.id !== id))
   }
 
+  async function moveTile(index, direction) {
+    const newIndex = index + direction
+    if (newIndex < 0 || newIndex >= tiles.length) return
+
+    const current = tiles[index]
+    const swapped = tiles[newIndex]
+
+    const newTiles = [...tiles]
+    newTiles[index] = swapped
+    newTiles[newIndex] = current
+    setTiles(newTiles)
+
+    await Promise.all([
+      supabase.from('dashboard_tiles').update({ sort_order: newIndex }).eq('id', current.id),
+      supabase.from('dashboard_tiles').update({ sort_order: index }).eq('id', swapped.id)
+    ])
+  }
+
   function renderTileContent(tile) {
     const value = tileValues[tile.id]
     if (value == null) return <p className="center-note">Keine Daten.</p>
 
+    if (tile.viz_type === 'wachstum') {
+      return <Wachstum data={value} />
+    }
     if (tile.viz_type === 'zahl') {
       return <p style={{ margin: 0, fontSize: 32, fontWeight: 700, color: 'var(--forest)' }}>{value}</p>
     }
@@ -310,7 +369,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
               <select id="vizType" value={vizType} onChange={(e) => setVizType(e.target.value)}>
                 {vizOptions.map((v) => (
                   <option key={v} value={v}>
-                    {v === 'zahl' ? 'Zahl' : v === 'ampel' ? 'Ampel' : v === 'balken' ? 'Balkendiagramm' : 'Kreisdiagramm'}
+                    {v === 'zahl' ? 'Zahl' : v === 'ampel' ? 'Ampel' : v === 'balken' ? 'Balkendiagramm' : v === 'wachstum' ? 'Wachstum über Zeit' : 'Kreisdiagramm'}
                   </option>
                 ))}
               </select>
@@ -355,11 +414,13 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-          {!loading && tiles.map((tile) => (
+          {!loading && tiles.map((tile, index) => (
             <div className="card" key={tile.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <h3 style={{ margin: 0, fontSize: 15 }}>{tile.title}</h3>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
+                  <button className="link-text" style={{ fontSize: 15 }} disabled={index === tiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
                   <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
                   <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
                 </div>

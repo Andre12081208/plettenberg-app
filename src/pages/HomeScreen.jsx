@@ -87,7 +87,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
   }, [])
 
   async function checkPostfach() {
-    const { data } = await supabase.rpc('get_resident_unread_inquiry_count')
+    const { data } = await supabase.rpc('get_postfach_unread_count')
     setPostfachCount(data || 0)
   }
 
@@ -318,16 +318,17 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                 </button>
 
                 <div style={{ position: 'relative' }}>
-                  <button className="app-tile" style={{ width: '100%' }} onClick={() => setOpenApp('postfach')}>
+                  <button className="app-tile" onClick={() => setOpenApp('postfach')}>
+                  <div style={{ position: 'relative', width: 64, height: 64 }}>
                     <div className="app-tile-icon">📥</div>
-                    <div className="app-tile-label">Postfach</div>
-                  </button>
-                  {postfachCount > 0 && (
-                    <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                      {postfachCount}
-                    </span>
-                  )}
-                </div>
+                    {postfachCount > 0 && (
+                      <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                        {postfachCount}
+                      </span>
+                    )}
+                  </div>
+                  <div className="app-tile-label">Postfach</div>
+                </button>
 
                 <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
                   <div className="app-tile-icon">🏛️</div>

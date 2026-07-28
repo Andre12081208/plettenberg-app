@@ -998,17 +998,17 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
             </button>
           )}
 
-          <div style={{ position: 'relative' }}>
-            <button className="app-tile" style={{ width: '100%' }} onClick={() => setView('ideenwerkstatt')}>
-              <div className="app-tile-icon">💡</div>
-              <div className="app-tile-label">Ideenwerkstatt</div>
-            </button>
-            {unreadIdeaCount > 0 && (
-              <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                {unreadIdeaCount}
-              </span>
-            )}
-          </div>
+          <button className="app-tile" onClick={() => setView('ideenwerkstatt')}>
+            <div className="app-tile-icon" style={{ position: 'relative' }}>
+              💡
+              {unreadIdeaCount > 0 && (
+                <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                  {unreadIdeaCount}
+                </span>
+              )}
+            </div>
+            <div className="app-tile-label">Ideenwerkstatt</div>
+          </button>
         </div>
 
         <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 24 }}>Abmelden</button>

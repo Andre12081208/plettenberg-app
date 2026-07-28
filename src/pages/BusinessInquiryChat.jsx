@@ -136,6 +136,15 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
       .eq('inquiry_id', inquiryId)
       .neq('is_business', isBusiness)
       .is('read_at', null)
+
+    if (!isBusiness) {
+      await supabase
+        .from('postfach_conversations')
+        .update({ last_read_at: new Date().toISOString() })
+        .eq('source_type', 'business_inquiry')
+        .eq('source_id', inquiryId)
+        .eq('user_id', userId)
+    }
   }
 
   async function sendMessage(e) {

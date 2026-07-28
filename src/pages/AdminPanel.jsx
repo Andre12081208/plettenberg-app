@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { renderAnonAvatar } from '../lib/anonAvatar.js'
 import { ADMIN_EMAIL } from '../lib/adminConfig'
 
 const STATUS_OPTIONS = [
@@ -1000,13 +1001,14 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
 
     const withNames = await Promise.all(
       (data || []).map(async (idea) => {
-        const { data: username } = await supabase.rpc('get_username', { target_id: idea.user_id })
+        const { data: resident } = await supabase.from('private_profiles').select('anonymous_number, anonymous_avatar_url').eq('id', idea.user_id).maybeSingle()
 
         let named
-        if (username) named = { ...idea, username, isBusinessSubmitter: false }
-        else {
-          const { data: business } = await supabase.from('business_profiles').select('company_name').eq('id', idea.user_id).maybeSingle()
-          named = { ...idea, username: business?.company_name || 'Unbekannt', isBusinessSubmitter: true }
+        if (resident) {
+          named = { ...idea, username: `Nutzer #${resident.anonymous_number}`, avatarValue: resident.anonymous_avatar_url, isBusinessSubmitter: false }
+        } else {
+          const { data: business } = await supabase.from('business_profiles').select('company_name, logo_url').eq('id', idea.user_id).maybeSingle()
+          named = { ...idea, username: business?.company_name || 'Unbekannt', avatarValue: business?.logo_url, isBusinessSubmitter: true }
         }
 
         if (!idea.admin_seen_at) {
@@ -1070,27 +1072,41 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
       {!loading && visibleIdeas.length === 0 && <p className="center-note">Keine Ideen in dieser Ansicht.</p>}
 
       {!loading && visibleIdeas.map((idea) => {
+        const avatar = idea.isBusinessSubmitter
+          ? { type: idea.avatarValue ? 'image' : 'placeholder', content: idea.avatarValue || '🏬' }
+          : renderAnonAvatar(idea.avatarValue)
+
         return (
         <div className="card" key={idea.id}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-            <h3 style={{ margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              {idea.title}
-              {idea.adminUnreadCount > 0 && (
-                <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                  {idea.adminUnreadCount}
-                </span>
-              )}
-            </h3>
-            <span className="status-pill status-live" style={{ fontSize: 11 }}>{idea.idea_number}</span>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: avatar.type === 'image' ? undefined : (avatar.color || '#E5E5E5') }}>
+              {avatar.type === 'image' ? <img src={avatar.content} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : avatar.content}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                <h3 style={{ margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {idea.title}
+                  {idea.adminUnreadCount > 0 && (
+                    <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                      {idea.adminUnreadCount}
+                    </span>
+                  )}
+                </h3>
+                <span className="status-pill status-live" style={{ fontSize: 11 }}>{idea.idea_number}</span>
+              </div>
+              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+                {IDEA_CATEGORIES[idea.category]?.icon} {IDEA_CATEGORIES[idea.category]?.label} · {idea.username} · Priorität: {idea.priority}
+              </p>
+              <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+                {new Date(idea.created_at).toLocaleDateString('de-DE')}, {new Date(idea.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
+                {IDEA_STATUS_OPTIONS.find((s) => s.value === idea.status)?.label}
+                {idea.closed_at && ' · Abgeschlossen'}
+              </p>
+              <button className="btn btn-secondary" onClick={() => setSelected(idea)}>Öffnen</button>
+            </div>
           </div>
-          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
-            {IDEA_CATEGORIES[idea.category]?.icon} {IDEA_CATEGORIES[idea.category]?.label} · {idea.isBusinessSubmitter ? idea.username : `@${idea.username}`} · Priorität: {idea.priority}
-          </p>
-          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
-            {IDEA_STATUS_OPTIONS.find((s) => s.value === idea.status)?.label}
-            {idea.closed_at && ' · Abgeschlossen'}
-          </p>
-          <button className="btn btn-secondary" onClick={() => setSelected(idea)}>Öffnen</button>
         </div>
         )
       })}

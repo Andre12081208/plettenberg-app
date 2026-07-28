@@ -6,6 +6,7 @@ import BusinessAccountProfile from './BusinessAccountProfile.jsx'
 import BusinessAccessSecurity from './BusinessAccessSecurity.jsx'
 import BusinessAccountHistory from './BusinessAccountHistory.jsx'
 import BusinessPrivacy from './BusinessPrivacy.jsx'
+import BusinessNotifications from './BusinessNotifications.jsx'
 
 export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite }) {
   const [view, setView] = useState(null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
@@ -877,6 +878,12 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 
   if (view === 'konto-datenschutz' && false) {
     // Platzhalter, kommt in einer späteren Etappe
+  }
+
+  if (view === 'konto-benachrichtigungen') {
+    return (
+      <BusinessNotifications profile={profile} onBack={() => setView(null)} onProfileUpdated={onProfileUpdated} />
+    )
   }
 
   if (view === 'konto-datenschutz') {

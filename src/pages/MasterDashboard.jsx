@@ -136,6 +136,11 @@ function Ampel({ value, low, high }) {
 }
 
 export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile, onChooseMode }) {
+  const [adminUnreadIdeaCount, setAdminUnreadIdeaCount] = useState(0)
+
+  useEffect(() => {
+    supabase.rpc('get_admin_unread_idea_count').then(({ data }) => setAdminUnreadIdeaCount(data || 0))
+  }, [])
   const [tiles, setTiles] = useState([])
   const [tileValues, setTileValues] = useState({})
   const [loading, setLoading] = useState(true)
@@ -475,9 +480,14 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
             Gewerbe
           </button>
         )}
-        <button className="tab-bar-item" onClick={() => onChooseMode('admin')}>
+        <button className="tab-bar-item" onClick={() => onChooseMode('admin')} style={{ position: 'relative' }}>
           <span className="tab-bar-icon">🛠️</span>
           Verwaltung
+          {adminUnreadIdeaCount > 0 && (
+            <span style={{ position: 'absolute', top: 2, right: '20%', minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+              {adminUnreadIdeaCount}
+            </span>
+          )}
         </button>
       </nav>
     </div>

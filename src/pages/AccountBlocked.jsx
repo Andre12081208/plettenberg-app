@@ -1,9 +1,11 @@
 import { supabase } from '../lib/supabaseClient'
 
-export default function AccountBlocked() {
+export default function AccountBlocked({ status }) {
   async function handleLogout() {
     await supabase.auth.signOut()
   }
+
+  const isArchived = status === 'archiviert'
 
   return (
     <div className="app-shell">
@@ -13,12 +15,25 @@ export default function AccountBlocked() {
       </div>
       <main>
         <div className="card">
-          <p style={{ margin: '0 0 12px' }}>
-            Sorry, hier ist etwas schiefgelaufen. Dein Zugang ist aktuell eingeschränkt.
-          </p>
-          <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-soft)' }}>
-            Bei Fragen wende dich bitte an den Support:
-          </p>
+          {isArchived ? (
+            <>
+              <p style={{ margin: '0 0 12px' }}>
+                Dieses Konto wurde zur Löschung eingereicht und ist archiviert. Es ist für andere Nutzer nicht mehr sichtbar.
+              </p>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-soft)' }}>
+                Falls das ein Irrtum war oder du das Konto reaktivieren möchtest, wende dich bitte an den Support:
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: '0 0 12px' }}>
+                Sorry, hier ist etwas schiefgelaufen. Dein Zugang ist aktuell eingeschränkt.
+              </p>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-soft)' }}>
+                Bei Fragen wende dich bitte an den Support:
+              </p>
+            </>
+          )}
           <p style={{ margin: '4px 0 0' }}>
             <a href="mailto:andremanuel.koenig@gmail.com" style={{ color: 'var(--forest)', fontWeight: 600 }}>
               andremanuel.koenig@gmail.com

@@ -88,11 +88,10 @@ const STATUS_EXPLANATION = {
   abgelehnt: 'Dein Profil wurde aktuell nicht freigeschaltet.'
 }
 
-function ProfileStatusTile({ profile }) {
+function ProfileStatusTile({ profile, isLive }) {
   const [addons, setAddons] = useState([])
   const [hasChannel, setHasChannel] = useState(false)
   const [hasTerminProduct, setHasTerminProduct] = useState(false)
-  const [showWhyModal, setShowWhyModal] = useState(false)
 
   useEffect(() => {
     loadExtras()
@@ -110,7 +109,6 @@ function ProfileStatusTile({ profile }) {
     setHasTerminProduct(!!terminRow)
   }
 
-  const isLive = profile.status === 'live'
   const isBasisLive = isLive && profile.plan === 'basis'
 
   const items = [
@@ -122,18 +120,9 @@ function ProfileStatusTile({ profile }) {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: items.length > 0 ? 12 : 0 }}>
-        <span style={{ fontSize: 14 }}>
-          Dein Profil ist öffentlich sichtbar. {isLive ? '✅' : '❌'}
-        </span>
-        <button
-          className={`status-pill ${isLive ? 'status-live' : 'status-abgelehnt'}`}
-          style={{ border: 'none', cursor: isLive ? 'default' : 'pointer' }}
-          onClick={() => { if (!isLive) setShowWhyModal(true) }}
-        >
-          {isLive ? 'Live' : 'Nicht live'}
-        </button>
-      </div>
+      <p style={{ margin: items.length > 0 ? '0 0 12px' : 0, fontSize: 14 }}>
+        Dein Profil ist öffentlich sichtbar. {isLive ? '✅' : '❌'}
+      </p>
 
       {items.map((item) => (
         <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderTop: '1px solid var(--line)' }}>
@@ -143,29 +132,11 @@ function ProfileStatusTile({ profile }) {
           </span>
         </div>
       ))}
-
-      {showWhyModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}
-          onClick={() => setShowWhyModal(false)}
-        >
-          <div className="card" style={{ maxWidth: 360, width: '100%' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0 }}>Warum ist mein Profil nicht live?</h3>
-            <p style={{ fontSize: 14 }}>{STATUS_EXPLANATION[profile.status] || 'Der Status ist gerade nicht "live".'}</p>
-            <a
-              className="btn btn-primary"
-              style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 8 }}
-              href={`mailto:andremanuel.koenig@gmail.com?subject=${encodeURIComponent('Frage zu meinem Profil-Status')}&body=${encodeURIComponent('Betrieb: ' + profile.company_name)}`}
-            >
-              Support kontaktieren
-            </a>
-            <button className="btn btn-secondary" onClick={() => setShowWhyModal(false)}>Schließen</button>
-          </div>
-        </div>
-      )}
     </>
   )
 }
+
+const WIDTH_LABELS = { voll: 'Volle Breite', halb: 'Halbe Breite', drittel: 'Drittelbreite', viertel: 'Viertelbreite' }
 
 export default function BusinessOverview({ profile }) {
   const [tiles, setTiles] = useState([])
@@ -173,7 +144,9 @@ export default function BusinessOverview({ profile }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editMode, setEditMode] = useState(false)
   const [editingTileId, setEditingTileId] = useState(null)
+  const [showWhyModal, setShowWhyModal] = useState(false)
 
   const [title, setTitle] = useState('')
   const [metric1, setMetric1] = useState('bestellungen_offen')
@@ -183,6 +156,7 @@ export default function BusinessOverview({ profile }) {
   const [gaugeLow, setGaugeLow] = useState('')
   const [gaugeHigh, setGaugeHigh] = useState('')
   const [showTotal, setShowTotal] = useState(false)
+  const [tileWidth, setTileWidth] = useState('voll')
   const [saving, setSaving] = useState(false)
 
   const isLive = profile.status === 'live'
@@ -225,6 +199,7 @@ export default function BusinessOverview({ profile }) {
         title: 'Profil-Status',
         metric_key_1: 'profile_status',
         viz_type: 'status',
+        tile_width: 'voll',
         sort_order: -1
       }).select('*').single()
 
@@ -272,6 +247,7 @@ export default function BusinessOverview({ profile }) {
     setGaugeLow('')
     setGaugeHigh('')
     setShowTotal(false)
+    setTileWidth('voll')
     setEditingTileId(null)
   }
 
@@ -284,6 +260,7 @@ export default function BusinessOverview({ profile }) {
     setGaugeLow(tile.gauge_low ?? '')
     setGaugeHigh(tile.gauge_high ?? '')
     setShowTotal(!!tile.show_total)
+    setTileWidth(tile.tile_width || 'voll')
     setEditingTileId(tile.id)
     setShowForm(true)
   }
@@ -302,7 +279,8 @@ export default function BusinessOverview({ profile }) {
       viz_type: vizType,
       gauge_low: vizType === 'ampel' && gaugeLow !== '' ? Number(gaugeLow) : null,
       gauge_high: vizType === 'ampel' && gaugeHigh !== '' ? Number(gaugeHigh) : null,
-      show_total: vizType === 'balken' ? showTotal : false
+      show_total: vizType === 'balken' ? showTotal : false,
+      tile_width: tileWidth
     }
 
     const { error: saveError } = editingTileId
@@ -348,7 +326,7 @@ export default function BusinessOverview({ profile }) {
 
   function renderTileContent(tile) {
     if (tile.viz_type === 'status') {
-      return <ProfileStatusTile profile={profile} />
+      return <ProfileStatusTile profile={profile} isLive={isLive} />
     }
 
     const value = tileValues[tile.id]
@@ -372,13 +350,27 @@ export default function BusinessOverview({ profile }) {
   return (
     <>
       <div className="topbar">
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <div className="mark">Plettenberg</div>
-          <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontWeight: 700, fontSize: 14 }}>
-            {profile.company_name}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+          <div>
+            <div className="mark">Plettenberg</div>
+            <h1>Admin Dashboard</h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ margin: 0 }}>{profile.company_name}</h1>
+              <button
+                className={`status-pill ${isLive ? 'status-live' : 'status-abgelehnt'}`}
+                style={{ border: 'none', cursor: isLive ? 'default' : 'pointer' }}
+                onClick={() => { if (!isLive) setShowWhyModal(true) }}
+              >
+                {isLive ? 'Live' : 'Nicht live'}
+              </button>
+            </div>
+            <div className="avatar-preview" style={{ width: 56, height: 56, flexShrink: 0 }}>
+              {profile.logo_url ? <img src={profile.logo_url} alt="" /> : '🏬'}
+            </div>
           </div>
         </div>
-        <h1>Admin Dashboard</h1>
         {profile.account_status === 'beobachter' && (
           <div className="error-box" style={{ background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
             Beobachter-Modus: Du kannst aktuell nichts schreiben oder senden.
@@ -391,6 +383,9 @@ export default function BusinessOverview({ profile }) {
             <div className="btn-row" style={{ marginBottom: 16 }}>
               <button className="btn btn-secondary" onClick={() => { if (showForm) resetForm(); setShowForm(!showForm) }}>
                 {showForm ? 'Abbrechen' : '+ Kachel hinzufügen'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setEditMode(!editMode)}>
+                {editMode ? 'Fertig' : 'Ansicht bearbeiten'}
               </button>
             </div>
 
@@ -466,6 +461,15 @@ export default function BusinessOverview({ profile }) {
                   </label>
                 )}
 
+                <div className="field">
+                  <label htmlFor="tileWidth">Kachelgröße</label>
+                  <select id="tileWidth" value={tileWidth} onChange={(e) => setTileWidth(e.target.value)}>
+                    {Object.entries(WIDTH_LABELS).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="btn-row">
                   <button className="btn btn-primary" type="submit" disabled={saving}>
                     {saving ? 'Wird gespeichert...' : editingTileId ? 'Speichern' : 'Kachel anlegen'}
@@ -481,19 +485,21 @@ export default function BusinessOverview({ profile }) {
 
             {loading && <div className="loading-dot">Lädt...</div>}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div className="dashboard-grid">
               {!loading && tiles.map((tile, index) => (
-                <div className="card" key={tile.id}>
+                <div className={`card tile-${tile.tile_width || 'voll'}`} key={tile.id}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <h3 style={{ margin: 0, fontSize: 15 }}>{tile.title}</h3>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
-                      <button className="link-text" style={{ fontSize: 15 }} disabled={index === tiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
-                      {tile.viz_type !== 'status' && (
-                        <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
-                      )}
-                      <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
-                    </div>
+                    {editMode && (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
+                        <button className="link-text" style={{ fontSize: 15 }} disabled={index === tiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
+                        {tile.viz_type !== 'status' && (
+                          <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
+                        )}
+                        <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
+                      </div>
+                    )}
                   </div>
                   {renderTileContent(tile)}
                 </div>
@@ -504,12 +510,31 @@ export default function BusinessOverview({ profile }) {
 
         {!isLive && (
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>{profile.company_name}</h3>
             <p style={{ margin: 0, color: 'var(--ink-soft)', fontSize: 14 }}>
               {profile.status === 'in_pruefung' && 'Wir melden uns bei dir, sobald dein Profil geprüft wurde und ein Vertrag zustande kommt.'}
               {profile.status === 'vertrag_in_arbeit' && 'Der Vertrag wird gerade fertiggemacht. Danach schalten wir dein Profil live.'}
               {profile.status === 'abgelehnt' && 'Dein Profil wurde aktuell nicht freigeschaltet.'}
             </p>
+          </div>
+        )}
+
+        {showWhyModal && (
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}
+            onClick={() => setShowWhyModal(false)}
+          >
+            <div className="card" style={{ maxWidth: 360, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+              <h3 style={{ marginTop: 0 }}>Warum ist mein Profil nicht live?</h3>
+              <p style={{ fontSize: 14 }}>{STATUS_EXPLANATION[profile.status] || 'Der Status ist gerade nicht "live".'}</p>
+              
+                className="btn btn-primary"
+                style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 8 }}
+                href={`mailto:andremanuel.koenig@gmail.com?subject=${encodeURIComponent('Frage zu meinem Profil-Status')}&body=${encodeURIComponent('Betrieb: ' + profile.company_name)}`}
+              >
+                Support kontaktieren
+              </a>
+              <button className="btn btn-secondary" onClick={() => setShowWhyModal(false)}>Schließen</button>
+            </div>
           </div>
         )}
       </main>

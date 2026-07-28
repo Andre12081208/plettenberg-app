@@ -184,6 +184,10 @@ export default function ResidentInbox({ userId, onBack }) {
     <>
       {error && <div className="error-box">{error}</div>}
 
+      <div style={{ background: '#FEF3C7', border: '1px solid #D97706', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12, fontFamily: 'monospace' }}>
+        DEBUG: userId={String(userId)} | loading={String(loading)} | error={error || '(keiner)'} | conversations.length={conversations.length} | mailboxTab={mailboxTab} | categoryFilter={categoryFilter} | filtered.length={filtered.length}
+      </div>
+
       <div className="btn-row" style={{ marginBottom: 12 }}>
         <button className="btn btn-primary" onClick={openPicker}>+ Neue Nachricht</button>
       </div>

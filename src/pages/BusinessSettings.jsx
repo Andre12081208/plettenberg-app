@@ -861,6 +861,12 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
     )
   }
 
+  if (view === 'konto-plan') {
+    return (
+      <PlanUndZusatzpakete profile={profile} onBack={() => setView(null)} />
+    )
+  }
+
   const KONTO_ITEMS = [
     { key: 'konto-profil', icon: '👤', label: 'Profil' },
     { key: 'konto-sicherheit', icon: '🔒', label: 'Sicherheit' },
@@ -1065,6 +1071,189 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
             {saving ? 'Wird gespeichert...' : 'Speichern'}
           </button>
         </form>
+      </main>
+    </>
+  )
+}
+const ADDON_REGISTRY = [
+  { key: 'channel', label: 'Eigener Channel', description: 'Poste Neuigkeiten, die deine Follower im Newsfeed sehen.' },
+  { key: 'termine', label: 'Termine', description: 'Biete buchbare Zeitfenster für deine Dienstleistungen an.' },
+  { key: 'raum', label: 'Virtueller Raum', description: 'Ein interaktives Raumbild statt der Standard-Ansicht.' }
+]
+
+function PlanUndZusatzpakete({ profile, onBack }) {
+  const [addons, setAddons] = useState([])
+  const [hasChannel, setHasChannel] = useState(false)
+  const [hasTerminProduct, setHasTerminProduct] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [busyKey, setBusyKey] = useState(null)
+  const [confirmingKey, setConfirmingKey] = useState(null)
+
+  const isLive = profile.status === 'live'
+  const isBasis = profile.plan === 'basis'
+
+  useEffect(() => {
+    loadAll()
+    // eslint-disable-next-line
+  }, [])
+
+  async function loadAll() {
+    setLoading(true)
+    const [{ data: addonRows }, { data: channelRow }, { data: terminRow }] = await Promise.all([
+      supabase.from('business_addons').select('*').eq('business_profile_id', profile.id),
+      supabase.from('channels').select('id').eq('created_by', profile.id).limit(1).maybeSingle(),
+      supabase.from('business_products').select('id').eq('business_profile_id', profile.id).eq('sale_mode', 'termin').eq('active', true).limit(1).maybeSingle()
+    ])
+    setAddons(addonRows || [])
+    setHasChannel(!!channelRow)
+    setHasTerminProduct(!!terminRow)
+    setLoading(false)
+  }
+
+  function isAddonLive(key) {
+    if (!isLive) return false
+    if (key === 'channel') return hasChannel
+    if (key === 'termine') return hasTerminProduct
+    if (key === 'raum') return !!profile.room_image_url
+    return false
+  }
+
+  function nextRenewal(enabledAt) {
+    const start = new Date(enabledAt)
+    const msPerCycle = 30 * 24 * 60 * 60 * 1000
+    const elapsed = Date.now() - start.getTime()
+    const cyclesPassed = Math.floor(elapsed / msPerCycle) + 1
+    return new Date(start.getTime() + cyclesPassed * msPerCycle)
+  }
+
+  async function bookAddon(key) {
+    setBusyKey(key)
+    setError('')
+    const { error } = await supabase.from('business_addons').insert({ business_profile_id: profile.id, addon_key: key })
+    if (error) {
+      setError(error.message)
+    } else {
+      loadAll()
+    }
+    setBusyKey(null)
+  }
+
+  async function cancelAddon(key) {
+    setBusyKey(key)
+    setError('')
+    const { error } = await supabase.from('business_addons').delete().eq('business_profile_id', profile.id).eq('addon_key', key)
+    if (error) {
+      setError(error.message)
+    } else {
+      setConfirmingKey(null)
+      loadAll()
+    }
+    setBusyKey(null)
+  }
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="mark">Plettenberg</div>
+        <h1>Mein Plan und Zusatzpakete</h1>
+      </div>
+      <main style={{ paddingBottom: 90 }}>
+        <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+
+        {error && <div className="error-box">{error}</div>}
+        {loading && <div className="loading-dot">Lädt...</div>}
+
+        {!loading && (
+          <>
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <h3 style={{ margin: 0 }}>Basis-Paket</h3>
+                <span className={`status-pill ${isBasis && isLive ? 'status-live' : 'status-abgelehnt'}`}>
+                  {isBasis ? (isLive ? 'Live' : 'Noch nicht live') : 'Nicht gebucht'}
+                </span>
+              </div>
+              {isBasis ? (
+                <>
+                  <p style={{ margin: '0 0 4px', fontSize: 14 }}>Dein virtueller Laden ist Teil deines Pakets.</p>
+                  {profile.plan_started_at && (
+                    <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+                      Gebucht seit {new Date(profile.plan_started_at).toLocaleDateString('de-DE')}
+                    </p>
+                  )}
+                  {profile.plan_started_at && (
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+                      Verlängert sich automatisch am {nextRenewal(profile.plan_started_at).toLocaleDateString('de-DE')}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-soft)' }}>Du hast aktuell kein Paket gebucht.</p>
+              )}
+              
+                className="link-text"
+                style={{ display: 'inline-block', marginTop: 10 }}
+                href={`mailto:andremanuel.koenig@gmail.com?subject=${encodeURIComponent('Frage zu meinem Paket')}&body=${encodeURIComponent('Betrieb: ' + profile.company_name)}`}
+              >
+                Für Änderungen am Basis-Paket: Support kontaktieren
+              </a>
+            </div>
+
+            <h3 style={{ margin: '20px 0 10px' }}>Zusatzpakete</h3>
+
+            {ADDON_REGISTRY.map((addonDef) => {
+              const booked = addons.find((a) => a.addon_key === addonDef.key)
+              const live = booked && isAddonLive(addonDef.key)
+
+              return (
+                <div className="card" key={addonDef.key}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <h3 style={{ margin: 0, fontSize: 16 }}>{addonDef.label}</h3>
+                    {booked && (
+                      <span className={`status-pill ${live ? 'status-live' : 'status-abgelehnt'}`}>
+                        {live ? 'Live' : 'Noch nicht eingerichtet'}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: '0 0 10px', fontSize: 14, color: 'var(--ink-soft)' }}>{addonDef.description}</p>
+
+                  {booked ? (
+                    <>
+                      <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
+                        Gebucht seit {new Date(booked.enabled_at).toLocaleDateString('de-DE')}
+                      </p>
+                      <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ink-soft)' }}>
+                        Verlängert sich automatisch am {nextRenewal(booked.enabled_at).toLocaleDateString('de-DE')}
+                      </p>
+
+                      {confirmingKey === addonDef.key ? (
+                        <div className="btn-row">
+                          <button className="btn btn-secondary" onClick={() => cancelAddon(addonDef.key)} disabled={busyKey === addonDef.key}>
+                            {busyKey === addonDef.key ? '...' : 'Wirklich kündigen'}
+                          </button>
+                          <button className="btn btn-secondary" onClick={() => setConfirmingKey(null)}>Abbrechen</button>
+                        </div>
+                      ) : (
+                        <button className="link-text" onClick={() => setConfirmingKey(addonDef.key)}>Kündigen</button>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => bookAddon(addonDef.key)}
+                      disabled={!isBasis || !isLive || busyKey === addonDef.key}
+                    >
+                      {busyKey === addonDef.key ? 'Wird gebucht...' : 'Jetzt buchen'}
+                    </button>
+                  )}
+                  {!booked && (!isBasis || !isLive) && (
+                    <p className="hint" style={{ marginTop: 6 }}>Zusatzpakete stehen erst zur Verfügung, sobald dein Basis-Paket live ist.</p>
+                  )}
+                </div>
+              )
+            })}
+          </>
+        )}
       </main>
     </>
   )

@@ -63,6 +63,7 @@ export default function AdminPanel({ onBack }) {
         <button className={tab === 'gewerbe-bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe-bestellungen')}>Gewerbe-Umsätze</button>
         <button className={tab === 'meldungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('meldungen')}>Meldungen</button>
         <button className={tab === 'testprofile' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('testprofile')}>Testprofile</button>
+        <button className={tab === 'archiviert' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('archiviert')}>Archivierte Gewerbeaccounts</button>
       </div>
 
       {tab === 'nutzer' && <NutzerTab />}
@@ -72,6 +73,7 @@ export default function AdminPanel({ onBack }) {
       {tab === 'gewerbe-bestellungen' && <GewerbeBestellungenTab />}
       {tab === 'meldungen' && <MeldungenTab />}
       {tab === 'testprofile' && <TestprofileTab />}
+      {tab === 'archiviert' && <ArchivierteGewerbeTab />}
     </>
   )
 
@@ -1348,3 +1350,58 @@ function TestprofileTab() {
     </>
   )
 }
+function ArchivierteGewerbeTab() {
+  const [entries, setEntries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [busyId, setBusyId] = useState(null)
+
+  useEffect(() => {
+    loadEntries()
+  }, [])
+
+  async function loadEntries() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('business_profiles')
+      .select('*')
+      .eq('account_status', 'archiviert')
+      .order('company_name')
+
+    if (error) setError(error.message)
+    setEntries(data || [])
+    setLoading(false)
+  }
+
+  async function restoreAccount(id) {
+    setBusyId(id)
+    const { error } = await supabase.from('business_profiles').update({ account_status: 'aktiv' }).eq('id', id)
+    if (!error) {
+      setEntries((prev) => prev.filter((e) => e.id !== id))
+    } else {
+      setError(error.message)
+    }
+    setBusyId(null)
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && entries.length === 0 && <p className="center-note">Keine archivierten Gewerbeaccounts.</p>}
+
+      {!loading && entries.map((entry) => (
+        <div className="card" key={entry.id}>
+          <h3 style={{ margin: '0 0 8px' }}>{entry.company_name}</h3>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            Business-ID: {entry.id}
+          </p>
+          <button className="btn btn-secondary" onClick={() => restoreAccount(entry.id)} disabled={busyId === entry.id}>
+            {busyId === entry.id ? 'Wird wiederhergestellt...' : 'Konto wiederherstellen'}
+          </button>
+        </div>
+      ))}
+    </>
+  )
+}
+

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
+import BusinessAccountProfile from './BusinessAccountProfile.jsx'
 
-export default function BusinessSettings({ profile, onProfileUpdated }) {
+export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite }) {
   const [view, setView] = useState(null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
 
   const [products, setProducts] = useState([])
@@ -864,6 +865,17 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
   if (view === 'konto-plan') {
     return (
       <PlanUndZusatzpakete profile={profile} onBack={() => setView(null)} />
+    )
+  }
+
+  if (view === 'konto-profil') {
+    return (
+      <BusinessAccountProfile
+        profile={profile}
+        onBack={() => setView(null)}
+        onGoToMySeite={onGoToMySeite}
+        onProfileUpdated={onProfileUpdated}
+      />
     )
   }
 

@@ -83,12 +83,17 @@ function Wachstum({ data }) {
     365: data.windows.find((w) => w.label === 'Letzte 365 Tage')?.value || 0
   }
 
-  const avg = (windowMap[selectedWindow] / selectedWindow).toFixed(2)
+  const avg = windowMap[selectedWindow] / selectedWindow
+  const avgLabel = avg.toFixed(2)
+
+  let avgColor = '#A3402F'
+  if (avg >= 1.5) avgColor = 'var(--forest)'
+  else if (avg >= 1) avgColor = '#C89B3C'
 
   return (
     <div>
       <div style={{ textAlign: 'center', marginBottom: 10, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
-        <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{avg}</p>
+        <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: avgColor }}>Ø {avgLabel}</p>
         <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-soft)' }}>Ø neue Einwohner pro Tag (letzte {selectedWindow} Tage)</p>
         <div className="btn-row" style={{ justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
           {[7, 30, 180, 365].map((w) => (

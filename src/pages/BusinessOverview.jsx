@@ -152,7 +152,7 @@ function ProfileStatusTile({ profile }) {
           <div className="card" style={{ maxWidth: 360, width: '100%' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>Warum ist mein Profil nicht live?</h3>
             <p style={{ fontSize: 14 }}>{STATUS_EXPLANATION[profile.status] || 'Der Status ist gerade nicht "live".'}</p>
-            
+            <a
               className="btn btn-primary"
               style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 8 }}
               href={`mailto:andremanuel.koenig@gmail.com?subject=${encodeURIComponent('Frage zu meinem Profil-Status')}&body=${encodeURIComponent('Betrieb: ' + profile.company_name)}`}

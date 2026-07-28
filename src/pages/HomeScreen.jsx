@@ -274,7 +274,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
   } else if (openApp === 'postfach') {
     content = <ResidentInbox userId={userId} onBack={() => { setOpenApp(null); checkPostfach() }} />
   } else if (openApp === 'branchenverzeichnis') {
-    content = <BusinessDirectory onOpenBusiness={(biz) => setOpenApp(biz)} onBack={() => setOpenApp(null)} />
+    content = <BusinessDirectory userId={userId} onBack={() => setOpenApp(null)} />
   } else {
     content = (
       <>

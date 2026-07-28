@@ -468,7 +468,6 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
             Master Dashboard
           </button>
         )}
-        )}
       </nav>
     </div>
   )

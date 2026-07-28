@@ -5,7 +5,6 @@ import Auth from './pages/Auth.jsx'
 import Onboarding from './pages/Onboarding.jsx'
 import PrivateProfileForm from './pages/PrivateProfileForm.jsx'
 import BusinessProfileForm from './pages/BusinessProfileForm.jsx'
-import Dashboard from './pages/Dashboard.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
 import HomeScreen from './pages/HomeScreen.jsx'
 import BusinessHomeScreen from './pages/BusinessHomeScreen.jsx'
@@ -14,14 +13,45 @@ import PasswordChangedCountdown from './pages/PasswordChangedCountdown.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
 import AccountBlocked from './pages/AccountBlocked.jsx'
 
+function AdminModeSwitcher({ hasPrivateProfile, hasBusinessProfile, onChoose }) {
+  return (
+    <div className="app-shell">
+      <div className="topbar">
+        <div className="mark">Plettenberg</div>
+        <h1>Dashboard</h1>
+      </div>
+      <main>
+        <p className="hint" style={{ marginBottom: 16 }}>Als was möchtest du die App gerade nutzen?</p>
+
+        {hasPrivateProfile && (
+          <button className="card-choice" onClick={() => onChoose('private')}>
+            <h3 style={{ margin: 0 }}>🧑 Als Einwohner nutzen</h3>
+          </button>
+        )}
+        {hasBusinessProfile && (
+          <button className="card-choice" onClick={() => onChoose('business')}>
+            <h3 style={{ margin: 0 }}>🏬 Als Gewerbe nutzen</h3>
+          </button>
+        )}
+        <button className="card-choice" onClick={() => onChoose('admin')}>
+          <h3 style={{ margin: 0 }}>🛠️ Verwaltung öffnen</h3>
+        </button>
+      </main>
+    </div>
+  )
+}
+
 export default function App() {
   const [justConfirmedMsg, setJustConfirmedMsg] = useState('')
   const [session, setSession] = useState(undefined)
   const [profileType, setProfileType] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [privateProfile, setPrivateProfile] = useState(null)
+  const [businessProfile, setBusinessProfile] = useState(null)
   const [checkingProfile, setCheckingProfile] = useState(false)
   const [chosenType, setChosenType] = useState(null)
   const [view, setView] = useState('dashboard')
+  const [adminMode, setAdminMode] = useState(() => sessionStorage.getItem('pb_adminMode') || null)
   const [passwordJustChanged, setPasswordJustChanged] = useState(false)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
 
@@ -43,10 +73,6 @@ export default function App() {
         setPasswordRecovery(true)
       }
 
-      if (event === 'PASSWORD_RECOVERY') {
-        setPasswordRecovery(true)
-      }
-
       if (event === 'SIGNED_IN') {
         sessionStorage.removeItem('pb_activeTab')
         sessionStorage.removeItem('pb_openApp')
@@ -62,6 +88,8 @@ export default function App() {
     if (!session) {
       setProfile(null)
       setProfileType(null)
+      setPrivateProfile(null)
+      setBusinessProfile(null)
       setPasswordJustChanged(false)
       setPasswordRecovery(false)
       return
@@ -70,13 +98,14 @@ export default function App() {
   }, [session])
 
   useEffect(() => {
-    if (!profileType) return
+    if (!profileType && !privateProfile && !businessProfile) return
     const ping = () => { supabase.rpc('touch_last_seen').then(() => {}) }
     ping()
     const interval = setInterval(ping, 60000)
     return () => clearInterval(interval)
-  }, [profileType])
-    useEffect(() => {
+  }, [profileType, privateProfile, businessProfile])
+
+  useEffect(() => {
     const preference = profile?.theme_preference || 'auto'
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
@@ -96,11 +125,28 @@ export default function App() {
   async function loadProfile(userId) {
     setCheckingProfile(true)
 
+    const admin = session?.user?.email === ADMIN_EMAIL
+
     const { data: privateData } = await supabase
       .from('private_profiles')
       .select('*')
       .eq('id', userId)
       .maybeSingle()
+
+    if (admin) {
+      const { data: businessData } = await supabase
+        .from('business_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+
+      setPrivateProfile(privateData || null)
+      setBusinessProfile(businessData || null)
+      setProfile(privateData || businessData || null)
+      setProfileType(privateData ? 'private' : businessData ? 'business' : null)
+      setCheckingProfile(false)
+      return
+    }
 
     if (privateData) {
       setProfile(privateData)
@@ -127,11 +173,21 @@ export default function App() {
     setCheckingProfile(false)
   }
 
+  function backToAdminDashboard() {
+    sessionStorage.removeItem('pb_adminMode')
+    setAdminMode(null)
+  }
+
+  function chooseAdminMode(mode) {
+    sessionStorage.setItem('pb_adminMode', mode)
+    setAdminMode(mode)
+  }
+
   if (session === undefined) {
     return <div className="loading-dot">Einen Moment...</div>
   }
 
- if (!session) {
+  if (!session) {
     return <Auth confirmedMessage={justConfirmedMsg} />
   }
 
@@ -144,6 +200,56 @@ export default function App() {
   }
 
   if (checkingProfile) {
+    return <div className="loading-dot">Einen Moment...</div>
+  }
+
+  const isAdmin = session.user.email === ADMIN_EMAIL
+
+  if (isAdmin) {
+    if (!adminMode) {
+      return (
+        <AdminModeSwitcher
+          hasPrivateProfile={!!privateProfile}
+          hasBusinessProfile={!!businessProfile}
+          onChoose={chooseAdminMode}
+        />
+      )
+    }
+
+    if (adminMode === 'admin') {
+      return <AdminPanel onBack={backToAdminDashboard} />
+    }
+
+    if (adminMode === 'private' && privateProfile) {
+      return (
+        <LanguageProvider initialLanguage={privateProfile.language_preference || 'de'}>
+          <HomeScreen
+            profile={privateProfile}
+            userId={session.user.id}
+            isAdmin={isAdmin}
+            isMasterAdmin
+            onBackToDashboard={backToAdminDashboard}
+            onProfileUpdated={() => loadProfile(session.user.id)}
+            onPasswordChanged={() => setPasswordJustChanged(true)}
+          />
+        </LanguageProvider>
+      )
+    }
+
+    if (adminMode === 'business' && businessProfile) {
+      return (
+        <BusinessHomeScreen
+          profile={businessProfile}
+          isAdmin={isAdmin}
+          isMasterAdmin
+          onBackToDashboard={backToAdminDashboard}
+          onOpenAdmin={() => setAdminMode('admin')}
+          onProfileUpdated={() => loadProfile(session.user.id)}
+        />
+      )
+    }
+
+    backToAdminDashboard()
     return <div className="loading-dot">Einen Moment...</div>
   }
 
@@ -174,9 +280,7 @@ export default function App() {
     return <AccountBlocked />
   }
 
-  const isAdmin = session.user.email === ADMIN_EMAIL
-
-  if (isAdmin && view === 'admin') {
+  if (view === 'admin') {
     return <AdminPanel onBack={() => setView('dashboard')} />
   }
 

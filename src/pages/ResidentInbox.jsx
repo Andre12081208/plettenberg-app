@@ -1,171 +1,202 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
+import { IdeaDetail } from './Ideenwerkstatt.jsx'
+
+const CATEGORY_META = {
+  gewerbe: { icon: '🏬', label: 'Gewerbe', tagClass: 'postfach-tag-gewerbe' },
+  stadtverwaltung: { icon: '🏛️', label: 'Stadtverwaltung', tagClass: 'postfach-tag-stadtverwaltung' },
+  ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt', tagClass: 'postfach-tag-ideenwerkstatt' }
+}
 
 export default function ResidentInbox({ userId, onBack }) {
-  const [view, setView] = useState('inbox') // 'inbox' | 'archiveBusinesses' | 'archiveDetail'
-  const [archiveBusinessId, setArchiveBusinessId] = useState(null)
-  const [inquiries, setInquiries] = useState([])
+  const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [openInquiry, setOpenInquiry] = useState(null)
+
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('alle')
+  const [mailboxTab, setMailboxTab] = useState('inbox') // 'inbox' | 'archiviert'
+  const [openMenuId, setOpenMenuId] = useState(null)
+
+  const [selected, setSelected] = useState(null)
+  const [selectedIdea, setSelectedIdea] = useState(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
 
   useEffect(() => {
-    loadInquiries()
+    loadConversations()
   }, [])
 
-  async function loadInquiries() {
+  async function loadConversations() {
     setLoading(true)
     setError('')
 
-    const [{ data, error }, { data: unreadRows }] = await Promise.all([
-      supabase
-        .from('business_inquiries')
-        .select('*, business_profiles(company_name, logo_url)')
-        .eq('buyer_id', userId)
-        .order('updated_at', { ascending: false }),
-      supabase.rpc('get_resident_inquiry_unread_map')
-    ])
-
-    const unreadMap = {}
-    for (const row of unreadRows || []) unreadMap[row.inquiry_id] = row.unread_count
+    const { data, error } = await supabase
+      .from('postfach_conversations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('is_pinned', { ascending: false })
+      .order('last_activity_at', { ascending: false })
 
     if (error) setError(error.message)
-    setInquiries((data || []).map((i) => ({ ...i, unreadCount: unreadMap[i.id] || 0 })))
+    setConversations(data || [])
     setLoading(false)
   }
 
-  async function openThread(inquiryId) {
-    await supabase.from('business_inquiries').update({ buyer_last_read_at: new Date().toISOString() }).eq('id', inquiryId)
-    setOpenInquiry(inquiryId)
+  async function openConversation(conv) {
+    setLoadingDetail(true)
+
+    if (conv.source_type === 'idea') {
+      const { data } = await supabase.from('ideas').select('*').eq('id', conv.source_id).maybeSingle()
+      setSelectedIdea(data)
+    } else {
+      setSelectedIdea(null)
+    }
+
+    await supabase.from('postfach_conversations').update({ last_read_at: new Date().toISOString(), manually_unread: false }).eq('id', conv.id)
+
+    setSelected(conv)
+    setLoadingDetail(false)
   }
 
-  async function archiveInquiry(inquiryId) {
-    await supabase.from('business_inquiries').update({ buyer_mailbox_status: 'archiviert' }).eq('id', inquiryId)
-    setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, buyer_mailbox_status: 'archiviert' } : i)))
+  function closeConversation() {
+    setSelected(null)
+    setSelectedIdea(null)
+    loadConversations()
   }
 
-  async function deleteInquiry(inquiryId) {
-    await supabase.from('business_inquiries').update({ buyer_mailbox_status: 'geloescht' }).eq('id', inquiryId)
-    setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, buyer_mailbox_status: 'geloescht' } : i)))
+  async function updateConversation(id, patch) {
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+    await supabase.from('postfach_conversations').update(patch).eq('id', id)
+    setOpenMenuId(null)
   }
 
-  async function restoreInquiry(inquiryId) {
-    await supabase.from('business_inquiries').update({ buyer_mailbox_status: 'inbox' }).eq('id', inquiryId)
-    setInquiries((prev) => prev.map((i) => (i.id === inquiryId ? { ...i, buyer_mailbox_status: 'inbox' } : i)))
+  function isUnread(conv) {
+    return conv.manually_unread || new Date(conv.last_activity_at) > new Date(conv.last_read_at)
   }
 
-  if (openInquiry) {
-    return (
-      <BusinessInquiryChat
-        userId={userId}
-        inquiryId={openInquiry}
-        isBusiness={false}
-        onBack={() => { setOpenInquiry(null); loadInquiries() }}
-      />
-    )
-  }
+  const filtered = conversations
+    .filter((c) => c.mailbox_status === mailboxTab)
+    .filter((c) => categoryFilter === 'alle' || c.category === categoryFilter)
+    .filter((c) => {
+      if (!search.trim()) return true
+      const needle = search.trim().toLowerCase()
+      return (
+        c.title?.toLowerCase().includes(needle) ||
+        c.subtitle?.toLowerCase().includes(needle) ||
+        c.counterpart_name?.toLowerCase().includes(needle)
+      )
+    })
 
-  const inboxItems = inquiries.filter((i) => i.buyer_mailbox_status === 'inbox' || !i.buyer_mailbox_status)
-  const archivedItems = inquiries.filter((i) => i.buyer_mailbox_status === 'archiviert')
+  const listContent = (
+    <>
+      {error && <div className="error-box">{error}</div>}
 
-  const archivedBusinesses = Object.values(
-    archivedItems.reduce((acc, i) => {
-      const bid = i.business_profile_id
-      if (!acc[bid]) {
-        acc[bid] = { id: bid, name: i.business_profiles?.company_name || 'Betrieb', logo_url: i.business_profiles?.logo_url, count: 0 }
-      }
-      acc[bid].count += 1
-      return acc
-    }, {})
-  )
-
-  function renderInquiryCard(inquiry, options = {}) {
-    return (
-      <div className="card" key={inquiry.id} style={{ padding: 0, overflow: 'hidden' }}>
-        <button
-          style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}
-          onClick={() => openThread(inquiry.id)}
-        >
-          <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
-            {inquiry.business_profiles?.logo_url ? <img src={inquiry.business_profiles.logo_url} alt="" /> : '🏬'}
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ margin: 0 }}>{inquiry.business_profiles?.company_name || 'Betrieb'}</h3>
-            <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-              {inquiry.product_name_snapshot || 'Anfrage'}
-            </p>
-            <span className={`status-pill ${{ angefragt: 'status-pruefung', in_bearbeitung: 'status-vertrag', erledigt: 'status-live' }[inquiry.status] || 'status-pruefung'}`} style={{ fontSize: 11, marginTop: 4, display: 'inline-block' }}>
-              {{ angefragt: '⚪ Angefragt', in_bearbeitung: '🔵 In Bearbeitung', erledigt: '✅ Erledigt' }[inquiry.status] || '⚪ Angefragt'}
-            </span>
-          </div>
-          {inquiry.unreadCount > 0 && (
-            <span style={{ minWidth: 22, height: 22, borderRadius: 11, background: 'var(--clay)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', flexShrink: 0 }}>
-              {inquiry.unreadCount}
-            </span>
-          )}
-        </button>
-        <div className="btn-row" style={{ padding: '0 16px 16px' }}>
-          {options.showRestore ? (
-            <button className="btn btn-secondary" onClick={() => restoreInquiry(inquiry.id)}>Zurück in den Posteingang</button>
-          ) : (
-            <button className="btn btn-secondary" onClick={() => archiveInquiry(inquiry.id)}>Als erledigt archivieren</button>
-          )}
-          <button className="btn btn-secondary" onClick={() => deleteInquiry(inquiry.id)}>Löschen</button>
-        </div>
+      <div className="field">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Suchen: Name, Betrieb oder Inhalt..."
+        />
       </div>
-    )
-  }
 
-  if (view === 'archiveBusinesses') {
-    return (
-      <div className="app-shell">
-        <div className="topbar">
-          <div className="mark">Plettenberg</div>
-          <h1>Erledigt</h1>
-        </div>
-        <main>
-          <button className="link-text" onClick={() => setView('inbox')} style={{ marginBottom: 16 }}>← Zurück zum Posteingang</button>
+      <div className="btn-row" style={{ marginBottom: 10, flexWrap: 'wrap' }}>
+        {[
+          { value: 'alle', label: 'Alle' },
+          { value: 'gewerbe', label: '🏬 Gewerbe' },
+          { value: 'stadtverwaltung', label: '🏛️ Stadtverwaltung' },
+          { value: 'ideenwerkstatt', label: '💡 Ideenwerkstatt' }
+        ].map((f) => (
+          <button
+            key={f.value}
+            className={categoryFilter === f.value ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{ width: 'auto', padding: '8px 14px' }}
+            onClick={() => setCategoryFilter(f.value)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
-          {archivedBusinesses.length === 0 && <p className="center-note">Noch keine archivierten Anfragen.</p>}
+      <div className="btn-row" style={{ marginBottom: 16 }}>
+        <button className={mailboxTab === 'inbox' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setMailboxTab('inbox')}>Posteingang</button>
+        <button className={mailboxTab === 'archiviert' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setMailboxTab('archiviert')}>Archiviert</button>
+      </div>
 
-          {archivedBusinesses.map((b) => (
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && filtered.length === 0 && <p className="center-note">Keine Nachrichten gefunden.</p>}
+
+      {!loading && filtered.map((conv) => {
+        const meta = CATEGORY_META[conv.category]
+        const unread = isUnread(conv)
+        return (
+          <div className="card" key={conv.id} style={{ padding: 0, overflow: 'hidden' }}>
             <button
-              key={b.id}
-              className="card"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer' }}
-              onClick={() => { setArchiveBusinessId(b.id); setView('archiveDetail') }}
+              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}
+              onClick={() => openConversation(conv)}
             >
               <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
-                {b.logo_url ? <img src={b.logo_url} alt="" /> : '🏬'}
+                {conv.counterpart_avatar_url ? <img src={conv.counterpart_avatar_url} alt="" /> : meta.icon}
               </div>
-              <div>
-                <h3 style={{ margin: 0 }}>{b.name}</h3>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>{b.count} archivierte Anfrage{b.count > 1 ? 'n' : ''}</p>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {conv.is_pinned && <span style={{ fontSize: 12 }}>📌</span>}
+                  <h3 style={{ margin: 0, fontWeight: unread ? 700 : 600 }}>{conv.title}</h3>
+                </div>
+                {conv.subtitle && <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>{conv.subtitle}</p>}
+                <span className={`status-pill ${meta.tagClass}`} style={{ fontSize: 11, marginTop: 4, display: 'inline-block' }}>
+                  {meta.icon} {meta.label}
+                </span>
               </div>
+              {unread && (
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--clay)', flexShrink: 0 }} />
+              )}
             </button>
-          ))}
-        </main>
-      </div>
-    )
-  }
 
-  if (view === 'archiveDetail') {
-    const items = archivedItems.filter((i) => i.business_profile_id === archiveBusinessId)
-    const businessName = items[0]?.business_profiles?.company_name || 'Betrieb'
-    return (
-      <div className="app-shell">
-        <div className="topbar">
-          <div className="mark">Plettenberg</div>
-          <h1>{businessName}</h1>
-        </div>
-        <main>
-          <button className="link-text" onClick={() => setView('archiveBusinesses')} style={{ marginBottom: 16 }}>← Zurück zu Erledigt</button>
-          {items.map((i) => renderInquiryCard(i, { showRestore: true }))}
-        </main>
-      </div>
-    )
-  }
+            <div style={{ padding: '0 16px 12px' }}>
+              {openMenuId === conv.id ? (
+                <div className="btn-row" style={{ flexWrap: 'wrap' }}>
+                  <button className="link-text" onClick={() => updateConversation(conv.id, { is_pinned: !conv.is_pinned })}>
+                    {conv.is_pinned ? 'Lösen' : 'Fixieren'}
+                  </button>
+                  <button className="link-text" onClick={() => updateConversation(conv.id, { manually_unread: true })}>Als ungelesen markieren</button>
+                  {conv.mailbox_status === 'inbox' ? (
+                    <button className="link-text" onClick={() => updateConversation(conv.id, { mailbox_status: 'archiviert' })}>Archivieren</button>
+                  ) : (
+                    <button className="link-text" onClick={() => updateConversation(conv.id, { mailbox_status: 'inbox' })}>Zurück in Posteingang</button>
+                  )}
+                  <button className="link-text" onClick={() => updateConversation(conv.id, { mailbox_status: 'geloescht' })}>Löschen</button>
+                  <button className="link-text" onClick={() => setOpenMenuId(null)}>Schließen</button>
+                </div>
+              ) : (
+                <button className="link-text" onClick={() => setOpenMenuId(conv.id)}>⋯ Mehr</button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </>
+  )
+
+  const detailContent = loadingDetail ? (
+    <div className="loading-dot">Lädt...</div>
+  ) : selected?.source_type === 'business_inquiry' ? (
+    <BusinessInquiryChat
+      userId={userId}
+      inquiryId={selected.source_id}
+      isBusiness={false}
+      onBack={closeConversation}
+    />
+  ) : selected?.source_type === 'idea' && selectedIdea ? (
+    <IdeaDetail
+      userId={userId}
+      idea={selectedIdea}
+      onBack={closeConversation}
+      onUpdated={(updated) => setSelectedIdea(updated)}
+    />
+  ) : (
+    <p className="center-note" style={{ marginTop: 40 }}>Wähle eine Unterhaltung aus.</p>
+  )
 
   return (
     <div className="app-shell">
@@ -176,17 +207,10 @@ export default function ResidentInbox({ userId, onBack }) {
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
 
-        {error && <div className="error-box">{error}</div>}
-
-        <button className="card-choice" onClick={() => setView('archiveBusinesses')}>
-          <h3 style={{ margin: 0 }}>📁 Erledigt</h3>
-          <p style={{ margin: 0 }}>{archivedItems.length} archivierte Anfrage{archivedItems.length !== 1 ? 'n' : ''}</p>
-        </button>
-
-        {loading && <div className="loading-dot">Lädt...</div>}
-        {!loading && inboxItems.length === 0 && <p className="center-note">Noch keine Anfragen.</p>}
-
-        {!loading && inboxItems.map((i) => renderInquiryCard(i, { showRestore: false }))}
+        <div className={`postfach-split ${selected ? 'detail-open' : ''}`}>
+          <div className="postfach-list">{listContent}</div>
+          <div className="postfach-detail">{detailContent}</div>
+        </div>
       </main>
     </div>
   )

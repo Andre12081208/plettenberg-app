@@ -350,4 +350,44 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
         )}
 
         {loading && <div className="loading-dot">Lädt...</div>}
-        {!loading &&
+        {!loading && tiles.length === 0 && !showForm && (
+          <p className="center-note">Noch keine Kacheln angelegt.</p>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          {!loading && tiles.map((tile) => (
+            <div className="card" key={tile.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <h3 style={{ margin: 0, fontSize: 15 }}>{tile.title}</h3>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
+                  <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
+                </div>
+              </div>
+              {renderTileContent(tile)}
+            </div>
+          ))}
+        </div>
+      </main>
+
+      <nav className="tab-bar">
+        {hasPrivateProfile && (
+          <button className="tab-bar-item" onClick={() => onChooseMode('private')}>
+            <span className="tab-bar-icon">🧑</span>
+            Einwohner
+          </button>
+        )}
+        {hasBusinessProfile && (
+          <button className="tab-bar-item" onClick={() => onChooseMode('business')}>
+            <span className="tab-bar-icon">🏬</span>
+            Gewerbe
+          </button>
+        )}
+        <button className="tab-bar-item" onClick={() => onChooseMode('admin')}>
+          <span className="tab-bar-icon">🛠️</span>
+          Verwaltung
+        </button>
+      </nav>
+    </div>
+  )
+}

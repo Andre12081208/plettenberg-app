@@ -367,3 +367,20 @@ body.dark-mode {
     left: 0;
   }
 }
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
+}
+.dashboard-grid .tile-voll { grid-column: span 12; }
+.dashboard-grid .tile-halb { grid-column: span 6; }
+.dashboard-grid .tile-drittel { grid-column: span 4; }
+.dashboard-grid .tile-viertel { grid-column: span 3; }
+
+@media (max-width: 767px) {
+  .dashboard-grid .tile-halb,
+  .dashboard-grid .tile-drittel,
+  .dashboard-grid .tile-viertel {
+    grid-column: span 12;
+  }
+}

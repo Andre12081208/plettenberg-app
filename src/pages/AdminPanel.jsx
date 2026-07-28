@@ -71,10 +71,10 @@ export default function AdminPanel({ onBack }) {
         <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
         <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
         <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('channels')}>Channels</button>
-        <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')} style={{ position: 'relative' }}>
+        <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           Ideenwerkstatt
           {adminUnreadIdeaCount > 0 && (
-            <span style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+            <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
               {adminUnreadIdeaCount}
             </span>
           )}
@@ -1000,10 +1000,27 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
     const withNames = await Promise.all(
       (data || []).map(async (idea) => {
         const { data: username } = await supabase.rpc('get_username', { target_id: idea.user_id })
-        if (username) return { ...idea, username, isBusinessSubmitter: false }
 
-        const { data: business } = await supabase.from('business_profiles').select('company_name').eq('id', idea.user_id).maybeSingle()
-        return { ...idea, username: business?.company_name || 'Unbekannt', isBusinessSubmitter: true }
+        let named
+        if (username) named = { ...idea, username, isBusinessSubmitter: false }
+        else {
+          const { data: business } = await supabase.from('business_profiles').select('company_name').eq('id', idea.user_id).maybeSingle()
+          named = { ...idea, username: business?.company_name || 'Unbekannt', isBusinessSubmitter: true }
+        }
+
+        if (!idea.admin_seen_at) {
+          named.adminUnreadCount = 1
+        } else {
+          const { data: msgs } = await supabase
+            .from('idea_messages')
+            .select('id')
+            .eq('idea_id', idea.id)
+            .eq('is_developer', false)
+            .gt('created_at', idea.admin_seen_at)
+          named.adminUnreadCount = (msgs || []).length
+        }
+
+        return named
       })
     )
 
@@ -1028,14 +1045,15 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
       {!loading && ideas.length === 0 && <p className="center-note">Noch keine Ideen eingereicht.</p>}
 
       {!loading && ideas.map((idea) => {
-        const isUnread = !idea.admin_seen_at || new Date(idea.submitter_activity_at) > new Date(idea.admin_seen_at)
         return (
         <div className="card" key={idea.id}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
             <h3 style={{ margin: 0, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               {idea.title}
-              {isUnread && (
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--clay)', display: 'inline-block' }} />
+              {idea.adminUnreadCount > 0 && (
+                <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                  {idea.adminUnreadCount}
+                </span>
               )}
             </h3>
             <span className="status-pill status-live" style={{ fontSize: 11 }}>{idea.idea_number}</span>

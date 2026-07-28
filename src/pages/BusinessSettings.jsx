@@ -4,6 +4,7 @@ import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 import BusinessAccountProfile from './BusinessAccountProfile.jsx'
 import BusinessAccessSecurity from './BusinessAccessSecurity.jsx'
+import BusinessAccountHistory from './BusinessAccountHistory.jsx'
 
 export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite }) {
   const [view, setView] = useState(null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
@@ -873,6 +874,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return <BusinessAccessSecurity onBack={() => setView(null)} />
   }
 
+  if (view === 'konto-datenschutz' && false) {
+    // Platzhalter, kommt in einer späteren Etappe
+  }
+
   if (view === 'konto-profil') {
     return (
       <BusinessAccountProfile
@@ -889,11 +894,16 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     { key: 'konto-sicherheit', icon: '🔒', label: 'Sicherheit' },
     { key: 'konto-datenschutz', icon: '🛡️', label: 'Datenschutz' },
     { key: 'konto-benachrichtigungen', icon: '🔔', label: 'Benachrichtigungen' },
+    { key: 'konto-historie', icon: '🕓', label: 'Kontohistorie' },
     { key: 'konto-plan', icon: '💳', label: 'Mein Plan und Zusatzpakete' },
     { key: 'konto-rechnungen', icon: '🧾', label: 'Rechnungen' },
     { key: 'konto-zahlungsmethoden', icon: '💰', label: 'Zahlungsmethoden' },
     { key: 'konto-einstellungen', icon: '⚙️', label: 'Einstellungen' }
   ]
+
+  if (view === 'konto-historie') {
+    return <BusinessAccountHistory profile={profile} onBack={() => setView(null)} />
+  }
 
   if (view && view.startsWith('konto-')) {
     const item = KONTO_ITEMS.find((i) => i.key === view)

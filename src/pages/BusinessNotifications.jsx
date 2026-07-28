@@ -77,7 +77,7 @@ export default function BusinessNotifications({ profile, onBack, onProfileUpdate
           <Row field="notif_system" label="Systemmeldungen" />
           <Row field="notif_rechnungen" label="Rechnungen" hint="Die Rechnungs-Funktion selbst ist noch nicht verfügbar." />
           <Row field="notif_abonnement" label="Abonnement" />
-          <Row field="notif_ideenwerkstatt" label="Ideenwerkstatt" hint="Steht Gewerbeprofilen aktuell noch nicht zur Verfügung." />
+          <Row field="notif_ideenwerkstatt" label="Ideenwerkstatt" />
           <Row field="notif_wartung" label="Wartungsinformationen" />
           <Row field="notif_neue_funktionen" label="Neue Funktionen" />
         </div>

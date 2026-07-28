@@ -8,6 +8,7 @@ import BusinessInbox from './BusinessInbox.jsx'
 export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, onBackToDashboard, onOpenAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
+  const [settingsResetKey, setSettingsResetKey] = useState(0)
 
   useEffect(() => {
     checkUnreadInquiries()
@@ -21,6 +22,9 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   }
 
   function goToTab(tab) {
+    if (tab === 'settings' && activeTab === 'settings') {
+      setSettingsResetKey((k) => k + 1)
+    }
     setActiveTab(tab)
     if (tab !== 'inbox') checkUnreadInquiries()
   }
@@ -33,7 +37,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   } else if (activeTab === 'inbox') {
     content = <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
   } else if (activeTab === 'settings') {
-    content = <BusinessSettings profile={profile} onProfileUpdated={onProfileUpdated} onGoToMySeite={() => goToTab('mypage')} />
+    content = <BusinessSettings key={settingsResetKey} profile={profile} onProfileUpdated={onProfileUpdated} onGoToMySeite={() => goToTab('mypage')} />
   }
 
   return (

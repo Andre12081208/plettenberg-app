@@ -43,7 +43,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
       <nav className="tab-bar">
         <button className={`tab-bar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => goToTab('dashboard')}>
           <span className="tab-bar-icon">🏠</span>
-          Übersicht
+          Admin Dashboard
         </button>
         <button className={`tab-bar-item ${activeTab === 'mypage' ? 'active' : ''}`} onClick={() => goToTab('mypage')}>
           <span className="tab-bar-icon">🏬</span>
@@ -65,7 +65,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
         {isMasterAdmin && (
           <button className="tab-bar-item" onClick={onBackToDashboard}>
             <span className="tab-bar-icon">🧭</span>
-            Dashboard
+            Master Dashboard
           </button>
         )}
       </nav>

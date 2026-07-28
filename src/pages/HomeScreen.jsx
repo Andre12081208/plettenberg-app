@@ -27,7 +27,7 @@ const SYSTEM_APP_META = {
   ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' }
 }
 
-export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated, onPasswordChanged }) {
+export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
   const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_activeTab') || 'apps')
   const [openApp, setOpenApp] = useState(() => {
@@ -461,6 +461,12 @@ export default function HomeScreen({ profile, userId, isAdmin, onProfileUpdated,
           >
             <span className="tab-bar-icon">🛠️</span>
             {t('nav.admin')}
+          </button>
+        )}
+        {isMasterAdmin && (
+          <button className="tab-bar-item" onClick={onBackToDashboard}>
+            <span className="tab-bar-icon">🧭</span>
+            Dashboard
           </button>
         )}
       </nav>

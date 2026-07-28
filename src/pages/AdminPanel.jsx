@@ -89,7 +89,7 @@ export default function AdminPanel({ onBack }) {
       {tab === 'nutzer' && <NutzerTab />}
       {tab === 'gewerbe' && <GewerbeTab />}
       {tab === 'channels' && <ChannelsTab />}
-      {tab === 'ideenwerkstatt' && <IdeenwerkstattTab />}
+      {tab === 'ideenwerkstatt' && <IdeenwerkstattTab onIdeaSeen={checkAdminUnreadIdeas} />}
       {tab === 'gewerbe-bestellungen' && <GewerbeBestellungenTab />}
       {tab === 'meldungen' && <MeldungenTab />}
       {tab === 'testprofile' && <TestprofileTab />}

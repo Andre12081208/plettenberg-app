@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
+import ChannelDetail from './ChannelDetail.jsx'
 
 function isCurrentlyOpen(hours) {
   if (!hours) return null
@@ -23,6 +24,14 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
   const [terminPicker, setTerminPicker] = useState(false)
   const [channelInfo, setChannelInfo] = useState(null)
   const [activeHotspotModal, setActiveHotspotModal] = useState(null)
+  const [isInstalled, setIsInstalled] = useState(true)
+  const [hasChannelAddonForResident, setHasChannelAddonForResident] = useState(false)
+  const [directoryChannel, setDirectoryChannel] = useState(null)
+  const [showChannelView, setShowChannelView] = useState(false)
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [reportMessage, setReportMessage] = useState('')
+  const [sendingReport, setSendingReport] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
   const [view, setView] = useState('browse') // 'browse' | 'cart' | 'orders' | 'inquiries'
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -53,12 +62,55 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     if (hasShop) {
       loadProducts()
       loadInquiries()
-      loadRoomInfo()
     } else {
       setLoading(false)
     }
+    loadInstallAndChannelInfo()
     // eslint-disable-next-line
   }, [])
+
+  async function loadInstallAndChannelInfo() {
+    const [{ data: installedRow }, { data: addonRows }, { data: channelRow }] = await Promise.all([
+      supabase.from('installed_apps').select('user_id').eq('user_id', userId).eq('business_profile_id', app.id).maybeSingle(),
+      supabase.from('business_addons').select('addon_key').eq('business_profile_id', app.id),
+      supabase.from('channels').select('id, name').eq('created_by', app.id).limit(1).maybeSingle()
+    ])
+
+    setIsInstalled(!!installedRow)
+    setHasChannelAddonForResident((addonRows || []).some((a) => a.addon_key === 'channel'))
+    setDirectoryChannel(channelRow || null)
+  }
+
+  async function installApp() {
+    const { data: existingRows } = await supabase.from('installed_apps').select('position').eq('user_id', userId)
+    const maxPosition = (existingRows || []).reduce((max, r) => Math.max(max, r.position), 0)
+
+    const { error } = await supabase.from('installed_apps').insert({
+      user_id: userId,
+      business_profile_id: app.id,
+      position: maxPosition + 1
+    })
+
+    if (!error) setIsInstalled(true)
+  }
+
+  async function submitListingReport(e) {
+    e.preventDefault()
+    if (!reportMessage.trim()) return
+    setSendingReport(true)
+
+    const { data: listing } = await supabase.from('directory_listings').select('id').eq('linked_business_profile_id', app.id).maybeSingle()
+
+    if (listing) {
+      await supabase.from('directory_listing_reports').insert({
+        listing_id: listing.id,
+        reporter_id: userId,
+        message: reportMessage.trim()
+      })
+      setReportSent(true)
+    }
+    setSendingReport(false)
+  }
 
   async function loadRoomInfo() {
     const [{ data: addonRows }, { data: hotspotRows }] = await Promise.all([
@@ -500,6 +552,16 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     )
   }
 
+  if (showChannelView && directoryChannel) {
+    return (
+      <ChannelDetail
+        userId={userId}
+        channelId={directoryChannel.id}
+        onBack={() => setShowChannelView(false)}
+      />
+    )
+  }
+
   if (openInquiry) {
     return (
       <BusinessInquiryChat
@@ -721,6 +783,32 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
             {app.contact_person && <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginTop: 10 }}>Ansprechpartner: {app.contact_person}</p>}
           </div>
         </div>
+        <div className="btn-row" style={{ marginTop: 12, flexWrap: 'wrap' }}>
+          {!isInstalled ? (
+            <button className="btn btn-secondary" onClick={installApp}>➕ Zur Startseite hinzufügen</button>
+          ) : (
+            <span style={{ fontSize: 13, color: 'var(--ink-soft)', alignSelf: 'center' }}>✓ Auf deiner Startseite</span>
+          )}
+          {hasChannelAddonForResident && directoryChannel && (
+            <button className="btn btn-secondary" onClick={() => setShowChannelView(true)}>📢 Zum Channel</button>
+          )}
+        </div>
+
+        {reportSent ? (
+          <p style={{ fontSize: 13, color: 'var(--forest)', marginTop: 8 }}>Danke für den Hinweis!</p>
+        ) : showReportForm ? (
+          <form onSubmit={submitListingReport} style={{ marginTop: 10 }}>
+            <div className="field">
+              <textarea rows={2} required value={reportMessage} onChange={(e) => setReportMessage(e.target.value)} placeholder="Was ist veraltet oder falsch?" />
+            </div>
+            <div className="btn-row">
+              <button className="btn btn-secondary" type="submit" disabled={sendingReport}>{sendingReport ? '...' : 'Melden'}</button>
+              <button className="btn btn-secondary" type="button" onClick={() => setShowReportForm(false)}>Abbrechen</button>
+            </div>
+          </form>
+        ) : (
+          <button className="link-text" onClick={() => setShowReportForm(true)} style={{ marginTop: 8, fontSize: 13 }}>🚩 Fehler melden</button>
+        )}
 
         {hasShop && (
           <>

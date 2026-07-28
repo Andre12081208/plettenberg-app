@@ -480,14 +480,16 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
             Gewerbe
           </button>
         )}
-        <button className="tab-bar-item" onClick={() => onChooseMode('admin')} style={{ position: 'relative' }}>
-          <span className="tab-bar-icon">🛠️</span>
+        <button className="tab-bar-item" onClick={() => onChooseMode('admin')}>
+          <span className="tab-bar-icon" style={{ position: 'relative', display: 'inline-block' }}>
+            🛠️
+            {adminUnreadIdeaCount > 0 && (
+              <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 16, height: 16, borderRadius: 8, background: 'var(--clay)', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                {adminUnreadIdeaCount}
+              </span>
+            )}
+          </span>
           Verwaltung
-          {adminUnreadIdeaCount > 0 && (
-            <span style={{ position: 'absolute', top: 2, right: '20%', minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-              {adminUnreadIdeaCount}
-            </span>
-          )}
         </button>
       </nav>
     </div>

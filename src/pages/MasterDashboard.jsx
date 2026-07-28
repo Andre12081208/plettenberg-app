@@ -74,11 +74,34 @@ function PieChart({ data }) {
 }
 
 function Wachstum({ data }) {
+  const [selectedWindow, setSelectedWindow] = useState(30)
+
+  const windowMap = {
+    7: data.windows.find((w) => w.label === 'Letzte 7 Tage')?.value || 0,
+    30: data.windows.find((w) => w.label === 'Letzte 30 Tage')?.value || 0,
+    180: data.windows.find((w) => w.label === 'Letzte 180 Tage')?.value || 0,
+    365: data.windows.find((w) => w.label === 'Letzte 365 Tage')?.value || 0
+  }
+
+  const avg = (windowMap[selectedWindow] / selectedWindow).toFixed(2)
+
   return (
     <div>
-      <div style={{ textAlign: 'center', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
-        <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{data.avg_per_day}</p>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-soft)' }}>Ø neue Einwohner pro Tag</p>
+      <div style={{ textAlign: 'center', marginBottom: 10, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
+        <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{avg}</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-soft)' }}>Ø neue Einwohner pro Tag (letzte {selectedWindow} Tage)</p>
+        <div className="btn-row" style={{ justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+          {[7, 30, 180, 365].map((w) => (
+            <button
+              key={w}
+              className={selectedWindow === w ? 'btn btn-primary' : 'btn btn-secondary'}
+              style={{ width: 'auto', padding: '6px 12px', fontSize: 12 }}
+              onClick={() => setSelectedWindow(w)}
+            >
+              {w} Tage
+            </button>
+          ))}
+        </div>
       </div>
       {data.windows.map((w, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0' }}>

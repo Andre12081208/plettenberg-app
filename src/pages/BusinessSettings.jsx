@@ -892,6 +892,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         profile={profile}
         onBack={() => setView(null)}
         onGoToKontoverwaltung={() => setView('konto-profil')}
+        onGoToBenachrichtigungen={() => setView('konto-benachrichtigungen')}
         onProfileUpdated={onProfileUpdated}
       />
     )

@@ -61,6 +61,7 @@ export default function BusinessAccountProfile({ profile, onBack, onGoToMySeite,
     if (error) {
       setError(error.message)
     } else {
+      await supabase.from('business_account_events').insert({ business_profile_id: profile.id, event_type: 'unternehmensdaten_geaendert' })
       setEditing(false)
       onProfileUpdated?.()
     }

@@ -861,6 +861,35 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
     )
   }
 
+  const KONTO_ITEMS = [
+    { key: 'konto-profil', icon: '👤', label: 'Profil' },
+    { key: 'konto-sicherheit', icon: '🔒', label: 'Sicherheit' },
+    { key: 'konto-datenschutz', icon: '🛡️', label: 'Datenschutz' },
+    { key: 'konto-benachrichtigungen', icon: '🔔', label: 'Benachrichtigungen' },
+    { key: 'konto-plan', icon: '💳', label: 'Mein Plan und Zusatzpakete' },
+    { key: 'konto-rechnungen', icon: '🧾', label: 'Rechnungen' },
+    { key: 'konto-zahlungsmethoden', icon: '💰', label: 'Zahlungsmethoden' },
+    { key: 'konto-einstellungen', icon: '⚙️', label: 'Einstellungen' }
+  ]
+
+  if (view && view.startsWith('konto-')) {
+    const item = KONTO_ITEMS.find((i) => i.key === view)
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>{item?.label || 'Mein Konto'}</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+          <div className="card">
+            <p className="center-note">Dieser Bereich ist noch in Arbeit.</p>
+          </div>
+        </main>
+      </>
+    )
+  }
+
   return (
     <>
       <div className="topbar">
@@ -906,6 +935,16 @@ export default function BusinessSettings({ profile, onProfileUpdated }) {
         </div>
 
         <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 24 }}>Abmelden</button>
+
+        <h3 style={{ margin: '28px 0 12px' }}>Mein Konto</h3>
+        <div className="app-grid">
+          {KONTO_ITEMS.map((item) => (
+            <button key={item.key} className="app-tile" onClick={() => setView(item.key)}>
+              <div className="app-tile-icon">{item.icon}</div>
+              <div className="app-tile-label">{item.label}</div>
+            </button>
+          ))}
+        </div>
       </main>
     </>
   )

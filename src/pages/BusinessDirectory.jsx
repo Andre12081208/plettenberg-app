@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import DirectoryListingDetail from './DirectoryListingDetail.jsx'
 
-export default function BusinessDirectory({ onOpenBusiness, onBack }) {
+export default function BusinessDirectory({ userId, onBack }) {
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -9,8 +10,9 @@ export default function BusinessDirectory({ onOpenBusiness, onBack }) {
 
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState(null)
-  const [businesses, setBusinesses] = useState([])
-  const [loadingBusinesses, setLoadingBusinesses] = useState(false)
+  const [listings, setListings] = useState([])
+  const [loadingListings, setLoadingListings] = useState(false)
+  const [openListing, setOpenListing] = useState(null)
 
   useEffect(() => {
     loadTaxonomy()
@@ -31,18 +33,27 @@ export default function BusinessDirectory({ onOpenBusiness, onBack }) {
 
   async function openSubcategory(sub) {
     setSelectedSubcategory(sub)
-    setLoadingBusinesses(true)
+    setLoadingListings(true)
 
-    const { data, error: bizError } = await supabase
-      .from('business_profiles')
-      .select('*')
-      .eq('directory_subcategory_id', sub.id)
-      .eq('status', 'live')
-      .order('company_name')
+    const { data, error: listError } = await supabase
+      .from('directory_listings')
+      .select('*, business_profiles(status, plan, logo_url, tagline)')
+      .eq('subcategory_id', sub.id)
+      .order('name')
 
-    if (bizError) setError(bizError.message)
-    setBusinesses(data || [])
-    setLoadingBusinesses(false)
+    if (listError) setError(listError.message)
+    setListings(data || [])
+    setLoadingListings(false)
+  }
+
+  if (openListing) {
+    return (
+      <DirectoryListingDetail
+        listing={openListing}
+        userId={userId}
+        onBack={() => setOpenListing(null)}
+      />
+    )
   }
 
   if (selectedSubcategory) {
@@ -55,22 +66,26 @@ export default function BusinessDirectory({ onOpenBusiness, onBack }) {
         <main>
           <button className="link-text" onClick={() => setSelectedSubcategory(null)} style={{ marginBottom: 16 }}>← Zurück</button>
 
-          {loadingBusinesses && <div className="loading-dot">Lädt...</div>}
-          {!loadingBusinesses && businesses.length === 0 && (
+          {loadingListings && <div className="loading-dot">Lädt...</div>}
+          {!loadingListings && listings.length === 0 && (
             <p className="center-note">Noch kein Betrieb in dieser Kategorie eingetragen.</p>
           )}
 
-          {!loadingBusinesses && businesses.map((biz) => (
-            <button key={biz.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer' }} onClick={() => onOpenBusiness(biz)}>
-              <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
-                {biz.logo_url ? <img src={biz.logo_url} alt="" /> : '🏬'}
-              </div>
-              <div>
-                <h3 style={{ margin: 0 }}>{biz.company_name}</h3>
-                {biz.tagline && <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>{biz.tagline}</p>}
-              </div>
-            </button>
-          ))}
+          {!loadingListings && listings.map((listing) => {
+            const isPartner = listing.business_profiles?.status === 'live' && listing.business_profiles?.plan === 'basis'
+            return (
+              <button key={listing.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer' }} onClick={() => setOpenListing(listing)}>
+                <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                  {listing.business_profiles?.logo_url ? <img src={listing.business_profiles.logo_url} alt="" /> : '🏬'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0 }}>{listing.name}</h3>
+                  {listing.business_profiles?.tagline && <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>{listing.business_profiles.tagline}</p>}
+                </div>
+                {isPartner && <span className="status-pill status-live" style={{ fontSize: 11 }}>Partner</span>}
+              </button>
+            )
+          })}
         </main>
       </div>
     )

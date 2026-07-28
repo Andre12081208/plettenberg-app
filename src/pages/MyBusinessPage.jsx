@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import BusinessMiniApp from './BusinessMiniApp.jsx'
 
 const DAYS = [
   { key: 'mo', label: 'Montag' },
@@ -11,20 +12,7 @@ const DAYS = [
   { key: 'so', label: 'Sonntag' }
 ]
 
-function isCurrentlyOpen(hours) {
-  if (!hours) return null
-  const jsDayToKey = ['so', 'mo', 'di', 'mi', 'do', 'fr', 'sa']
-  const now = new Date()
-  const today = hours[jsDayToKey[now.getDay()]]
-  if (!today || today.closed || !today.open || !today.close) return false
-
-  const [openH, openM] = today.open.split(':').map(Number)
-  const [closeH, closeM] = today.close.split(':').map(Number)
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM
-}
-
-export default function MyBusinessPage({ profile, onProfileUpdated, onGoToSettings }) {
+export default function MyBusinessPage({ profile, onProfileUpdated }) {
   const [editing, setEditing] = useState(false)
   const [tagline, setTagline] = useState(profile.tagline || '')
   const [description, setDescription] = useState(profile.description || '')
@@ -41,46 +29,6 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onGoToSettin
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [savedMsg, setSavedMsg] = useState('')
-
-  const [products, setProducts] = useState([])
-  const [loadingProducts, setLoadingProducts] = useState(false)
-  const [slots, setSlots] = useState([])
-  const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
-
-  const hasShop = profile.plan === 'basis'
-  const openNow = isCurrentlyOpen(profile.opening_hours_structured)
-
-  useEffect(() => {
-    if (hasShop) {
-      loadProducts()
-      loadAppointmentInfo()
-    }
-    // eslint-disable-next-line
-  }, [])
-
-  async function loadProducts() {
-    setLoadingProducts(true)
-    const { data } = await supabase
-      .from('business_products')
-      .select('*')
-      .eq('business_profile_id', profile.id)
-      .eq('active', true)
-      .order('created_at', { ascending: false })
-
-    setProducts(data || [])
-    setLoadingProducts(false)
-  }
-
-  async function loadAppointmentInfo() {
-    const [{ data: addonRows }, { data: slotRows }] = await Promise.all([
-      supabase.from('business_addons').select('addon_key').eq('business_profile_id', profile.id),
-      supabase.from('business_appointment_slots').select('*').eq('business_profile_id', profile.id).is('booked_by', null).gte('start_at', new Date().toISOString()).order('start_at', { ascending: true })
-    ])
-
-    setHasAppointmentAddon((addonRows || []).some((a) => a.addon_key === 'termine'))
-    setSlots(slotRows || [])
-  }
 
   function handleLogoChange(e) {
     const f = e.target.files?.[0]
@@ -147,7 +95,6 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onGoToSettin
 
       if (dbError) throw dbError
 
-      setSavedMsg('Gespeichert.')
       setEditing(false)
       setLogoFile(null)
       setBannerFile(null)
@@ -159,21 +106,18 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onGoToSettin
     }
   }
 
-  return (
-    <>
-      <div className="topbar">
-        <div className="mark">Plettenberg</div>
-        <h1>Meine Seite</h1>
-      </div>
-      <main style={{ paddingBottom: 90 }}>
-        <p className="hint" style={{ marginBottom: 16 }}>
-          So sehen Einwohner deinen virtuellen Laden.
-        </p>
+  if (editing) {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Angaben bearbeiten</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <button className="link-text" onClick={() => setEditing(false)} style={{ marginBottom: 16 }}>← Zurück zu Meine Seite</button>
 
-        {savedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{savedMsg}</div>}
-        {error && <div className="error-box">{error}</div>}
+          {error && <div className="error-box">{error}</div>}
 
-        {editing ? (
           <form onSubmit={handleSave}>
             <div className="card">
               <div className="field">
@@ -264,85 +208,21 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onGoToSettin
               </button>
             </div>
           </form>
-        ) : (
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ width: '100%', height: 120, background: profile.banner_url ? undefined : 'var(--forest-light)' }}>
-              {profile.banner_url && <img src={profile.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-            </div>
-            <div style={{ padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -48, marginBottom: 10 }}>
-                <div className="avatar-preview" style={{ width: 72, height: 72, border: '3px solid #fff' }}>
-                  {profile.logo_url ? <img src={profile.logo_url} alt="" /> : '🏬'}
-                </div>
-              </div>
+        </main>
+      </>
+    )
+  }
 
-              <h3 style={{ margin: '0 0 4px' }}>{profile.company_name}</h3>
-              {profile.tagline && <p style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--forest)', fontWeight: 600 }}>{profile.tagline}</p>}
-
-              {openNow !== null && (
-                <span className={`status-pill ${openNow ? 'status-live' : 'status-abgelehnt'}`} style={{ marginBottom: 10, display: 'inline-block' }}>
-                  {openNow ? '🟢 Jetzt geöffnet' : '🔴 Geschlossen'}
-                </span>
-              )}
-
-              {profile.description && <p style={{ fontSize: 14 }}>{profile.description}</p>}
-
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
-                {profile.address && <span className="status-pill status-live" style={{ fontSize: 12 }}>📍 {profile.address}</span>}
-                {profile.phone && <span className="status-pill status-live" style={{ fontSize: 12 }}>📞 {profile.phone}</span>}
-                {profile.website && <span className="status-pill status-live" style={{ fontSize: 12 }}>🌐 Website</span>}
-              </div>
-              {profile.contact_person && <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginTop: 10 }}>Ansprechpartner: {profile.contact_person}</p>}
-
-              <button className="btn btn-secondary" onClick={() => setEditing(true)} style={{ marginTop: 16 }}>
-                Angaben bearbeiten
-              </button>
-            </div>
-          </div>
-        )}
-
-        {hasShop && (
-          <>
-            {hasAppointmentAddon && (
-              <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <h3 style={{ margin: 0 }}>Freie Termine</h3>
-                  <button className="link-text" onClick={onGoToSettings}>Verwalten</button>
-                </div>
-                {slots.length === 0 ? (
-                  <p className="center-note">Aktuell keine freien Termine.</p>
-                ) : (
-                  <p style={{ margin: 0, fontSize: 14 }}>{slots.length} freie Termine verfügbar</p>
-                )}
-              </div>
-            )}
-
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <h3 style={{ margin: 0 }}>Angebot</h3>
-                <button className="link-text" onClick={onGoToSettings}>Verwalten</button>
-              </div>
-
-              {loadingProducts && <div className="loading-dot">Lädt...</div>}
-              {!loadingProducts && products.length === 0 && (
-                <p className="center-note">Noch keine Produkte eingestellt.</p>
-              )}
-
-              {!loadingProducts && products.map((product) => (
-                <div key={product.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10 }}>
-                  {product.image_url && (
-                    <img src={product.image_url} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 8, maxHeight: 140, objectFit: 'cover' }} />
-                  )}
-                  <p style={{ margin: 0, fontWeight: 600 }}>{product.name}</p>
-                  {product.price != null && (
-                    <p style={{ margin: '2px 0', fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>{product.price} €</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </main>
-    </>
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        className="btn btn-primary"
+        onClick={() => setEditing(true)}
+        style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 40, width: 'auto', padding: '10px 18px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}
+      >
+        ✏️ Bearbeiten
+      </button>
+      <BusinessMiniApp app={profile} userId={profile.id} onBack={() => {}} />
+    </div>
   )
 }

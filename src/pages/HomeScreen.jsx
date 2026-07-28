@@ -317,8 +317,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                   <div className="app-tile-label">{t('apps.contacts')}</div>
                 </button>
 
-                <div style={{ position: 'relative' }}>
-                  <button className="app-tile" onClick={() => setOpenApp('postfach')}>
+                <button className="app-tile" onClick={() => setOpenApp('postfach')}>
                   <div style={{ position: 'relative', width: 64, height: 64 }}>
                     <div className="app-tile-icon">📥</div>
                     {postfachCount > 0 && (

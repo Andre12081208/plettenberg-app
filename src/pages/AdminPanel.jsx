@@ -62,6 +62,7 @@ export default function AdminPanel({ onBack }) {
         <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')}>Ideenwerkstatt</button>
         <button className={tab === 'gewerbe-bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe-bestellungen')}>Gewerbe-Umsätze</button>
         <button className={tab === 'meldungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('meldungen')}>Meldungen</button>
+        <button className={tab === 'testprofile' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('testprofile')}>Testprofile</button>
       </div>
 
       {tab === 'nutzer' && <NutzerTab />}
@@ -70,6 +71,7 @@ export default function AdminPanel({ onBack }) {
       {tab === 'ideenwerkstatt' && <IdeenwerkstattTab />}
       {tab === 'gewerbe-bestellungen' && <GewerbeBestellungenTab />}
       {tab === 'meldungen' && <MeldungenTab />}
+      {tab === 'testprofile' && <TestprofileTab />}
     </>
   )
 
@@ -1238,6 +1240,72 @@ function MeldungenTab() {
           </select>
         </div>
       ))}
+    </>
+  )
+}
+function TestprofileTab() {
+  const [labelPrivate, setLabelPrivate] = useState('')
+  const [labelBusiness, setLabelBusiness] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState('')
+  const [created, setCreated] = useState([])
+
+  async function createProfile(type, label) {
+    setCreating(true)
+    setError('')
+
+    const { data, error: fnError } = await supabase.functions.invoke('create-test-profile', {
+      body: { type, label: label.trim() || undefined }
+    })
+
+    if (fnError || data?.error) {
+      setError(data?.error || fnError.message)
+    } else {
+      setCreated((prev) => [{ type, ...data }, ...prev])
+      if (type === 'private') setLabelPrivate('')
+      else setLabelBusiness('')
+    }
+    setCreating(false)
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Neues Test-Einwohnerprofil</h3>
+        <div className="field">
+          <label htmlFor="labelPrivate">Vorname (optional)</label>
+          <input id="labelPrivate" value={labelPrivate} onChange={(e) => setLabelPrivate(e.target.value)} placeholder="z.B. Test-Ina" />
+        </div>
+        <button className="btn btn-primary" onClick={() => createProfile('private', labelPrivate)} disabled={creating}>
+          {creating ? 'Wird angelegt...' : 'Testprofil anlegen'}
+        </button>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Neues Test-Gewerbeprofil</h3>
+        <div className="field">
+          <label htmlFor="labelBusiness">Firmenname (optional)</label>
+          <input id="labelBusiness" value={labelBusiness} onChange={(e) => setLabelBusiness(e.target.value)} placeholder="z.B. Testbäckerei" />
+        </div>
+        <button className="btn btn-primary" onClick={() => createProfile('business', labelBusiness)} disabled={creating}>
+          {creating ? 'Wird angelegt...' : 'Testprofil anlegen'}
+        </button>
+      </div>
+
+      {created.length > 0 && (
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Gerade erstellt</h3>
+          {created.map((c, i) => (
+            <div key={i} style={{ borderTop: i > 0 ? '1px solid var(--line)' : 'none', paddingTop: i > 0 ? 10 : 0, marginTop: i > 0 ? 10 : 0 }}>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>{c.type === 'private' ? 'Einwohner' : 'Gewerbe'}</p>
+              <p style={{ margin: '2px 0', fontSize: 14 }}><strong>E-Mail:</strong> {c.email}</p>
+              <p style={{ margin: '2px 0', fontSize: 14 }}><strong>Passwort:</strong> {c.password}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   )
 }

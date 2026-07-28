@@ -5,7 +5,7 @@ import BusinessSettings from './BusinessSettings.jsx'
 import MyBusinessPage from './MyBusinessPage.jsx'
 import BusinessInbox from './BusinessInbox.jsx'
 
-export default function BusinessHomeScreen({ profile, isAdmin, onOpenAdmin, onProfileUpdated }) {
+export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, onBackToDashboard, onOpenAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
 
@@ -43,7 +43,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, onOpenAdmin, onPr
       <nav className="tab-bar">
         <button className={`tab-bar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => goToTab('dashboard')}>
           <span className="tab-bar-icon">🏠</span>
-          Dashboard
+          Übersicht
         </button>
         <button className={`tab-bar-item ${activeTab === 'mypage' ? 'active' : ''}`} onClick={() => goToTab('mypage')}>
           <span className="tab-bar-icon">🏬</span>
@@ -62,6 +62,12 @@ export default function BusinessHomeScreen({ profile, isAdmin, onOpenAdmin, onPr
           <span className="tab-bar-icon">⚙️</span>
           Einstellungen
         </button>
+        {isMasterAdmin && (
+          <button className="tab-bar-item" onClick={onBackToDashboard}>
+            <span className="tab-bar-icon">🧭</span>
+            Dashboard
+          </button>
+        )}
       </nav>
     </div>
   )

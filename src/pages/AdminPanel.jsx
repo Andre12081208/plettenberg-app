@@ -1047,7 +1047,7 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
   )
 }
 
-function IdeaAdminDetail({ idea, onBack }) {
+function IdeaAdminDetail({ idea, onBack, onOpened }) {
   const [status, setStatus] = useState(idea.status)
   const [statusSaving, setStatusSaving] = useState(false)
   const [messages, setMessages] = useState([])
@@ -1057,6 +1057,7 @@ function IdeaAdminDetail({ idea, onBack }) {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    supabase.from('ideas').update({ admin_seen_at: new Date().toISOString() }).eq('id', idea.id).then(() => onOpened?.())
     loadMessages()
 
     const channel = supabase

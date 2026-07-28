@@ -981,7 +981,10 @@ function IdeenwerkstattTab() {
     const withNames = await Promise.all(
       (data || []).map(async (idea) => {
         const { data: username } = await supabase.rpc('get_username', { target_id: idea.user_id })
-        return { ...idea, username }
+        if (username) return { ...idea, username, isBusinessSubmitter: false }
+
+        const { data: business } = await supabase.from('business_profiles').select('company_name').eq('id', idea.user_id).maybeSingle()
+        return { ...idea, username: business?.company_name || 'Unbekannt', isBusinessSubmitter: true }
       })
     )
 
@@ -1011,7 +1014,7 @@ function IdeenwerkstattTab() {
             <span className="status-pill status-live" style={{ fontSize: 11 }}>{idea.idea_number}</span>
           </div>
           <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--ink-soft)' }}>
-            {IDEA_CATEGORIES[idea.category]?.icon} {IDEA_CATEGORIES[idea.category]?.label} · @{idea.username} · Priorität: {idea.priority}
+            {IDEA_CATEGORIES[idea.category]?.icon} {IDEA_CATEGORIES[idea.category]?.label} · {idea.isBusinessSubmitter ? idea.username : `@${idea.username}`} · Priorität: {idea.priority}
           </p>
           <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
             {IDEA_STATUS_OPTIONS.find((s) => s.value === idea.status)?.label}

@@ -27,7 +27,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
 
   let content
   if (activeTab === 'dashboard') {
-    content = <BusinessOverview profile={profile} isAdmin={isAdmin} onOpenAdmin={onOpenAdmin} />
+    content = <BusinessOverview profile={profile} />
   } else if (activeTab === 'mypage') {
     content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} />
   } else if (activeTab === 'inbox') {

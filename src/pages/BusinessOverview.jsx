@@ -8,40 +8,276 @@ const STATUS_LABELS = {
   abgelehnt: { text: 'Abgelehnt', cls: 'status-abgelehnt' }
 }
 
+const METRIC_REGISTRY = [
+  { key: 'bestellungen_offen', label: 'Offene Bestellungen', type: 'number' },
+  { key: 'bestellungen_gesamt', label: 'Bestellungen gesamt', type: 'number' },
+  { key: 'anfragen_offen', label: 'Offene Anfragen', type: 'number' },
+  { key: 'anfragen_gesamt', label: 'Anfragen gesamt', type: 'number' },
+  { key: 'termine_kommend', label: 'Anstehende gebuchte Termine', type: 'number' },
+  { key: 'angebote_aktiv', label: 'Aktive Angebote', type: 'number' },
+  { key: 'bestellungen_nach_status', label: 'Bestellungen nach Status', type: 'breakdown' },
+  { key: 'anfragen_nach_status', label: 'Anfragen nach Status', type: 'breakdown' }
+]
+
+const PIE_COLORS = ['#1F4D3D', '#3A7A5E', '#6FA98A', '#A8C9B5', '#D9E5DD', '#C4704F', '#8C5A3C']
+
+function metricInfo(key) {
+  return METRIC_REGISTRY.find((m) => m.key === key)
+}
+
+function BarChart({ data, showTotal }) {
+  const totalValue = data.reduce((sum, d) => sum + d.value, 0)
+  const fullData = showTotal ? [{ label: 'Gesamt', value: totalValue, isTotal: true }, ...data] : data
+  const max = Math.max(...fullData.map((d) => d.value), 1)
+
+  return (
+    <div>
+      {fullData.map((d, i) => (
+        <div key={i} style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 3 }}>
+            <span style={{ fontWeight: d.isTotal ? 700 : 400 }}>{d.label}</span>
+            <span style={{ fontWeight: 600 }}>{d.value}</span>
+          </div>
+          <div style={{ height: 10, borderRadius: 5, background: 'var(--line)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${(d.value / max) * 100}%`, background: d.isTotal ? 'var(--clay)' : 'var(--forest)', borderRadius: 5 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PieChart({ data }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0) || 1
+  let cumulative = 0
+  const parts = data.map((d, i) => {
+    const start = (cumulative / total) * 360
+    cumulative += d.value
+    const end = (cumulative / total) * 360
+    return `${d.color || PIE_COLORS[i % PIE_COLORS.length]} ${start}deg ${end}deg`
+  })
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ width: 110, height: 110, borderRadius: '50%', background: `conic-gradient(${parts.join(', ')})`, flexShrink: 0 }} />
+      <div>
+        {data.map((d, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 4 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color || PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
+            {d.label}: {d.value}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Ampel({ value, low, high }) {
+  let color = 'var(--forest)'
+  let label = 'Gut'
+  if (value < (low ?? 0)) { color = '#A3402F'; label = 'Kritisch' }
+  else if (value < (high ?? 0)) { color = '#C89B3C'; label = 'Beachten' }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span style={{ width: 22, height: 22, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <div>
+        <p style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>{value}</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-soft)' }}>{label}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
-  const [newOrderCount, setNewOrderCount] = useState(0)
-  const [openInquiryCount, setOpenInquiryCount] = useState(0)
-  const [upcomingAppointments, setUpcomingAppointments] = useState([])
+  const [tiles, setTiles] = useState([])
+  const [tileValues, setTileValues] = useState({})
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [editingTileId, setEditingTileId] = useState(null)
+
+  const [title, setTitle] = useState('')
+  const [metric1, setMetric1] = useState('bestellungen_offen')
+  const [metric2, setMetric2] = useState('')
+  const [combineMode, setCombineMode] = useState('summe')
+  const [vizType, setVizType] = useState('zahl')
+  const [gaugeLow, setGaugeLow] = useState('')
+  const [gaugeHigh, setGaugeHigh] = useState('')
+  const [showTotal, setShowTotal] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const isLive = profile.status === 'live'
+  const info1 = metricInfo(metric1)
+  const isNumberMetric = info1?.type === 'number'
+  const vizOptions = isNumberMetric
+    ? (metric2 ? ['zahl', 'ampel', 'balken'] : ['zahl', 'ampel'])
+    : ['balken', 'kreis']
 
   useEffect(() => {
-    if (isLive) loadOverview()
+    if (isLive) loadTiles()
     else setLoading(false)
     // eslint-disable-next-line
   }, [])
 
-  async function loadOverview() {
+  useEffect(() => {
+    if (!vizOptions.includes(vizType)) setVizType(vizOptions[0])
+    // eslint-disable-next-line
+  }, [metric1, metric2])
+
+  async function loadTiles() {
     setLoading(true)
+    setError('')
 
-    const [{ data: newOrders }, { data: inquiries }, { data: appointmentSlots }] = await Promise.all([
-      supabase.from('business_orders').select('id').eq('business_profile_id', profile.id).eq('status', 'neu'),
-      supabase.from('business_inquiries').select('id, business_inquiry_messages(is_business)').eq('business_profile_id', profile.id),
-      supabase.from('business_appointment_slots').select('*').eq('business_profile_id', profile.id).not('booked_by', 'is', null).gte('start_at', new Date().toISOString()).order('start_at', { ascending: true }).limit(5)
-    ])
+    const { data, error: tilesError } = await supabase
+      .from('business_dashboard_tiles')
+      .select('*')
+      .eq('business_profile_id', profile.id)
+      .order('sort_order', { ascending: true })
 
-    setNewOrderCount((newOrders || []).length)
-    setOpenInquiryCount((inquiries || []).filter((i) => !i.business_inquiry_messages?.some((m) => m.is_business)).length)
-    setUpcomingAppointments(appointmentSlots || [])
+    if (tilesError) {
+      setError(tilesError.message)
+      setLoading(false)
+      return
+    }
+
+    setTiles(data || [])
+
+    const values = {}
+    for (const tile of data || []) {
+      values[tile.id] = await computeTileValue(tile)
+    }
+    setTileValues(values)
     setLoading(false)
+  }
+
+  async function computeTileValue(tile) {
+    const { data: val1 } = await supabase.rpc('get_business_dashboard_metric', { metric_key: tile.metric_key_1 })
+
+    if (tile.viz_type === 'balken' && tile.metric_key_2) {
+      const { data: val2 } = await supabase.rpc('get_business_dashboard_metric', { metric_key: tile.metric_key_2 })
+      return [
+        { label: metricInfo(tile.metric_key_1)?.label || tile.metric_key_1, value: Number(val1 || 0) },
+        { label: metricInfo(tile.metric_key_2)?.label || tile.metric_key_2, value: Number(val2 || 0) }
+      ]
+    }
+
+    if (tile.metric_key_2 && tile.combine_mode !== 'einzeln') {
+      const { data: val2 } = await supabase.rpc('get_business_dashboard_metric', { metric_key: tile.metric_key_2 })
+      if (tile.combine_mode === 'summe') return Number(val1 || 0) + Number(val2 || 0)
+      if (tile.combine_mode === 'differenz') return Number(val1 || 0) - Number(val2 || 0)
+    }
+
+    return val1
+  }
+
+  function resetForm() {
+    setTitle('')
+    setMetric1('bestellungen_offen')
+    setMetric2('')
+    setCombineMode('summe')
+    setVizType('zahl')
+    setGaugeLow('')
+    setGaugeHigh('')
+    setShowTotal(false)
+    setEditingTileId(null)
+  }
+
+  function startEdit(tile) {
+    setTitle(tile.title)
+    setMetric1(tile.metric_key_1)
+    setMetric2(tile.metric_key_2 || '')
+    setCombineMode(tile.combine_mode || 'summe')
+    setVizType(tile.viz_type)
+    setGaugeLow(tile.gauge_low ?? '')
+    setGaugeHigh(tile.gauge_high ?? '')
+    setShowTotal(!!tile.show_total)
+    setEditingTileId(tile.id)
+    setShowForm(true)
+  }
+
+  async function saveTile(e) {
+    e.preventDefault()
+    if (!title.trim()) return
+    setSaving(true)
+    setError('')
+
+    const payload = {
+      title: title.trim(),
+      metric_key_1: metric1,
+      metric_key_2: isNumberMetric && metric2 ? metric2 : null,
+      combine_mode: isNumberMetric && metric2 && vizType !== 'balken' ? combineMode : 'einzeln',
+      viz_type: vizType,
+      gauge_low: vizType === 'ampel' && gaugeLow !== '' ? Number(gaugeLow) : null,
+      gauge_high: vizType === 'ampel' && gaugeHigh !== '' ? Number(gaugeHigh) : null,
+      show_total: vizType === 'balken' ? showTotal : false
+    }
+
+    const { error: saveError } = editingTileId
+      ? await supabase.from('business_dashboard_tiles').update(payload).eq('id', editingTileId)
+      : await supabase.from('business_dashboard_tiles').insert({
+          ...payload,
+          business_profile_id: profile.id,
+          sort_order: tiles.length
+        })
+
+    if (saveError) {
+      setError(saveError.message)
+    } else {
+      resetForm()
+      setShowForm(false)
+      loadTiles()
+    }
+    setSaving(false)
+  }
+
+  async function deleteTile(id) {
+    await supabase.from('business_dashboard_tiles').delete().eq('id', id)
+    setTiles((prev) => prev.filter((t) => t.id !== id))
+  }
+
+  async function moveTile(index, direction) {
+    const newIndex = index + direction
+    if (newIndex < 0 || newIndex >= tiles.length) return
+
+    const current = tiles[index]
+    const swapped = tiles[newIndex]
+
+    const newTiles = [...tiles]
+    newTiles[index] = swapped
+    newTiles[newIndex] = current
+    setTiles(newTiles)
+
+    await Promise.all([
+      supabase.from('business_dashboard_tiles').update({ sort_order: newIndex }).eq('id', current.id),
+      supabase.from('business_dashboard_tiles').update({ sort_order: index }).eq('id', swapped.id)
+    ])
+  }
+
+  function renderTileContent(tile) {
+    const value = tileValues[tile.id]
+    if (value == null) return <p className="center-note">Keine Daten.</p>
+
+    if (tile.viz_type === 'zahl') {
+      return <p style={{ margin: 0, fontSize: 32, fontWeight: 700, color: 'var(--forest)' }}>{value}</p>
+    }
+    if (tile.viz_type === 'ampel') {
+      return <Ampel value={value} low={tile.gauge_low} high={tile.gauge_high} />
+    }
+    if (tile.viz_type === 'balken') {
+      return Array.isArray(value) ? <BarChart data={value} showTotal={tile.show_total} /> : <p className="center-note">Keine Daten.</p>
+    }
+    if (tile.viz_type === 'kreis') {
+      return Array.isArray(value) ? <PieChart data={value} /> : <p className="center-note">Keine Daten.</p>
+    }
+    return null
   }
 
   return (
     <>
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>Dashboard</h1>
+        <h1>Admin Dashboard</h1>
         {profile.account_status === 'beobachter' && (
           <div className="error-box" style={{ background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
             Beobachter-Modus: Du kannst aktuell nichts schreiben oder senden.
@@ -75,36 +311,123 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
 
         {isLive && (
           <>
+            <div className="btn-row" style={{ marginBottom: 16 }}>
+              <button className="btn btn-secondary" onClick={() => { if (showForm) resetForm(); setShowForm(!showForm) }}>
+                {showForm ? 'Abbrechen' : '+ Kachel hinzufügen'}
+              </button>
+            </div>
+
+            {error && <div className="error-box">{error}</div>}
+
+            {showForm && (
+              <form onSubmit={saveTile} className="card">
+                <h3 style={{ marginTop: 0 }}>{editingTileId ? 'Kachel bearbeiten' : 'Neue Kachel'}</h3>
+                <div className="field">
+                  <label htmlFor="tileTitle">Titel</label>
+                  <input id="tileTitle" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z.B. Offene Bestellungen" />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="metric1">Datenquelle 1</label>
+                  <select id="metric1" value={metric1} onChange={(e) => setMetric1(e.target.value)}>
+                    {METRIC_REGISTRY.map((m) => (
+                      <option key={m.key} value={m.key}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {isNumberMetric && (
+                  <div className="field">
+                    <label htmlFor="metric2">Datenquelle 2 (optional)</label>
+                    <select id="metric2" value={metric2} onChange={(e) => setMetric2(e.target.value)}>
+                      <option value="">– keine –</option>
+                      {METRIC_REGISTRY.filter((m) => m.type === 'number' && m.key !== metric1).map((m) => (
+                        <option key={m.key} value={m.key}>{m.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {isNumberMetric && metric2 && vizType !== 'balken' && (
+                  <div className="field">
+                    <label htmlFor="combineMode">Verknüpfung</label>
+                    <select id="combineMode" value={combineMode} onChange={(e) => setCombineMode(e.target.value)}>
+                      <option value="summe">Summe (1 + 2)</option>
+                      <option value="differenz">Differenz (1 − 2)</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="field">
+                  <label htmlFor="vizType">Darstellung</label>
+                  <select id="vizType" value={vizType} onChange={(e) => setVizType(e.target.value)}>
+                    {vizOptions.map((v) => (
+                      <option key={v} value={v}>
+                        {v === 'zahl' ? 'Zahl' : v === 'ampel' ? 'Ampel' : v === 'balken' ? 'Balkendiagramm' : 'Kreisdiagramm'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {vizType === 'ampel' && (
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div className="field" style={{ flex: 1 }}>
+                      <label htmlFor="gaugeLow">Rot unter</label>
+                      <input id="gaugeLow" type="number" value={gaugeLow} onChange={(e) => setGaugeLow(e.target.value)} />
+                    </div>
+                    <div className="field" style={{ flex: 1 }}>
+                      <label htmlFor="gaugeHigh">Grün ab</label>
+                      <input id="gaugeHigh" type="number" value={gaugeHigh} onChange={(e) => setGaugeHigh(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+
+                {vizType === 'balken' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                    <input type="checkbox" checked={showTotal} onChange={(e) => setShowTotal(e.target.checked)} />
+                    Zusätzlichen "Gesamt"-Balken oben anzeigen
+                  </label>
+                )}
+
+                <div className="btn-row">
+                  <button className="btn btn-primary" type="submit" disabled={saving}>
+                    {saving ? 'Wird gespeichert...' : editingTileId ? 'Speichern' : 'Kachel anlegen'}
+                  </button>
+                  {editingTileId && (
+                    <button className="btn btn-secondary" type="button" onClick={() => { resetForm(); setShowForm(false) }}>
+                      Abbrechen
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+
             {loading && <div className="loading-dot">Lädt...</div>}
-
-            {!loading && (
-              <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-                <div className="card" style={{ flex: 1, textAlign: 'center', minWidth: 100 }}>
-                  <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{newOrderCount}</p>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>Neue Bestellungen</p>
-                </div>
-                <div className="card" style={{ flex: 1, textAlign: 'center', minWidth: 100 }}>
-                  <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{openInquiryCount}</p>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>Offene Anfragen</p>
-                </div>
-              </div>
+            {!loading && tiles.length === 0 && !showForm && (
+              <p className="center-note">Noch keine Kacheln angelegt.</p>
             )}
 
-            {!loading && upcomingAppointments.length > 0 && (
-              <div className="card">
-                <h3 style={{ marginTop: 0 }}>Nächste Termine</h3>
-                {upcomingAppointments.map((slot) => (
-                  <p key={slot.id} style={{ margin: '4px 0', fontSize: 14 }}>
-                    {slot.service_name} · {new Date(slot.start_at).toLocaleDateString('de-DE')}, {new Date(slot.start_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                ))}
-              </div>
-            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              {!loading && tiles.map((tile, index) => (
+                <div className="card" key={tile.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <h3 style={{ margin: 0, fontSize: 15 }}>{tile.title}</h3>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
+                      <button className="link-text" style={{ fontSize: 15 }} disabled={index === tiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
+                      <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
+                      <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
+                    </div>
+                  </div>
+                  {renderTileContent(tile)}
+                </div>
+              ))}
+            </div>
           </>
         )}
 
         {isAdmin && (
-          <button className="btn btn-primary" onClick={onOpenAdmin} style={{ marginBottom: 12 }}>
+          <button className="btn btn-primary" onClick={onOpenAdmin} style={{ marginTop: 16 }}>
             Gewerbeanfragen verwalten
           </button>
         )}

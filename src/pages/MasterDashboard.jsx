@@ -22,18 +22,22 @@ function metricInfo(key) {
   return METRIC_REGISTRY.find((m) => m.key === key)
 }
 
-function BarChart({ data }) {
-  const max = Math.max(...data.map((d) => d.value), 1)
+function BarChart({ data, showTotal }) {
+  const fullData = showTotal
+    ? [...data, { label: 'Gesamt', value: data.reduce((sum, d) => sum + d.value, 0), isTotal: true }]
+    : data
+  const max = Math.max(...fullData.map((d) => d.value), 1)
+
   return (
     <div>
-      {data.map((d, i) => (
+      {fullData.map((d, i) => (
         <div key={i} style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 3 }}>
-            <span>{d.label}</span>
+            <span style={{ fontWeight: d.isTotal ? 700 : 400 }}>{d.label}</span>
             <span style={{ fontWeight: 600 }}>{d.value}</span>
           </div>
           <div style={{ height: 10, borderRadius: 5, background: 'var(--line)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${(d.value / max) * 100}%`, background: 'var(--forest)', borderRadius: 5 }} />
+            <div style={{ height: '100%', width: `${(d.value / max) * 100}%`, background: d.isTotal ? 'var(--clay)' : 'var(--forest)', borderRadius: 5 }} />
           </div>
         </div>
       ))}
@@ -97,6 +101,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   const [vizType, setVizType] = useState('zahl')
   const [gaugeLow, setGaugeLow] = useState('')
   const [gaugeHigh, setGaugeHigh] = useState('')
+  const [showTotal, setShowTotal] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const info1 = metricInfo(metric1)
@@ -164,6 +169,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       viz_type: vizType,
       gauge_low: vizType === 'ampel' && gaugeLow !== '' ? Number(gaugeLow) : null,
       gauge_high: vizType === 'ampel' && gaugeHigh !== '' ? Number(gaugeHigh) : null,
+      show_total: vizType === 'balken' ? showTotal : false,
       sort_order: tiles.length
     })
 
@@ -177,6 +183,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       setVizType('zahl')
       setGaugeLow('')
       setGaugeHigh('')
+      setShowTotal(false)
       setShowForm(false)
       loadTiles()
     }
@@ -199,7 +206,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       return <Ampel value={value} low={tile.gauge_low} high={tile.gauge_high} />
     }
     if (tile.viz_type === 'balken') {
-      return Array.isArray(value) ? <BarChart data={value} /> : <p className="center-note">Keine Daten.</p>
+      return Array.isArray(value) ? <BarChart data={value} showTotal={tile.show_total} /> : <p className="center-note">Keine Daten.</p>
     }
     if (tile.viz_type === 'kreis') {
       return Array.isArray(value) ? <PieChart data={value} /> : <p className="center-note">Keine Daten.</p>
@@ -211,7 +218,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
     <div className="app-shell">
       <div className="topbar">
         <div className="mark">Plettenberg</div>
-        <h1>Dashboard</h1>
+        <h1>Master Dashboard</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>
         {error && <div className="error-box">{error}</div>}
@@ -282,6 +289,13 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
                   <input id="gaugeHigh" type="number" value={gaugeHigh} onChange={(e) => setGaugeHigh(e.target.value)} />
                 </div>
               </div>
+            )}
+
+            {vizType === 'balken' && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <input type="checkbox" checked={showTotal} onChange={(e) => setShowTotal(e.target.checked)} />
+                Zusätzlichen "Gesamt"-Balken anzeigen (Summe aller Werte)
+              </label>
             )}
 
             <button className="btn btn-primary" type="submit" disabled={saving}>

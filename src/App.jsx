@@ -12,34 +12,7 @@ import { LanguageProvider } from './lib/LanguageContext.jsx'
 import PasswordChangedCountdown from './pages/PasswordChangedCountdown.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
 import AccountBlocked from './pages/AccountBlocked.jsx'
-
-function AdminModeSwitcher({ hasPrivateProfile, hasBusinessProfile, onChoose }) {
-  return (
-    <div className="app-shell">
-      <div className="topbar">
-        <div className="mark">Plettenberg</div>
-        <h1>Dashboard</h1>
-      </div>
-      <main>
-        <p className="hint" style={{ marginBottom: 16 }}>Als was möchtest du die App gerade nutzen?</p>
-
-        {hasPrivateProfile && (
-          <button className="card-choice" onClick={() => onChoose('private')}>
-            <h3 style={{ margin: 0 }}>🧑 Als Einwohner nutzen</h3>
-          </button>
-        )}
-        {hasBusinessProfile && (
-          <button className="card-choice" onClick={() => onChoose('business')}>
-            <h3 style={{ margin: 0 }}>🏬 Als Gewerbe nutzen</h3>
-          </button>
-        )}
-        <button className="card-choice" onClick={() => onChoose('admin')}>
-          <h3 style={{ margin: 0 }}>🛠️ Verwaltung öffnen</h3>
-        </button>
-      </main>
-    </div>
-  )
-}
+import MasterDashboard from './pages/MasterDashboard.jsx'
 
 export default function App() {
   const [justConfirmedMsg, setJustConfirmedMsg] = useState('')
@@ -76,6 +49,7 @@ export default function App() {
       if (event === 'SIGNED_IN') {
         sessionStorage.removeItem('pb_activeTab')
         sessionStorage.removeItem('pb_openApp')
+        sessionStorage.removeItem('pb_adminMode')
       }
       setSession(newSession)
       setChosenType(null)
@@ -208,10 +182,10 @@ export default function App() {
   if (isAdmin) {
     if (!adminMode) {
       return (
-        <AdminModeSwitcher
+        <MasterDashboard
           hasPrivateProfile={!!privateProfile}
           hasBusinessProfile={!!businessProfile}
-          onChoose={chooseAdminMode}
+          onChooseMode={chooseAdminMode}
         />
       )
     }

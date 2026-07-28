@@ -52,6 +52,18 @@ function PresenceDot({ lastSeenAt }) {
 
 export default function AdminPanel({ onBack }) {
   const [tab, setTab] = useState('nutzer')
+  const [adminUnreadIdeaCount, setAdminUnreadIdeaCount] = useState(0)
+
+  useEffect(() => {
+    checkAdminUnreadIdeas()
+    const interval = setInterval(checkAdminUnreadIdeas, 20000)
+    return () => clearInterval(interval)
+  }, [])
+
+  async function checkAdminUnreadIdeas() {
+    const { data } = await supabase.rpc('get_admin_unread_idea_count')
+    setAdminUnreadIdeaCount(data || 0)
+  }
 
   const content = (
     <>
@@ -59,7 +71,14 @@ export default function AdminPanel({ onBack }) {
         <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
         <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
         <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('channels')}>Channels</button>
-        <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')}>Ideenwerkstatt</button>
+        <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')} style={{ position: 'relative' }}>
+          Ideenwerkstatt
+          {adminUnreadIdeaCount > 0 && (
+            <span style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+              {adminUnreadIdeaCount}
+            </span>
+          )}
+        </button>
         <button className={tab === 'gewerbe-bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe-bestellungen')}>Gewerbe-Umsätze</button>
         <button className={tab === 'meldungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('meldungen')}>Meldungen</button>
         <button className={tab === 'testprofile' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('testprofile')}>Testprofile</button>
@@ -958,7 +977,7 @@ const IDEA_STATUS_OPTIONS = [
   { value: 'nicht_geplant', label: '❌ Derzeit nicht geplant' }
 ]
 
-function IdeenwerkstattTab() {
+function IdeenwerkstattTab({ onIdeaSeen }) {
   const [ideas, setIdeas] = useState([])
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -996,6 +1015,7 @@ function IdeenwerkstattTab() {
     return (
       <IdeaAdminDetail
         idea={selected}
+        onOpened={onIdeaSeen}
         onBack={() => { setSelected(null); loadIdeas() }}
       />
     )

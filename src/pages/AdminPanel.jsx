@@ -95,7 +95,7 @@ export default function AdminPanel({ onBack }) {
       <nav className="tab-bar">
         <button className="tab-bar-item active" onClick={onBack}>
           <span className="tab-bar-icon">🧭</span>
-          Dashboard
+          Master Dashboard
         </button>
       </nav>
     </div>

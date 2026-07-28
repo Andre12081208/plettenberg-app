@@ -262,6 +262,8 @@ function InsightsTab() {
 function GewerbeTab() {
   const [entries, setEntries] = useState([])
   const [addons, setAddons] = useState([])
+  const [directoryCategories, setDirectoryCategories] = useState([])
+  const [directorySubcategories, setDirectorySubcategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState(null)
@@ -273,9 +275,11 @@ function GewerbeTab() {
   async function loadEntries() {
     setLoading(true)
     setError('')
-    const [{ data, error }, { data: addonRows }] = await Promise.all([
+    const [{ data, error }, { data: addonRows }, { data: catRows }, { data: subRows }] = await Promise.all([
       supabase.from('business_profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('business_addons').select('*')
+      supabase.from('business_addons').select('*'),
+      supabase.from('directory_categories').select('*').order('sort_order'),
+      supabase.from('directory_subcategories').select('*').order('sort_order')
     ])
 
     if (error) {
@@ -283,8 +287,25 @@ function GewerbeTab() {
     } else {
       setEntries(data || [])
       setAddons(addonRows || [])
+      setDirectoryCategories(catRows || [])
+      setDirectorySubcategories(subRows || [])
     }
     setLoading(false)
+  }
+
+  async function updateSubcategory(id, subcategoryId) {
+    setSavingId(id)
+    const { error } = await supabase
+      .from('business_profiles')
+      .update({ directory_subcategory_id: subcategoryId || null })
+      .eq('id', id)
+
+    if (error) {
+      setError(error.message)
+    } else {
+      setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, directory_subcategory_id: subcategoryId || null } : e)))
+    }
+    setSavingId(null)
   }
 
   async function updateStatus(id, newStatus) {
@@ -381,6 +402,24 @@ function GewerbeTab() {
               Website: {entry.website}
             </p>
           )}
+
+          <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+            <label>Branchenverzeichnis</label>
+            <select
+              value={entry.directory_subcategory_id || ''}
+              disabled={savingId === entry.id}
+              onChange={(e) => updateSubcategory(entry.id, e.target.value)}
+            >
+              <option value="">– keine Kategorie –</option>
+              {directoryCategories.map((cat) => (
+                <optgroup key={cat.id} label={`${cat.icon} ${cat.name}`}>
+                  {directorySubcategories.filter((s) => s.category_id === cat.id).map((sub) => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
 
           <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
             <label>Status ändern</label>

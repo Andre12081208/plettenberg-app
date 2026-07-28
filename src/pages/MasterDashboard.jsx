@@ -97,7 +97,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   const [title, setTitle] = useState('')
   const [metric1, setMetric1] = useState('einwohner_anzahl')
   const [metric2, setMetric2] = useState('')
-  const [combineMode, setCombineMode] = useState('einzeln')
+  const [combineMode, setCombineMode] = useState('summe')
   const [vizType, setVizType] = useState('zahl')
   const [gaugeLow, setGaugeLow] = useState('')
   const [gaugeHigh, setGaugeHigh] = useState('')
@@ -106,7 +106,9 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
 
   const info1 = metricInfo(metric1)
   const isNumberMetric = info1?.type === 'number'
-  const vizOptions = isNumberMetric ? ['zahl', 'ampel'] : ['balken', 'kreis']
+  const vizOptions = isNumberMetric
+    ? (metric2 ? ['zahl', 'ampel', 'balken'] : ['zahl', 'ampel'])
+    : ['balken', 'kreis']
 
   useEffect(() => {
     loadTiles()
@@ -115,7 +117,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   useEffect(() => {
     if (!vizOptions.includes(vizType)) setVizType(vizOptions[0])
     // eslint-disable-next-line
-  }, [metric1])
+  }, [metric1, metric2])
 
   async function loadTiles() {
     setLoading(true)
@@ -145,6 +147,14 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   async function computeTileValue(tile) {
     const { data: val1 } = await supabase.rpc('get_dashboard_metric', { metric_key: tile.metric_key_1 })
 
+    if (tile.viz_type === 'balken' && tile.metric_key_2) {
+      const { data: val2 } = await supabase.rpc('get_dashboard_metric', { metric_key: tile.metric_key_2 })
+      return [
+        { label: metricInfo(tile.metric_key_1)?.label || tile.metric_key_1, value: Number(val1 || 0) },
+        { label: metricInfo(tile.metric_key_2)?.label || tile.metric_key_2, value: Number(val2 || 0) }
+      ]
+    }
+
     if (tile.metric_key_2 && tile.combine_mode !== 'einzeln') {
       const { data: val2 } = await supabase.rpc('get_dashboard_metric', { metric_key: tile.metric_key_2 })
       if (tile.combine_mode === 'summe') return Number(val1 || 0) + Number(val2 || 0)
@@ -165,7 +175,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       title: title.trim(),
       metric_key_1: metric1,
       metric_key_2: isNumberMetric && metric2 ? metric2 : null,
-      combine_mode: isNumberMetric && metric2 ? combineMode : 'einzeln',
+      combine_mode: isNumberMetric && metric2 && vizType !== 'balken' ? combineMode : 'einzeln',
       viz_type: vizType,
       gauge_low: vizType === 'ampel' && gaugeLow !== '' ? Number(gaugeLow) : null,
       gauge_high: vizType === 'ampel' && gaugeHigh !== '' ? Number(gaugeHigh) : null,
@@ -257,7 +267,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
               </div>
             )}
 
-            {isNumberMetric && metric2 && (
+            {isNumberMetric && metric2 && vizType !== 'balken' && (
               <div className="field">
                 <label htmlFor="combineMode">Verknüpfung</label>
                 <select id="combineMode" value={combineMode} onChange={(e) => setCombineMode(e.target.value)}>

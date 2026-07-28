@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 import { translations, LANGUAGE_NAMES } from '../lib/translations.js'
 import CalendarShareSettings from './CalendarShareSettings.jsx'
+import { ANON_AVATAR_BANK } from '../lib/anonAvatar.js'
 
 export default function Settings({ profile, onBack, onProfileUpdated, onPasswordChanged }) {
   const { t, language, setLanguage } = useLanguage()
@@ -126,6 +127,25 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
 
   async function handleLogout() {
     await supabase.auth.signOut()
+  }
+
+  async function saveAnonAvatar(key) {
+    await supabase.from('private_profiles').update({ anonymous_avatar_url: key }).eq('id', profile.id)
+    onProfileUpdated?.()
+  }
+
+  async function handleAnonAvatarUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const ext = file.name.split('.').pop()
+    const path = `${profile.id}/anonymous.${ext}`
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    if (uploadError) return
+
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    await supabase.from('private_profiles').update({ anonymous_avatar_url: data.publicUrl }).eq('id', profile.id)
+    onProfileUpdated?.()
   }
 
   if (showCalendarSharing) {
@@ -260,6 +280,37 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
                 </button>
               </form>
             </>
+          )}
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Anonymes Profilbild</h3>
+          <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-soft)' }}>
+            Wird verwendet, wenn du anonym eine Anfrage sendest – damit sieht dein Gegenüber trotzdem ein Bild statt nur eine leere Fläche, ohne dass deine echte Identität erkennbar ist.
+          </p>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+            {ANON_AVATAR_BANK.map((option) => (
+              <button
+                key={option.key}
+                onClick={() => saveAnonAvatar(option.key)}
+                style={{
+                  width: 52, height: 52, borderRadius: '50%', border: profile.anonymous_avatar_url === option.key ? '3px solid var(--forest)' : '2px solid var(--line)',
+                  background: option.color, fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                }}
+              >
+                {option.key.replace('emoji:', '')}
+              </button>
+            ))}
+          </div>
+
+          <label className="link-text" htmlFor="anonAvatarUpload" style={{ cursor: 'pointer' }}>Eigenes Bild hochladen</label>
+          <input id="anonAvatarUpload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAnonAvatarUpload} />
+
+          {profile.anonymous_avatar_url && !profile.anonymous_avatar_url.startsWith('emoji:') && (
+            <div className="avatar-preview" style={{ width: 52, height: 52, marginTop: 10 }}>
+              <img src={profile.anonymous_avatar_url} alt="" />
+            </div>
           )}
         </div>
 

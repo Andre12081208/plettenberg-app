@@ -1190,7 +1190,7 @@ function PlanUndZusatzpakete({ profile, onBack }) {
               ) : (
                 <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-soft)' }}>Du hast aktuell kein Paket gebucht.</p>
               )}
-              
+              <a
                 className="link-text"
                 style={{ display: 'inline-block', marginTop: 10 }}
                 href={`mailto:andremanuel.koenig@gmail.com?subject=${encodeURIComponent('Frage zu meinem Paket')}&body=${encodeURIComponent('Betrieb: ' + profile.company_name)}`}

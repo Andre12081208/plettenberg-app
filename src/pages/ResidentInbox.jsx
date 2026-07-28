@@ -23,6 +23,14 @@ export default function ResidentInbox({ userId, onBack }) {
   const [selectedIdea, setSelectedIdea] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
 
+  const [showPicker, setShowPicker] = useState(false)
+  const [pickerSearch, setPickerSearch] = useState('')
+  const [contacts, setContacts] = useState([])
+  const [loadingContacts, setLoadingContacts] = useState(false)
+  const [composeTarget, setComposeTarget] = useState(null)
+  const [composeMessage, setComposeMessage] = useState('')
+  const [starting, setStarting] = useState(false)
+
   useEffect(() => {
     loadConversations()
   }, [])
@@ -41,6 +49,90 @@ export default function ResidentInbox({ userId, onBack }) {
     if (error) setError(error.message)
     setConversations(data || [])
     setLoading(false)
+  }
+
+  async function openPicker() {
+    setShowPicker(true)
+    setLoadingContacts(true)
+    const { data } = await supabase.rpc('get_my_business_contacts')
+    setContacts(data || [])
+    setLoadingContacts(false)
+  }
+
+  async function selectContact(business) {
+    setError('')
+    const { data: existing } = await supabase
+      .from('business_inquiries')
+      .select('id')
+      .eq('business_profile_id', business.business_id)
+      .eq('buyer_id', userId)
+      .is('product_id', null)
+      .maybeSingle()
+
+    if (existing) {
+      const { data: conv } = await supabase
+        .from('postfach_conversations')
+        .select('*')
+        .eq('source_type', 'business_inquiry')
+        .eq('source_id', existing.id)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (conv) {
+        setShowPicker(false)
+        setComposeTarget(null)
+        openConversation(conv)
+        return
+      }
+    }
+
+    setComposeTarget(business)
+  }
+
+  async function sendNewConversation(e) {
+    e.preventDefault()
+    if (!composeMessage.trim()) return
+    setStarting(true)
+    setError('')
+
+    const { data: created, error: createError } = await supabase
+      .from('business_inquiries')
+      .insert({
+        business_profile_id: composeTarget.business_id,
+        buyer_id: userId,
+        product_name_snapshot: 'Allgemeine Anfrage',
+        is_anonymous: false
+      })
+      .select('id')
+      .single()
+
+    if (createError) {
+      setError(createError.message)
+      setStarting(false)
+      return
+    }
+
+    await supabase.from('business_inquiry_messages').insert({
+      inquiry_id: created.id,
+      sender_id: userId,
+      is_business: false,
+      content: composeMessage.trim()
+    })
+
+    const { data: conv } = await supabase
+      .from('postfach_conversations')
+      .select('*')
+      .eq('source_type', 'business_inquiry')
+      .eq('source_id', created.id)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    setStarting(false)
+    setShowPicker(false)
+    setComposeTarget(null)
+    setComposeMessage('')
+
+    if (conv) openConversation(conv)
   }
 
   async function openConversation(conv) {
@@ -91,6 +183,10 @@ export default function ResidentInbox({ userId, onBack }) {
   const listContent = (
     <>
       {error && <div className="error-box">{error}</div>}
+
+      <div className="btn-row" style={{ marginBottom: 12 }}>
+        <button className="btn btn-primary" onClick={openPicker}>+ Neue Nachricht</button>
+      </div>
 
       <div className="field">
         <input
@@ -197,6 +293,69 @@ export default function ResidentInbox({ userId, onBack }) {
   ) : (
     <p className="center-note" style={{ marginTop: 40 }}>Wähle eine Unterhaltung aus.</p>
   )
+
+  if (showPicker) {
+    const filteredContacts = contacts.filter((c) => c.company_name.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
+
+    if (composeTarget) {
+      return (
+        <div className="app-shell">
+          <div className="topbar">
+            <div className="mark">Plettenberg</div>
+            <h1>{composeTarget.company_name}</h1>
+          </div>
+          <main>
+            <button className="link-text" onClick={() => setComposeTarget(null)} style={{ marginBottom: 16 }}>← Zurück</button>
+            {error && <div className="error-box">{error}</div>}
+            <form onSubmit={sendNewConversation}>
+              <div className="field">
+                <label htmlFor="composeMessage">Deine Nachricht</label>
+                <textarea id="composeMessage" required rows={4} value={composeMessage} onChange={(e) => setComposeMessage(e.target.value)} placeholder={`Schreib ${composeTarget.company_name} eine Nachricht...`} />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={starting}>
+                {starting ? 'Wird gesendet...' : 'Senden'}
+              </button>
+            </form>
+          </main>
+        </div>
+      )
+    }
+
+    return (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">Plettenberg</div>
+          <h1>Neue Nachricht</h1>
+        </div>
+        <main>
+          <button className="link-text" onClick={() => setShowPicker(false)} style={{ marginBottom: 16 }}>← Zurück zum Postfach</button>
+
+          <div className="field">
+            <input value={pickerSearch} onChange={(e) => setPickerSearch(e.target.value)} placeholder="Betrieb oder Stadtverwaltung suchen..." />
+          </div>
+
+          {loadingContacts && <div className="loading-dot">Lädt...</div>}
+          {!loadingContacts && filteredContacts.length === 0 && (
+            <p className="center-note">Keine Treffer. Füge Betriebe zu deinen Apps hinzu oder folge ihrem Channel, um sie hier anschreiben zu können.</p>
+          )}
+
+          {!loadingContacts && filteredContacts.map((c) => (
+            <button
+              key={c.business_id}
+              className="card"
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer' }}
+              onClick={() => selectContact(c)}
+            >
+              <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                {c.logo_url ? <img src={c.logo_url} alt="" /> : (c.category === 'stadtverwaltung' ? '🏛️' : '🏬')}
+              </div>
+              <h3 style={{ margin: 0 }}>{c.company_name}</h3>
+            </button>
+          ))}
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="app-shell">

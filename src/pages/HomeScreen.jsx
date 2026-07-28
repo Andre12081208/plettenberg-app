@@ -17,6 +17,7 @@ import GastroHub from './GastroHub.jsx'
 import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 import Kontakte from './Kontakte.jsx'
 import ResidentInbox from './ResidentInbox.jsx'
+import BusinessDirectory from './BusinessDirectory.jsx'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
@@ -24,7 +25,8 @@ const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
 const SYSTEM_APP_META = {
   calendar: { icon: '📅', label: 'Kalender' },
   snake: { icon: '🐍', label: 'Snake' },
-  ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' }
+  ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' },
+  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' }
 }
 
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
@@ -271,6 +273,8 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries(); checkPostfach() }} />
   } else if (openApp === 'postfach') {
     content = <ResidentInbox userId={userId} onBack={() => { setOpenApp(null); checkPostfach() }} />
+  } else if (openApp === 'branchenverzeichnis') {
+    content = <BusinessDirectory onOpenBusiness={(biz) => setOpenApp(biz)} onBack={() => setOpenApp(null)} />
   } else {
     content = (
       <>
@@ -395,7 +399,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                         </span>
                       )}
 
-                      {editMode && (
+                      {editMode && tile.key !== 'branchenverzeichnis' && (
                         <>
                           <button
                             onClick={() => removeTile(tile)}
@@ -408,6 +412,12 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                             <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
                           </div>
                         </>
+                      )}
+                      {editMode && tile.key === 'branchenverzeichnis' && (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 2 }}>
+                          <button className="link-text" style={{ fontSize: 13 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
+                          <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
+                        </div>
                       )}
                     </div>
                   )

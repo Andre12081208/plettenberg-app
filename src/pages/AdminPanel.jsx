@@ -64,6 +64,7 @@ export default function AdminPanel({ onBack }) {
         <button className={tab === 'meldungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('meldungen')}>Meldungen</button>
         <button className={tab === 'testprofile' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('testprofile')}>Testprofile</button>
         <button className={tab === 'archiviert' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('archiviert')}>Archivierte Gewerbeaccounts</button>
+        <button className={tab === 'datenanfragen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('datenanfragen')}>Datenanfragen</button>
       </div>
 
       {tab === 'nutzer' && <NutzerTab />}
@@ -74,6 +75,7 @@ export default function AdminPanel({ onBack }) {
       {tab === 'meldungen' && <MeldungenTab />}
       {tab === 'testprofile' && <TestprofileTab />}
       {tab === 'archiviert' && <ArchivierteGewerbeTab />}
+      {tab === 'datenanfragen' && <DatenanfragenTab />}
     </>
   )
 
@@ -1399,6 +1401,61 @@ function ArchivierteGewerbeTab() {
           <button className="btn btn-secondary" onClick={() => restoreAccount(entry.id)} disabled={busyId === entry.id}>
             {busyId === entry.id ? 'Wird wiederhergestellt...' : 'Konto wiederherstellen'}
           </button>
+        </div>
+      ))}
+    </>
+  )
+}
+function DatenanfragenTab() {
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadRequests()
+  }, [])
+
+  async function loadRequests() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('data_access_requests')
+      .select('*, business_profiles(company_name)')
+      .order('created_at', { ascending: false })
+
+    if (error) setError(error.message)
+    setRequests(data || [])
+    setLoading(false)
+  }
+
+  async function updateStatus(id, newStatus) {
+    const { error } = await supabase.from('data_access_requests').update({ status: newStatus }).eq('id', id)
+    if (!error) {
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)))
+    }
+  }
+
+  return (
+    <>
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="loading-dot">Lädt...</div>}
+      {!loading && requests.length === 0 && <p className="center-note">Keine Datenanfragen vorhanden.</p>}
+
+      {!loading && requests.map((r) => (
+        <div className="card" key={r.id}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <h3 style={{ margin: 0, fontSize: 15 }}>{r.business_profiles?.company_name}</h3>
+            <span className="status-pill status-pruefung" style={{ fontSize: 11 }}>{r.status}</span>
+          </div>
+          <p style={{ margin: '0 0 4px', fontSize: 14 }}>{r.request_type === 'auskunft' ? 'Auskunft über gespeicherte Daten' : 'Sonstiges'}</p>
+          {r.message && <p style={{ margin: '0 0 8px', fontSize: 14, fontStyle: 'italic' }}>„{r.message}"</p>}
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--ink-soft)' }}>
+            {new Date(r.created_at).toLocaleDateString('de-DE')}
+          </p>
+          <select value={r.status} onChange={(e) => updateStatus(r.id, e.target.value)}>
+            <option value="offen">Offen</option>
+            <option value="in_bearbeitung">In Bearbeitung</option>
+            <option value="abgeschlossen">Abgeschlossen</option>
+          </select>
         </div>
       ))}
     </>

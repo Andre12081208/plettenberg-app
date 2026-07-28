@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-const STATUS_LABELS = {
-  in_pruefung: { text: 'In Prüfung', cls: 'status-pruefung' },
-  vertrag_in_arbeit: { text: 'Vertrag in Arbeit', cls: 'status-vertrag' },
-  live: { text: 'Live', cls: 'status-live' },
-  abgelehnt: { text: 'Abgelehnt', cls: 'status-abgelehnt' }
-}
-
 const METRIC_REGISTRY = [
   { key: 'bestellungen_offen', label: 'Offene Bestellungen', type: 'number' },
   { key: 'bestellungen_gesamt', label: 'Bestellungen gesamt', type: 'number' },
@@ -89,7 +82,92 @@ function Ampel({ value, low, high }) {
   )
 }
 
-export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
+const STATUS_EXPLANATION = {
+  in_pruefung: 'Dein Profil wird gerade von unserem Team geprüft.',
+  vertrag_in_arbeit: 'Der Vertrag mit dir wird gerade fertiggemacht.',
+  abgelehnt: 'Dein Profil wurde aktuell nicht freigeschaltet.'
+}
+
+function ProfileStatusTile({ profile }) {
+  const [addons, setAddons] = useState([])
+  const [hasChannel, setHasChannel] = useState(false)
+  const [hasTerminProduct, setHasTerminProduct] = useState(false)
+  const [showWhyModal, setShowWhyModal] = useState(false)
+
+  useEffect(() => {
+    loadExtras()
+    // eslint-disable-next-line
+  }, [])
+
+  async function loadExtras() {
+    const [{ data: addonRows }, { data: channelRow }, { data: terminRow }] = await Promise.all([
+      supabase.from('business_addons').select('addon_key').eq('business_profile_id', profile.id),
+      supabase.from('channels').select('id').eq('created_by', profile.id).limit(1).maybeSingle(),
+      supabase.from('business_products').select('id').eq('business_profile_id', profile.id).eq('sale_mode', 'termin').eq('active', true).limit(1).maybeSingle()
+    ])
+    setAddons((addonRows || []).map((a) => a.addon_key))
+    setHasChannel(!!channelRow)
+    setHasTerminProduct(!!terminRow)
+  }
+
+  const isLive = profile.status === 'live'
+  const isBasisLive = isLive && profile.plan === 'basis'
+
+  const items = [
+    ...(profile.plan === 'basis' ? [{ key: 'basis', label: 'Basis-Seite (virtueller Laden)', live: isBasisLive }] : []),
+    ...(addons.includes('channel') ? [{ key: 'channel', label: 'Eigener Channel', live: isLive && hasChannel }] : []),
+    ...(addons.includes('termine') ? [{ key: 'termine', label: 'Termine', live: isLive && hasTerminProduct }] : []),
+    ...(addons.includes('raum') ? [{ key: 'raum', label: 'Virtueller Raum', live: isLive && !!profile.room_image_url }] : [])
+  ]
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: items.length > 0 ? 12 : 0 }}>
+        <span style={{ fontSize: 14 }}>
+          Dein Profil ist öffentlich sichtbar. {isLive ? '✅' : '❌'}
+        </span>
+        <button
+          className={`status-pill ${isLive ? 'status-live' : 'status-abgelehnt'}`}
+          style={{ border: 'none', cursor: isLive ? 'default' : 'pointer' }}
+          onClick={() => { if (!isLive) setShowWhyModal(true) }}
+        >
+          {isLive ? 'Live' : 'Nicht live'}
+        </button>
+      </div>
+
+      {items.map((item) => (
+        <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderTop: '1px solid var(--line)' }}>
+          <span>{item.label}</span>
+          <span style={{ color: item.live ? 'var(--forest)' : 'var(--ink-soft)', fontWeight: 600 }}>
+            {item.live ? '✅ Live' : '⚪ Noch nicht eingerichtet'}
+          </span>
+        </div>
+      ))}
+
+      {showWhyModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}
+          onClick={() => setShowWhyModal(false)}
+        >
+          <div className="card" style={{ maxWidth: 360, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>Warum ist mein Profil nicht live?</h3>
+            <p style={{ fontSize: 14 }}>{STATUS_EXPLANATION[profile.status] || 'Der Status ist gerade nicht "live".'}</p>
+            
+              className="btn btn-primary"
+              style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginBottom: 8 }}
+              href={`mailto:andremanuel.koenig@gmail.com?subject=${encodeURIComponent('Frage zu meinem Profil-Status')}&body=${encodeURIComponent('Betrieb: ' + profile.company_name)}`}
+            >
+              Support kontaktieren
+            </a>
+            <button className="btn btn-secondary" onClick={() => setShowWhyModal(false)}>Schließen</button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+export default function BusinessOverview({ profile }) {
   const [tiles, setTiles] = useState([])
   const [tileValues, setTileValues] = useState({})
   const [loading, setLoading] = useState(true)
@@ -129,7 +207,7 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
     setLoading(true)
     setError('')
 
-    const { data, error: tilesError } = await supabase
+    let { data, error: tilesError } = await supabase
       .from('business_dashboard_tiles')
       .select('*')
       .eq('business_profile_id', profile.id)
@@ -139,6 +217,18 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
       setError(tilesError.message)
       setLoading(false)
       return
+    }
+
+    if (!(data || []).some((t) => t.viz_type === 'status')) {
+      const { data: created } = await supabase.from('business_dashboard_tiles').insert({
+        business_profile_id: profile.id,
+        title: 'Profil-Status',
+        metric_key_1: 'profile_status',
+        viz_type: 'status',
+        sort_order: -1
+      }).select('*').single()
+
+      if (created) data = [created, ...(data || [])]
     }
 
     setTiles(data || [])
@@ -152,6 +242,8 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
   }
 
   async function computeTileValue(tile) {
+    if (tile.viz_type === 'status') return true
+
     const { data: val1 } = await supabase.rpc('get_business_dashboard_metric', { metric_key: tile.metric_key_1 })
 
     if (tile.viz_type === 'balken' && tile.metric_key_2) {
@@ -255,6 +347,10 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
   }
 
   function renderTileContent(tile) {
+    if (tile.viz_type === 'status') {
+      return <ProfileStatusTile profile={profile} />
+    }
+
     const value = tileValues[tile.id]
     if (value == null) return <p className="center-note">Keine Daten.</p>
 
@@ -276,7 +372,12 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div className="mark">Plettenberg</div>
+          <div style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontWeight: 700, fontSize: 14 }}>
+            {profile.company_name}
+          </div>
+        </div>
         <h1>Admin Dashboard</h1>
         {profile.account_status === 'beobachter' && (
           <div className="error-box" style={{ background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
@@ -285,30 +386,6 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
         )}
       </div>
       <main style={{ paddingBottom: 90 }}>
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-            <h3 style={{ margin: 0 }}>{profile.company_name}</h3>
-            <span className={`status-pill ${STATUS_LABELS[profile.status]?.cls}`}>
-              {STATUS_LABELS[profile.status]?.text}
-            </span>
-          </div>
-          <p style={{ margin: 0, color: 'var(--ink-soft)', fontSize: 14 }}>
-            {profile.status === 'in_pruefung' &&
-              'Wir melden uns bei dir, sobald dein Profil geprüft wurde und ein Vertrag zustande kommt.'}
-            {profile.status === 'vertrag_in_arbeit' &&
-              'Der Vertrag wird gerade fertiggemacht. Danach schalten wir dein Profil live.'}
-            {profile.status === 'live' &&
-              'Dein Profil ist öffentlich sichtbar.'}
-            {profile.status === 'abgelehnt' &&
-              'Dein Profil wurde aktuell nicht freigeschaltet.'}
-          </p>
-          {isLive && profile.category !== 'stadtverwaltung' && (
-            <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
-              Paket: {profile.plan === 'basis' ? 'Basis (virtueller Laden aktiv)' : 'Kein Paket gebucht'}
-            </p>
-          )}
-        </div>
-
         {isLive && (
           <>
             <div className="btn-row" style={{ marginBottom: 16 }}>
@@ -403,9 +480,6 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
             )}
 
             {loading && <div className="loading-dot">Lädt...</div>}
-            {!loading && tiles.length === 0 && !showForm && (
-              <p className="center-note">Noch keine Kacheln angelegt.</p>
-            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
               {!loading && tiles.map((tile, index) => (
@@ -415,7 +489,9 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
                       <button className="link-text" style={{ fontSize: 15 }} disabled={index === tiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
-                      <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
+                      {tile.viz_type !== 'status' && (
+                        <button className="link-text" onClick={() => startEdit(tile)}>Bearbeiten</button>
+                      )}
                       <button className="link-text" onClick={() => deleteTile(tile.id)}>Löschen</button>
                     </div>
                   </div>
@@ -426,10 +502,15 @@ export default function BusinessOverview({ profile, isAdmin, onOpenAdmin }) {
           </>
         )}
 
-        {isAdmin && (
-          <button className="btn btn-primary" onClick={onOpenAdmin} style={{ marginTop: 16 }}>
-            Gewerbeanfragen verwalten
-          </button>
+        {!isLive && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>{profile.company_name}</h3>
+            <p style={{ margin: 0, color: 'var(--ink-soft)', fontSize: 14 }}>
+              {profile.status === 'in_pruefung' && 'Wir melden uns bei dir, sobald dein Profil geprüft wurde und ein Vertrag zustande kommt.'}
+              {profile.status === 'vertrag_in_arbeit' && 'Der Vertrag wird gerade fertiggemacht. Danach schalten wir dein Profil live.'}
+              {profile.status === 'abgelehnt' && 'Dein Profil wurde aktuell nicht freigeschaltet.'}
+            </p>
+          </div>
         )}
       </main>
     </>

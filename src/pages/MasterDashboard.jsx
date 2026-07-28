@@ -90,23 +90,6 @@ function Wachstum({ data }) {
   )
 }
 
-function Wachstum({ data }) {
-  return (
-    <div>
-      <div style={{ textAlign: 'center', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--line)' }}>
-        <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--forest)' }}>{data.avg_per_day}</p>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-soft)' }}>Ø neue Einwohner pro Tag</p>
-      </div>
-      {data.windows.map((w, i) => (
-        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0' }}>
-          <span>{w.label}</span>
-          <span style={{ fontWeight: 600 }}>{w.value}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function Ampel({ value, low, high }) {
   let color = 'var(--forest)'
   let label = 'Gut'

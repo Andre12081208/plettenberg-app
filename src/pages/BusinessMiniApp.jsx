@@ -449,10 +449,6 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
             ))}
           </div>
 
-          <button className="link-text" onClick={() => setShowRoom(false)} style={{ marginTop: 16 }}>
-            Stattdessen normale Ansicht anzeigen
-          </button>
-
           {activeHotspotModal && (
             <div
               style={{
@@ -741,11 +737,6 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
       </div>
       <main>
         <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
-        {hasRoomAddon && app.room_image_url && (
-          <button className="link-text" onClick={() => setShowRoom(true)} style={{ marginBottom: 16, marginLeft: 12 }}>
-            🏠 Zurück zum virtuellen Raum
-          </button>
-        )}
 
         {error && <div className="error-box">{error}</div>}
         {placedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{placedMsg}</div>}

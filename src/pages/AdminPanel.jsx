@@ -982,6 +982,7 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [statusFilter, setStatusFilter] = useState('alle')
 
   useEffect(() => {
     loadIdeas()
@@ -993,7 +994,7 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
     const { data, error } = await supabase
       .from('ideas')
       .select('*')
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: true })
 
     if (error) { setError(error.message); setLoading(false); return }
 
@@ -1024,9 +1025,19 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
       })
     )
 
-    setIdeas(withNames)
+    // Ungelesen zuerst (älteste zuoberst), Gelesenes danach (ebenfalls älteste zuoberst)
+    const sorted = [...withNames].sort((a, b) => {
+      const aUnread = a.adminUnreadCount > 0
+      const bUnread = b.adminUnreadCount > 0
+      if (aUnread !== bUnread) return aUnread ? -1 : 1
+      return new Date(a.created_at) - new Date(b.created_at)
+    })
+
+    setIdeas(sorted)
     setLoading(false)
   }
+
+  const visibleIdeas = statusFilter === 'alle' ? ideas : ideas.filter((i) => i.status === statusFilter)
 
   if (selected) {
     return (
@@ -1042,9 +1053,23 @@ function IdeenwerkstattTab({ onIdeaSeen }) {
     <>
       {error && <div className="error-box">{error}</div>}
       {loading && <div className="loading-dot">Lädt...</div>}
-      {!loading && ideas.length === 0 && <p className="center-note">Noch keine Ideen eingereicht.</p>}
+      <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+        <button className={statusFilter === 'alle' ? 'btn btn-primary' : 'btn btn-secondary'} style={{ width: 'auto', padding: '8px 14px' }} onClick={() => setStatusFilter('alle')}>Alle</button>
+        {IDEA_STATUS_OPTIONS.map((s) => (
+          <button
+            key={s.value}
+            className={statusFilter === s.value ? 'btn btn-primary' : 'btn btn-secondary'}
+            style={{ width: 'auto', padding: '8px 14px' }}
+            onClick={() => setStatusFilter(s.value)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
 
-      {!loading && ideas.map((idea) => {
+      {!loading && visibleIdeas.length === 0 && <p className="center-note">Keine Ideen in dieser Ansicht.</p>}
+
+      {!loading && visibleIdeas.map((idea) => {
         return (
         <div className="card" key={idea.id}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>

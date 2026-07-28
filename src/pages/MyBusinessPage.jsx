@@ -95,6 +95,7 @@ export default function MyBusinessPage({ profile, onProfileUpdated }) {
 
       if (dbError) throw dbError
 
+      await supabase.from('business_account_events').insert({ business_profile_id: profile.id, event_type: 'profil_geaendert' })
       setEditing(false)
       setLogoFile(null)
       setBannerFile(null)

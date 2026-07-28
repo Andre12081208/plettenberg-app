@@ -465,8 +465,9 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
         {isMasterAdmin && (
           <button className="tab-bar-item" onClick={onBackToDashboard}>
             <span className="tab-bar-icon">🧭</span>
-            Dashboard
+            Master Dashboard
           </button>
+        )}
         )}
       </nav>
     </div>

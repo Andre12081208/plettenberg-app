@@ -62,6 +62,7 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     if (hasShop) {
       loadProducts()
       loadInquiries()
+      loadRoomInfo()
     } else {
       setLoading(false)
     }

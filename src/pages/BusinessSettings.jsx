@@ -928,9 +928,6 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     { key: 'konto-benachrichtigungen', icon: '🔔', label: 'Benachrichtigungen' },
     { key: 'konto-historie', icon: '🕓', label: 'Kontohistorie' },
     { key: 'konto-plan', icon: '💳', label: 'Mein Plan und Zusatzpakete' },
-    { key: 'konto-rechnungen', icon: '🧾', label: 'Rechnungen' },
-    { key: 'konto-zahlungsmethoden', icon: '💰', label: 'Zahlungsmethoden' },
-    { key: 'konto-einstellungen', icon: '⚙️', label: 'Einstellungen' }
   ]
 
   if (view === 'konto-historie') {

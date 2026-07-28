@@ -286,8 +286,6 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
           />
         )}
 
-        {activeTab === 'admin' && isAdmin && <AdminPanel embedded />}
-
         {activeTab === 'apps' && (
           <>
             <div className="topbar">
@@ -454,15 +452,6 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
           <span className="tab-bar-icon">🔲</span>
           {t('nav.apps')}
         </button>
-        {isAdmin && (
-          <button
-            className={`tab-bar-item ${activeTab === 'admin' && !openApp ? 'active' : ''}`}
-            onClick={() => goToTab('admin')}
-          >
-            <span className="tab-bar-icon">🛠️</span>
-            {t('nav.admin')}
-          </button>
-        )}
         {isMasterAdmin && (
           <button className="tab-bar-item" onClick={onBackToDashboard}>
             <span className="tab-bar-icon">🧭</span>

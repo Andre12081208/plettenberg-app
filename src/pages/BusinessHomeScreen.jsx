@@ -33,7 +33,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   } else if (activeTab === 'inbox') {
     content = <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
   } else if (activeTab === 'settings') {
-    content = <BusinessSettings profile={profile} onProfileUpdated={onProfileUpdated} />
+    content = <BusinessSettings profile={profile} onProfileUpdated={onProfileUpdated} onGoToMySeite={() => goToTab('mypage')} />
   }
 
   return (

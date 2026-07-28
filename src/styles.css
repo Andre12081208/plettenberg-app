@@ -346,11 +346,24 @@ body.dark-mode {
   --line: #3A3F38;
   --surface: #242822;
 }
-@media (min-width: 768px) {
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
   .app-shell {
     max-width: 1100px;
   }
   .tab-bar {
     max-width: 1100px;
+  }
+}
+
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
   }
 }

@@ -5,6 +5,7 @@ import ChannelDetail from './ChannelDetail.jsx'
 import BusinessAccountProfile from './BusinessAccountProfile.jsx'
 import BusinessAccessSecurity from './BusinessAccessSecurity.jsx'
 import BusinessAccountHistory from './BusinessAccountHistory.jsx'
+import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 import BusinessPrivacy from './BusinessPrivacy.jsx'
 import BusinessNotifications from './BusinessNotifications.jsx'
 
@@ -25,6 +26,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 
   const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
   const [hasRoomAddon, setHasRoomAddon] = useState(false)
+  const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
   const [roomImageUrl, setRoomImageUrl] = useState(null)
   const [roomFile, setRoomFile] = useState(null)
   const [roomPreview, setRoomPreview] = useState(null)
@@ -75,8 +77,14 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     if (canManageChannel) loadChannelInfo()
     if (canPostDirectly) loadPosts()
     loadRoomInfo()
+    checkUnreadIdeas()
     // eslint-disable-next-line
   }, [])
+
+  async function checkUnreadIdeas() {
+    const { data } = await supabase.rpc('get_unread_idea_count')
+    setUnreadIdeaCount(data || 0)
+  }
 
   async function loadRoomInfo() {
     const [{ data: addonRows }, { data: profileRow }, { data: hotspotRows }] = await Promise.all([
@@ -880,6 +888,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     // Platzhalter, kommt in einer späteren Etappe
   }
 
+  if (view === 'ideenwerkstatt') {
+    return <Ideenwerkstatt userId={profile.id} onBack={() => { setView(null); checkUnreadIdeas() }} />
+  }
+
   if (view === 'konto-benachrichtigungen') {
     return (
       <BusinessNotifications profile={profile} onBack={() => setView(null)} onProfileUpdated={onProfileUpdated} />
@@ -985,6 +997,18 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
               <div className="app-tile-label">News veröffentlichen</div>
             </button>
           )}
+
+          <div style={{ position: 'relative' }}>
+            <button className="app-tile" style={{ width: '100%' }} onClick={() => setView('ideenwerkstatt')}>
+              <div className="app-tile-icon">💡</div>
+              <div className="app-tile-label">Ideenwerkstatt</div>
+            </button>
+            {unreadIdeaCount > 0 && (
+              <span style={{ position: 'absolute', top: -4, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                {unreadIdeaCount}
+              </span>
+            )}
+          </div>
         </div>
 
         <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 24 }}>Abmelden</button>

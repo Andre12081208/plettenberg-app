@@ -342,7 +342,7 @@ function IdeaForm({ userId, initialCategory, onCancel, onDone }) {
   )
 }
 
-function IdeaDetail({ userId, idea, onBack, onUpdated }) {
+export function IdeaDetail({ userId, idea, onBack, onUpdated }) {
   const [messages, setMessages] = useState([])
   const [loadingMessages, setLoadingMessages] = useState(true)
   const [text, setText] = useState('')
@@ -360,6 +360,7 @@ function IdeaDetail({ userId, idea, onBack, onUpdated }) {
 
   useEffect(() => {
     supabase.from('ideas').update({ user_last_read_at: new Date().toISOString() }).eq('id', idea.id).then(() => {})
+    supabase.from('postfach_conversations').update({ last_read_at: new Date().toISOString() }).eq('source_type', 'idea').eq('source_id', idea.id).eq('user_id', userId).then(() => {})
 
     loadMessages()
 

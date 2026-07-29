@@ -9,6 +9,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
   const [settingsResetKey, setSettingsResetKey] = useState(0)
+  const [mypageFullScreen, setMypageFullScreen] = useState(false)
 
   useEffect(() => {
     checkUnreadInquiries()
@@ -25,6 +26,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
     if (tab === 'settings' && activeTab === 'settings') {
       setSettingsResetKey((k) => k + 1)
     }
+    if (tab !== 'mypage') setMypageFullScreen(false)
     setActiveTab(tab)
     sessionStorage.setItem('pb_business_activeTab', tab)
     if (tab !== 'inbox') checkUnreadInquiries()
@@ -34,7 +36,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   if (activeTab === 'dashboard') {
     content = <BusinessOverview profile={profile} />
   } else if (activeTab === 'mypage') {
-    content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} />
+    content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} onFullScreenChange={setMypageFullScreen} />
   } else if (activeTab === 'inbox') {
     content = <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
   } else if (activeTab === 'settings') {
@@ -45,7 +47,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
     <div className="app-shell">
       {content}
 
-      <nav className="tab-bar">
+      <nav className={`tab-bar ${mypageFullScreen ? 'tab-bar-overlay' : ''}`}>
         {isMasterAdmin && (
           <button className="tab-bar-item" onClick={onBackToDashboard}>
             <span className="tab-bar-icon">🧭</span>

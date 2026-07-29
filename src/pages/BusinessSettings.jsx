@@ -216,7 +216,14 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     setPlacingHotspot(null)
   }
 
-  async function updateModalFormat(hotspotId, format) {
+  async function updateTransition(hotspotId, type, duration) {
+    const { error } = await supabase.from('business_room_hotspots').update({ transition_type: type, transition_duration: duration }).eq('id', hotspotId)
+    if (error) console.error('updateTransition Fehler:', error)
+    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, transition_type: type, transition_duration: duration } : h)))
+  }
+
+  async function handleAreaImageUpload(hotspotId, file) {
+    async function updateModalFormat(hotspotId, format) {
     const { error } = await supabase.from('business_room_hotspots').update({ modal_format: format }).eq('id', hotspotId)
     if (error) console.error('updateModalFormat Fehler:', error)
     setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_format: format } : h)))
@@ -740,6 +747,34 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                       <option value="links">Links</option>
                       <option value="rechts">Rechts</option>
                       <option value="frei">Frei positionieren</option>
+                    </select>
+                  </div>
+
+                  <div className="field" style={{ marginTop: 10 }}>
+                    <label>Bild-Übergang</label>
+                    <select
+                      value={h.transition_type || 'fade'}
+                      onChange={(e) => updateTransition(h.id, e.target.value, h.transition_duration ?? 0.5)}
+                    >
+                      <option value="fade">Überblenden</option>
+                      <option value="zoom">Reinzoomen</option>
+                      <option value="slide_links">Von rechts hereinschieben</option>
+                      <option value="slide_rechts">Von links hereinschieben</option>
+                      <option value="slide_oben">Von unten hereinschieben</option>
+                      <option value="slide_unten">Von oben hereinschieben</option>
+                      <option value="keine">Kein Übergang</option>
+                    </select>
+                  </div>
+
+                  <div className="field" style={{ marginTop: 10 }}>
+                    <label>Dauer des Übergangs</label>
+                    <select
+                      value={h.transition_duration ?? 0.5}
+                      onChange={(e) => updateTransition(h.id, h.transition_type || 'fade', Number(e.target.value))}
+                    >
+                      {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3].map((sec) => (
+                        <option key={sec} value={sec}>{sec.toFixed(2).replace('.00', '').replace(/0$/, '')} Sekunden</option>
+                      ))}
                     </select>
                   </div>
 

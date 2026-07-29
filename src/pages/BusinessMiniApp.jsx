@@ -78,6 +78,12 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
       setActiveAreaImage(h.area_image_url)
     }
   }
+
+  function goBackToRoom() {
+    setActiveHotspotModal(null)
+    setActiveTransition({ type: 'keine', duration: 0 })
+    setActiveAreaImage(null)
+  }
   const [isInstalled, setIsInstalled] = useState(true)
   const [hasChannelAddonForResident, setHasChannelAddonForResident] = useState(false)
   const [directoryChannel, setDirectoryChannel] = useState(null)
@@ -544,7 +550,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
             📍 Kontaktinfos
           </button>
         )}
-        <button className="link-text" onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }} style={{ marginTop: 6 }}>
+        <button className="link-text" onClick={goBackToRoom} style={{ marginTop: 6 }}>
           Abbrechen
         </button>
       </div>
@@ -580,7 +586,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
         {activeHotspotModal && (
           <div
             style={getModalWrapperStyle(activeHotspotModal)}
-            onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }}
+            onClick={goBackToRoom}
           >
             {hotspotModalContent}
           </div>
@@ -601,7 +607,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
           <p className="hint" style={{ marginBottom: 12 }}>Tippe auf einen Bereich, um dort hinzugehen.</p>
 
           {activeAreaImage && (
-            <button className="link-text" onClick={() => setActiveAreaImage(null)} style={{ marginBottom: 10 }}>← Zurück zum Raum</button>
+            <button className="link-text" onClick={goBackToRoom} style={{ marginBottom: 10 }}>← Zurück zum Raum</button>
           )}
           <div style={{ position: 'relative', width: '100%', height: 280, borderRadius: 10, overflow: 'hidden' }}>
             <RoomBackground imageUrl={activeAreaImage || app.room_image_url} transitionType={activeTransition.type} transitionDuration={activeTransition.duration} />
@@ -624,7 +630,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
           {activeHotspotModal && (
             <div
               style={getModalWrapperStyle(activeHotspotModal)}
-              onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }}
+              onClick={goBackToRoom}
             >
               <div
                 className="card"
@@ -663,7 +669,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
                       📍 Kontaktinfos
                     </button>
                   )}
-                  <button className="link-text" onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }} style={{ marginTop: 6 }}>
+                  <button className="link-text" onClick={goBackToRoom} style={{ marginTop: 6 }}>
                     Abbrechen
                   </button>
                 </div>

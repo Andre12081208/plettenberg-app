@@ -494,7 +494,6 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
         <PieChart data={value} showCumulativeRates={isEngagementTile} centerValue={isEngagementTile ? averageEngagement : null} />
       ) : <p className="center-note">Keine Daten.</p>
     }
-    }
     return null
   }
 

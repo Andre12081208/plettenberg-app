@@ -222,8 +222,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, transition_type: type, transition_duration: duration } : h)))
   }
 
-  async function handleAreaImageUpload(hotspotId, file) {
-    async function updateModalFormat(hotspotId, format) {
+  async function updateModalFormat(hotspotId, format) {
     const { error } = await supabase.from('business_room_hotspots').update({ modal_format: format }).eq('id', hotspotId)
     if (error) console.error('updateModalFormat Fehler:', error)
     setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_format: format } : h)))

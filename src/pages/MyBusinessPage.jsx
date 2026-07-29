@@ -121,8 +121,8 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
 
           {onSwitchToRoom && (
             <div className="btn-row" style={{ marginBottom: 16 }}>
-              <button className="btn btn-primary">Meine Seite</button>
-              <button className="btn btn-secondary" onClick={onSwitchToRoom}>Virtueller Raum</button>
+              <button className="btn btn-primary">Visitenkarte (Kostenlos)</button>
+              <button className="btn btn-secondary" onClick={onSwitchToRoom}>Mein virtueller Standort (Zusatzpaket)</button>
             </div>
           )}
 

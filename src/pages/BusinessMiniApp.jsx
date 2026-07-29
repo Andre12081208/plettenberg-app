@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
@@ -25,10 +25,14 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
   const [channelInfo, setChannelInfo] = useState(null)
   const [activeHotspotModal, setActiveHotspotModal] = useState(null)
   const [activeAreaImage, setActiveAreaImage] = useState(null)
+  const [activeTransition, setActiveTransition] = useState({ type: 'fade', duration: 0.5 })
 
   function handleHotspotClick(h) {
     setActiveHotspotModal(h)
-    if (h.area_image_url) setActiveAreaImage(h.area_image_url)
+    if (h.area_image_url) {
+      setActiveTransition({ type: h.transition_type || 'fade', duration: h.transition_duration || 0.5 })
+      setActiveAreaImage(h.area_image_url)
+    }
   }
   const [isInstalled, setIsInstalled] = useState(true)
   const [hasChannelAddonForResident, setHasChannelAddonForResident] = useState(false)
@@ -432,6 +436,50 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     // eslint-disable-next-line
   }, [showRoom, hasRoomAddon, app.room_image_url, fullScreenRoom])
 
+  function RoomBackground({ imageUrl, transitionType, transitionDuration }) {
+    const [layers, setLayers] = useState(() => [{ url: imageUrl, key: 0 }])
+    const nextKey = useRef(1)
+
+    useEffect(() => {
+      setLayers((prev) => {
+        if (prev[prev.length - 1]?.url === imageUrl) return prev
+        return [...prev, { url: imageUrl, key: nextKey.current++ }]
+      })
+      // eslint-disable-next-line
+    }, [imageUrl])
+
+    useEffect(() => {
+      if (layers.length <= 1) return
+      const timer = setTimeout(() => {
+        setLayers((prev) => prev.slice(-1))
+      }, (transitionDuration || 0.5) * 1000 + 60)
+      return () => clearTimeout(timer)
+      // eslint-disable-next-line
+    }, [layers])
+
+    return (
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        {layers.map((layer, i) => {
+          const isNewest = i === layers.length - 1
+          const animate = isNewest && layers.length > 1 && transitionType !== 'keine'
+          return (
+            <div
+              key={layer.key}
+              className={animate ? `room-transition-${transitionType || 'fade'}` : ''}
+              style={{
+                position: 'absolute', inset: 0,
+                backgroundImage: `url(${layer.url})`,
+                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+                animationDuration: animate ? `${transitionDuration || 0.5}s` : undefined,
+                zIndex: i
+              }}
+            />
+          )
+        })}
+      </div>
+    )
+  }
+
   function getModalWrapperStyle(hotspot) {
     const format = hotspot?.modal_format || 'zentriert'
     const base = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', zIndex: 50, padding: 20 }
@@ -506,7 +554,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
   if (showRoom && hasRoomAddon && app.room_image_url && fullScreenRoom) {
     return (
       <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${activeAreaImage || app.room_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} />
+        <RoomBackground imageUrl={activeAreaImage || app.room_image_url} transitionType={activeTransition.type} transitionDuration={activeTransition.duration} />
         {!activeAreaImage && hotspots.map((h) => (
           <button
             key={h.id}
@@ -555,8 +603,8 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
           {activeAreaImage && (
             <button className="link-text" onClick={() => setActiveAreaImage(null)} style={{ marginBottom: 10 }}>← Zurück zum Raum</button>
           )}
-          <div style={{ position: 'relative', width: '100%' }}>
-            <img src={activeAreaImage || app.room_image_url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
+          <div style={{ position: 'relative', width: '100%', height: 280, borderRadius: 10, overflow: 'hidden' }}>
+            <RoomBackground imageUrl={activeAreaImage || app.room_image_url} transitionType={activeTransition.type} transitionDuration={activeTransition.duration} />
             {!activeAreaImage && hotspots.map((h) => (
               <button
                 key={h.id}

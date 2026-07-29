@@ -13,6 +13,7 @@ import PasswordChangedCountdown from './pages/PasswordChangedCountdown.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
 import AccountBlocked from './pages/AccountBlocked.jsx'
 import MasterDashboard from './pages/MasterDashboard.jsx'
+import { isInactivityExpired, markActivity } from './lib/inactivity.js'
 
 export default function App() {
   const [justConfirmedMsg, setJustConfirmedMsg] = useState('')
@@ -24,9 +25,24 @@ export default function App() {
   const [checkingProfile, setCheckingProfile] = useState(false)
   const [chosenType, setChosenType] = useState(null)
   const [view, setView] = useState('dashboard')
-  const [adminMode, setAdminMode] = useState(() => sessionStorage.getItem('pb_adminMode') || null)
+  const [adminMode, setAdminMode] = useState(() => {
+    if (isInactivityExpired()) return null
+    return sessionStorage.getItem('pb_adminMode') || null
+  })
   const [passwordJustChanged, setPasswordJustChanged] = useState(false)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
+
+  useEffect(() => {
+    markActivity()
+    window.addEventListener('click', markActivity)
+    window.addEventListener('keydown', markActivity)
+    window.addEventListener('touchstart', markActivity)
+    return () => {
+      window.removeEventListener('click', markActivity)
+      window.removeEventListener('keydown', markActivity)
+      window.removeEventListener('touchstart', markActivity)
+    }
+  }, [])
 
   useEffect(() => {
     let isInitialCheck = true

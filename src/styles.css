@@ -432,3 +432,16 @@ body.dark-mode {
   color: #fff;
   font-weight: 700;
 }
+@keyframes roomFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes roomZoomIn { from { opacity: 0; transform: scale(1.15); } to { opacity: 1; transform: scale(1); } }
+@keyframes roomSlideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes roomSlideRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes roomSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes roomSlideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+.room-transition-fade { animation-name: roomFadeIn; animation-timing-function: ease; animation-fill-mode: both; }
+.room-transition-zoom { animation-name: roomZoomIn; animation-timing-function: ease-out; animation-fill-mode: both; }
+.room-transition-slide_links { animation-name: roomSlideLeft; animation-timing-function: ease; animation-fill-mode: both; }
+.room-transition-slide_rechts { animation-name: roomSlideRight; animation-timing-function: ease; animation-fill-mode: both; }
+.room-transition-slide_oben { animation-name: roomSlideUp; animation-timing-function: ease; animation-fill-mode: both; }
+.room-transition-slide_unten { animation-name: roomSlideDown; animation-timing-function: ease; animation-fill-mode: both; }

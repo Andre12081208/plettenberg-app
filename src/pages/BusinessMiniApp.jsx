@@ -16,7 +16,7 @@ function isCurrentlyOpen(hours) {
   return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM
 }
 
-export default function BusinessMiniApp({ app, userId, onBack }) {
+export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, onFullScreenChange }) {
   const [showRoom, setShowRoom] = useState(true)
   const [hotspots, setHotspots] = useState([])
   const [hotspotActionsMap, setHotspotActionsMap] = useState({})
@@ -419,6 +419,86 @@ export default function BusinessMiniApp({ app, userId, onBack }) {
     setTerminSlots((prev) => prev.filter((s) => s.id !== slot.id))
     setBookedMsg(`Termin gebucht und in deinen Kalender eingetragen.`)
     setBookingId(null)
+  }
+
+  useEffect(() => {
+    onFullScreenChange?.(!!(showRoom && hasRoomAddon && app.room_image_url && fullScreenRoom))
+    // eslint-disable-next-line
+  }, [showRoom, hasRoomAddon, app.room_image_url, fullScreenRoom])
+
+  const hotspotModalContent = activeHotspotModal && (
+    <div
+      className="card"
+      style={{ maxWidth: 360, width: '100%' }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3 style={{ marginTop: 0 }}>{activeHotspotModal.label}</h3>
+      <p className="hint" style={{ marginBottom: 14 }}>Was möchtest du hier tun?</p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {(hotspotActionsMap[activeHotspotModal.id] || []).length === 0 && (
+          <p className="center-note">Für diesen Bereich ist noch nichts hinterlegt.</p>
+        )}
+        {(hotspotActionsMap[activeHotspotModal.id] || []).includes('anfragen') && (
+          <button className="btn btn-primary" onClick={() => goToAnfragen(activeHotspotModal.label)}>
+            💬 Frage stellen / Chat
+          </button>
+        )}
+        {(hotspotActionsMap[activeHotspotModal.id] || []).includes('termine') && hasTerminOffers && (
+          <button className="btn btn-secondary" onClick={goToTermine}>
+            📅 Termin buchen
+          </button>
+        )}
+        {(hotspotActionsMap[activeHotspotModal.id] || []).includes('angebot') && (
+          <button className="btn btn-secondary" onClick={goToAngebot}>
+            🛍️ Angebot ansehen
+          </button>
+        )}
+        {(hotspotActionsMap[activeHotspotModal.id] || []).includes('channel') && (
+          <button className="btn btn-secondary" onClick={goToChannel}>
+            📢 Neuigkeiten (Channel)
+          </button>
+        )}
+        {(hotspotActionsMap[activeHotspotModal.id] || []).includes('kontakt') && (
+          <button className="btn btn-secondary" onClick={goToKontakt}>
+            📍 Kontaktinfos
+          </button>
+        )}
+        <button className="link-text" onClick={() => setActiveHotspotModal(null)} style={{ marginTop: 6 }}>
+          Abbrechen
+        </button>
+      </div>
+    </div>
+  )
+
+  if (showRoom && hasRoomAddon && app.room_image_url && fullScreenRoom) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${app.room_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} />
+        {hotspots.map((h) => (
+          <button
+            key={h.id}
+            onClick={() => setActiveHotspotModal(h)}
+            style={{
+              position: 'absolute', left: `${h.x_percent}%`, top: `${h.y_percent}%`,
+              transform: 'translate(-50%, -50%)', padding: '8px 14px', borderRadius: 999,
+              background: 'rgba(31,77,61,0.92)', color: '#fff', border: '2px solid #fff',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
+            }}
+          >
+            {h.label}
+          </button>
+        ))}
+        {activeHotspotModal && (
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}
+            onClick={() => setActiveHotspotModal(null)}
+          >
+            {hotspotModalContent}
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (showRoom && hasRoomAddon && app.room_image_url) {

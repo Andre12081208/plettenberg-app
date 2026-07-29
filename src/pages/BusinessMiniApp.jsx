@@ -16,6 +16,50 @@ function isCurrentlyOpen(hours) {
   return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM
 }
 
+function RoomBackground({ imageUrl, transitionType, transitionDuration }) {
+  const [layers, setLayers] = useState(() => [{ url: imageUrl, key: 0 }])
+  const nextKey = useRef(1)
+
+  useEffect(() => {
+    setLayers((prev) => {
+      if (prev[prev.length - 1]?.url === imageUrl) return prev
+      return [...prev, { url: imageUrl, key: nextKey.current++ }]
+    })
+    // eslint-disable-next-line
+  }, [imageUrl])
+
+  useEffect(() => {
+    if (layers.length <= 1) return
+    const timer = setTimeout(() => {
+      setLayers((prev) => prev.slice(-1))
+    }, (transitionDuration || 0.5) * 1000 + 60)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line
+  }, [layers])
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      {layers.map((layer, i) => {
+        const isNewest = i === layers.length - 1
+        const animate = isNewest && layers.length > 1 && transitionType !== 'keine'
+        return (
+          <div
+            key={layer.key}
+            className={animate ? `room-transition-${transitionType || 'fade'}` : ''}
+            style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: `url(${layer.url})`,
+              backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+              animationDuration: animate ? `${transitionDuration || 0.5}s` : undefined,
+              zIndex: i
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, onFullScreenChange }) {
   const [showRoom, setShowRoom] = useState(true)
   const [hotspots, setHotspots] = useState([])
@@ -435,50 +479,6 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     onFullScreenChange?.(!!(showRoom && hasRoomAddon && app.room_image_url && fullScreenRoom))
     // eslint-disable-next-line
   }, [showRoom, hasRoomAddon, app.room_image_url, fullScreenRoom])
-
-  function RoomBackground({ imageUrl, transitionType, transitionDuration }) {
-    const [layers, setLayers] = useState(() => [{ url: imageUrl, key: 0 }])
-    const nextKey = useRef(1)
-
-    useEffect(() => {
-      setLayers((prev) => {
-        if (prev[prev.length - 1]?.url === imageUrl) return prev
-        return [...prev, { url: imageUrl, key: nextKey.current++ }]
-      })
-      // eslint-disable-next-line
-    }, [imageUrl])
-
-    useEffect(() => {
-      if (layers.length <= 1) return
-      const timer = setTimeout(() => {
-        setLayers((prev) => prev.slice(-1))
-      }, (transitionDuration || 0.5) * 1000 + 60)
-      return () => clearTimeout(timer)
-      // eslint-disable-next-line
-    }, [layers])
-
-    return (
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        {layers.map((layer, i) => {
-          const isNewest = i === layers.length - 1
-          const animate = isNewest && layers.length > 1 && transitionType !== 'keine'
-          return (
-            <div
-              key={layer.key}
-              className={animate ? `room-transition-${transitionType || 'fade'}` : ''}
-              style={{
-                position: 'absolute', inset: 0,
-                backgroundImage: `url(${layer.url})`,
-                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-                animationDuration: animate ? `${transitionDuration || 0.5}s` : undefined,
-                zIndex: i
-              }}
-            />
-          )
-        })}
-      </div>
-    )
-  }
 
   function getModalWrapperStyle(hotspot) {
     const format = hotspot?.modal_format || 'zentriert'

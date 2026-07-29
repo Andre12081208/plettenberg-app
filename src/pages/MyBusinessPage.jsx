@@ -12,7 +12,7 @@ const DAYS = [
   { key: 'so', label: 'Sonntag' }
 ]
 
-export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack }) {
+export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack, onSwitchToRoom }) {
   const [editing, setEditing] = useState(!!startEditing)
   const [tagline, setTagline] = useState(profile.tagline || '')
   const [description, setDescription] = useState(profile.description || '')
@@ -118,6 +118,13 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
           <button className="link-text" onClick={() => (settingsBack ? settingsBack() : setEditing(false))} style={{ marginBottom: 16 }}>
             {settingsBack ? '← Zurück zu Einstellungen' : '← Zurück zu Meine Seite'}
           </button>
+
+          {onSwitchToRoom && (
+            <div className="btn-row" style={{ marginBottom: 16 }}>
+              <button className="btn btn-primary">Meine Seite</button>
+              <button className="btn btn-secondary" onClick={onSwitchToRoom}>Virtueller Raum</button>
+            </div>
+          )}
 
           {error && <div className="error-box">{error}</div>}
 

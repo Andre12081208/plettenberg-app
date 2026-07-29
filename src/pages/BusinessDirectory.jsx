@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import DirectoryListingDetail from './DirectoryListingDetail.jsx'
 
-export default function BusinessDirectory({ userId, onBack }) {
+export default function BusinessDirectory({ userId, onBack, onFullScreenChange }) {
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +49,7 @@ export default function BusinessDirectory({ userId, onBack }) {
   if (openListing) {
     return (
       <DirectoryListingDetail
+        onFullScreenChange={onFullScreenChange}
         listing={openListing}
         userId={userId}
         onBack={() => setOpenListing(null)}

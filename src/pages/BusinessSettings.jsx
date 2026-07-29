@@ -216,6 +216,17 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     setPlacingHotspot(null)
   }
 
+  async function handleAreaImageUpload(hotspotId, file) {
+    if (!file) return
+    const ext = file.name.split('.').pop()
+    const path = `${profile.id}/area-${hotspotId}.${ext}`
+    const { error: uploadError } = await supabase.storage.from('room-images').upload(path, file, { upsert: true })
+    if (uploadError) return
+
+    const { data } = supabase.storage.from('room-images').getPublicUrl(path)
+    await supabase.from('business_room_hotspots').update({ area_image_url: data.publicUrl }).eq('id', hotspotId)
+    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, area_image_url: data.publicUrl } : h)))
+  }
   async function deleteHotspot(id) {
     await supabase.from('business_room_hotspots').delete().eq('id', id)
     setHotspots((prev) => prev.filter((h) => h.id !== id))
@@ -685,6 +696,24 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                       </p>
                     </div>
                     <button className="link-text" onClick={() => deleteHotspot(h.id)}>Löschen</button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                    {h.area_image_url && (
+                      <div className="avatar-preview" style={{ width: 36, height: 36 }}>
+                        <img src={h.area_image_url} alt="" />
+                      </div>
+                    )}
+                    <label className="link-text" htmlFor={`areaImage-${h.id}`} style={{ cursor: 'pointer' }}>
+                      {h.area_image_url ? 'Bereichsbild ändern' : 'Bereichsbild hochladen'}
+                    </label>
+                    <input
+                      id={`areaImage-${h.id}`}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleAreaImageUpload(h.id, e.target.files?.[0])}
+                    />
                   </div>
 
                   <button

@@ -12,7 +12,7 @@ const DAYS = [
   { key: 'so', label: 'Sonntag' }
 ]
 
-export default function MyBusinessPage({ profile, onProfileUpdated }) {
+export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange }) {
   const [editing, setEditing] = useState(false)
   const [tagline, setTagline] = useState(profile.tagline || '')
   const [description, setDescription] = useState(profile.description || '')
@@ -218,12 +218,12 @@ export default function MyBusinessPage({ profile, onProfileUpdated }) {
     <div style={{ position: 'relative' }}>
       <button
         className="btn btn-primary"
-        onClick={() => setEditing(true)}
+        onClick={() => { setEditing(true); onFullScreenChange?.(false) }}
         style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 40, width: 'auto', padding: '10px 18px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}
       >
         ✏️ Bearbeiten
       </button>
-      <BusinessMiniApp app={profile} userId={profile.id} onBack={() => {}} />
+      <BusinessMiniApp app={profile} userId={profile.id} onBack={() => {}} fullScreenRoom onFullScreenChange={onFullScreenChange} />
     </div>
   )
 }

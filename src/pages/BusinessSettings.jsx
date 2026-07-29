@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 import BusinessAccountProfile from './BusinessAccountProfile.jsx'
+import MyBusinessPage from './MyBusinessPage.jsx'
 import BusinessAccessSecurity from './BusinessAccessSecurity.jsx'
 import BusinessAccountHistory from './BusinessAccountHistory.jsx'
 import Ideenwerkstatt from './Ideenwerkstatt.jsx'
@@ -1052,6 +1053,17 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     )
   }
 
+  if (view === 'konto-meineseite') {
+    return (
+      <MyBusinessPage
+        profile={profile}
+        onProfileUpdated={onProfileUpdated}
+        startEditing
+        settingsBack={() => setView(null)}
+      />
+    )
+  }
+
   if (view === 'konto-profil') {
     return (
       <BusinessAccountProfile
@@ -1064,6 +1076,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
   }
 
   const KONTO_ITEMS = [
+    { key: 'konto-meineseite', icon: '🏬', label: 'Meine Seite' },
     { key: 'konto-profil', icon: '👤', label: 'Profil' },
     { key: 'konto-sicherheit', icon: '🔒', label: 'Sicherheit' },
     { key: 'konto-datenschutz', icon: '🛡️', label: 'Datenschutz' },

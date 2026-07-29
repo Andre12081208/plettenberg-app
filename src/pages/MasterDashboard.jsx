@@ -48,7 +48,7 @@ function BarChart({ data, showTotal }) {
   )
 }
 
-function PieChart({ data }) {
+function PieChart({ data, showCumulativeRates }) {
   const total = data.reduce((sum, d) => sum + d.value, 0) || 1
   let cumulative = 0
   const parts = data.map((d, i) => {
@@ -58,16 +58,29 @@ function PieChart({ data }) {
     return `${d.color || PIE_COLORS[i % PIE_COLORS.length]} ${start}deg ${end}deg`
   })
 
+  let runningCount = 0
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
       <div style={{ width: 110, height: 110, borderRadius: '50%', background: `conic-gradient(${parts.join(', ')})`, flexShrink: 0 }} />
       <div>
-        {data.map((d, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 4 }}>
+        {data.map((d, i) => {
+          runningCount += d.value
+          const rate = Math.round((runningCount / total) * 100)
+          const isLast = i === data.length - 1
+          return (
+          <div key={i} style={{ marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color || PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
             {d.label}: {d.value}
+          {showCumulativeRates && !isLast && (
+            <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginLeft: 16, marginTop: 2 }}>
+              Rate: {rate}%
+            </div>
+          )}
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -326,7 +339,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       return Array.isArray(value) ? <BarChart data={value} showTotal={tile.show_total} /> : <p className="center-note">Keine Daten.</p>
     }
     if (tile.viz_type === 'kreis') {
-      return Array.isArray(value) ? <PieChart data={value} /> : <p className="center-note">Keine Daten.</p>
+      return Array.isArray(value) ? <PieChart data={value} showCumulativeRates={tile.metric_key_1 === 'einwohner_aktivitaet'} /> : <p className="center-note">Keine Daten.</p>
     }
     return null
   }

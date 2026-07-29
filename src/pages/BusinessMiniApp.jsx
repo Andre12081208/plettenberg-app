@@ -24,6 +24,12 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
   const [terminPicker, setTerminPicker] = useState(false)
   const [channelInfo, setChannelInfo] = useState(null)
   const [activeHotspotModal, setActiveHotspotModal] = useState(null)
+  const [activeAreaImage, setActiveAreaImage] = useState(null)
+
+  function handleHotspotClick(h) {
+    setActiveHotspotModal(h)
+    if (h.area_image_url) setActiveAreaImage(h.area_image_url)
+  }
   const [isInstalled, setIsInstalled] = useState(true)
   const [hasChannelAddonForResident, setHasChannelAddonForResident] = useState(false)
   const [directoryChannel, setDirectoryChannel] = useState(null)
@@ -474,11 +480,11 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
   if (showRoom && hasRoomAddon && app.room_image_url && fullScreenRoom) {
     return (
       <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${app.room_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} />
-        {hotspots.map((h) => (
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${activeAreaImage || app.room_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} />
+        {!activeAreaImage && hotspots.map((h) => (
           <button
             key={h.id}
-            onClick={() => setActiveHotspotModal(h)}
+            onClick={() => handleHotspotClick(h)}
             style={{
               position: 'absolute', left: `${h.x_percent}%`, top: `${h.y_percent}%`,
               transform: 'translate(-50%, -50%)', padding: '8px 14px', borderRadius: 999,
@@ -489,6 +495,14 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
             {h.label}
           </button>
         ))}
+        {activeAreaImage && !activeHotspotModal && (
+          <button
+            onClick={() => setActiveAreaImage(null)}
+            style={{ position: 'absolute', top: 20, left: 20, padding: '8px 14px', borderRadius: 999, background: 'rgba(0,0,0,0.6)', color: '#fff', border: '2px solid #fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          >
+            ← Zurück zum Raum
+          </button>
+        )}
         {activeHotspotModal && (
           <div
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}
@@ -512,12 +526,15 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
           <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
           <p className="hint" style={{ marginBottom: 12 }}>Tippe auf einen Bereich, um dort hinzugehen.</p>
 
+          {activeAreaImage && (
+            <button className="link-text" onClick={() => setActiveAreaImage(null)} style={{ marginBottom: 10 }}>← Zurück zum Raum</button>
+          )}
           <div style={{ position: 'relative', width: '100%' }}>
-            <img src={app.room_image_url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
-            {hotspots.map((h) => (
+            <img src={activeAreaImage || app.room_image_url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
+            {!activeAreaImage && hotspots.map((h) => (
               <button
                 key={h.id}
-                onClick={() => setActiveHotspotModal(h)}
+                onClick={() => handleHotspotClick(h)}
                 style={{
                   position: 'absolute', left: `${h.x_percent}%`, top: `${h.y_percent}%`,
                   transform: 'translate(-50%, -50%)', padding: '8px 14px', borderRadius: 999,

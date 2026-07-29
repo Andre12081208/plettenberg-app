@@ -697,7 +697,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                       transform: 'translate(-50%, -50%)', width: 28, height: 28, borderRadius: '50%',
                       background: 'var(--clay)', border: '2px solid #fff', display: 'flex', alignItems: 'center',
                       justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700,
-                      cursor: 'grab', touchAction: 'none'
+                      cursor: 'grab', touchAction: 'none', zIndex: 5, pointerEvents: 'auto'
                     }}
                   >
                     📍

@@ -18,6 +18,7 @@ import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 import Kontakte from './Kontakte.jsx'
 import ResidentInbox from './ResidentInbox.jsx'
 import BusinessDirectory from './BusinessDirectory.jsx'
+import HomeBoard from './HomeBoard.jsx'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
@@ -26,7 +27,8 @@ const SYSTEM_APP_META = {
   calendar: { icon: '📅', label: 'Kalender' },
   snake: { icon: '🐍', label: 'Snake' },
   ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' },
-  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' }
+  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' },
+  homeboard: { icon: '🧩', label: 'Home Board' }
 }
 
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
@@ -273,7 +275,8 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries(); checkPostfach() }} />
   } else if (openApp === 'postfach') {
     content = <ResidentInbox userId={userId} onBack={() => { setOpenApp(null); checkPostfach() }} />
-  } else if (openApp === 'branchenverzeichnis') {
+  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' },
+  homeboard: { icon: '🧩', label: 'Home Board' }
     content = <BusinessDirectory userId={userId} onBack={() => setOpenApp(null)} />
   } else {
     content = (
@@ -399,7 +402,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                         <div className="app-tile-label">{label}</div>
                       </button>
 
-                      {editMode && tile.key !== 'branchenverzeichnis' && (
+                      {editMode && !['branchenverzeichnis', 'homeboard'].includes(tile.key) && (
                         <>
                           <button
                             onClick={() => removeTile(tile)}
@@ -413,7 +416,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                           </div>
                         </>
                       )}
-                      {editMode && tile.key === 'branchenverzeichnis' && (
+                      {editMode && !['branchenverzeichnis', 'homeboard'].includes(tile.key) && (
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 2 }}>
                           <button className="link-text" style={{ fontSize: 13 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
                           <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>

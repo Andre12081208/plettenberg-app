@@ -20,6 +20,7 @@ import ResidentInbox from './ResidentInbox.jsx'
 import BusinessDirectory from './BusinessDirectory.jsx'
 import HomeBoard from './HomeBoard.jsx'
 import { useLanguage } from '../lib/LanguageContext.jsx'
+import { isInactivityExpired } from '../lib/inactivity.js'
 
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000
 
@@ -28,13 +29,6 @@ const SYSTEM_APP_META = {
   snake: { icon: '🐍', label: 'Snake' },
   ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' },
   branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' }
-}
-
-const INACTIVITY_HOME_LIMIT_MS = 5 * 60 * 1000
-
-function isInactivityExpired() {
-  const last = Number(localStorage.getItem('pb_lastInteractionAt') || 0)
-  return Date.now() - last > INACTIVITY_HOME_LIMIT_MS
 }
 
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
@@ -53,19 +47,6 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     const saved = sessionStorage.getItem('pb_openApp')
     return saved && saved.startsWith('business:') ? saved.replace('business:', '') : null
   })
-
-  useEffect(() => {
-    localStorage.setItem('pb_lastInteractionAt', String(Date.now()))
-    const markActivity = () => localStorage.setItem('pb_lastInteractionAt', String(Date.now()))
-    window.addEventListener('click', markActivity)
-    window.addEventListener('keydown', markActivity)
-    window.addEventListener('touchstart', markActivity)
-    return () => {
-      window.removeEventListener('click', markActivity)
-      window.removeEventListener('keydown', markActivity)
-      window.removeEventListener('touchstart', markActivity)
-    }
-  }, [])
 
   const [movableTiles, setMovableTiles] = useState([])
   const [loading, setLoading] = useState(true)

@@ -34,6 +34,8 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
   const [uploadingRoom, setUploadingRoom] = useState(false)
   const [hotspots, setHotspots] = useState([])
   const [placingHotspot, setPlacingHotspot] = useState(null) // { x, y } | null
+  const [draggingHotspotId, setDraggingHotspotId] = useState(null)
+  const hasDraggedRef = useRef(false)
   const [newHotspotLabel, setNewHotspotLabel] = useState('')
   const [newHotspotActions, setNewHotspotActions] = useState([])
   const [newActionLabel, setNewActionLabel] = useState('')
@@ -168,6 +170,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
   }
 
   function handleRoomImageClick(e) {
+    if (hasDraggedRef.current) {
+      hasDraggedRef.current = false
+      return
+    }
     const rect = e.currentTarget.getBoundingClientRect()
     const xPercent = ((e.clientX - rect.left) / rect.width) * 100
     const yPercent = ((e.clientY - rect.top) / rect.height) * 100
@@ -176,6 +182,32 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     setNewHotspotActions([])
     setNewActionLabel('')
     setNewActionType('anfragen')
+  }
+
+  function startDragHotspot(e, id) {
+    e.stopPropagation()
+    hasDraggedRef.current = false
+    setDraggingHotspotId(id)
+  }
+
+  function handleRoomAreaMove(e) {
+    if (!draggingHotspotId) return
+    hasDraggedRef.current = true
+    const rect = e.currentTarget.getBoundingClientRect()
+    const point = e.touches?.[0] || e
+    const x = Math.min(100, Math.max(0, ((point.clientX - rect.left) / rect.width) * 100))
+    const y = Math.min(100, Math.max(0, ((point.clientY - rect.top) / rect.height) * 100))
+    setHotspots((prev) => prev.map((h) => (h.id === draggingHotspotId ? { ...h, x_percent: x, y_percent: y } : h)))
+  }
+
+  async function handleRoomAreaUp() {
+    if (draggingHotspotId) {
+      const moved = hotspots.find((h) => h.id === draggingHotspotId)
+      if (moved) {
+        await supabase.from('business_room_hotspots').update({ x_percent: moved.x_percent, y_percent: moved.y_percent }).eq('id', moved.id)
+      }
+    }
+    setDraggingHotspotId(null)
   }
 
   function addNewHotspotAction() {
@@ -637,7 +669,16 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
               <h3 style={{ marginTop: 0 }}>Bereiche festlegen</h3>
               <p className="hint" style={{ marginBottom: 12 }}>Klick irgendwo auf das Bild, um dort einen neuen klickbaren Bereich anzulegen.</p>
 
-              <div style={{ position: 'relative', width: '100%' }}>
+              <p className="hint" style={{ marginBottom: 12 }}>Bestehende 📍 kannst du jederzeit ziehen, um sie neu zu positionieren.</p>
+
+              <div
+                style={{ position: 'relative', width: '100%' }}
+                onMouseMove={handleRoomAreaMove}
+                onMouseUp={handleRoomAreaUp}
+                onMouseLeave={handleRoomAreaUp}
+                onTouchMove={handleRoomAreaMove}
+                onTouchEnd={handleRoomAreaUp}
+              >
                 <img
                   src={roomImageUrl}
                   alt=""
@@ -647,11 +688,14 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                 {hotspots.map((h) => (
                   <div
                     key={h.id}
+                    onMouseDown={(e) => startDragHotspot(e, h.id)}
+                    onTouchStart={(e) => startDragHotspot(e, h.id)}
                     style={{
                       position: 'absolute', left: `${h.x_percent}%`, top: `${h.y_percent}%`,
                       transform: 'translate(-50%, -50%)', width: 28, height: 28, borderRadius: '50%',
                       background: 'var(--clay)', border: '2px solid #fff', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700
+                      justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700,
+                      cursor: 'grab', touchAction: 'none'
                     }}
                   >
                     📍

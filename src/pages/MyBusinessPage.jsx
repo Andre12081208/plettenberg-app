@@ -12,8 +12,8 @@ const DAYS = [
   { key: 'so', label: 'Sonntag' }
 ]
 
-export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange }) {
-  const [editing, setEditing] = useState(false)
+export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack }) {
+  const [editing, setEditing] = useState(!!startEditing)
   const [tagline, setTagline] = useState(profile.tagline || '')
   const [description, setDescription] = useState(profile.description || '')
   const [address, setAddress] = useState(profile.address || '')
@@ -115,7 +115,9 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
           <h1>Angaben bearbeiten</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
-          <button className="link-text" onClick={() => setEditing(false)} style={{ marginBottom: 16 }}>← Zurück zu Meine Seite</button>
+          <button className="link-text" onClick={() => (settingsBack ? settingsBack() : setEditing(false))} style={{ marginBottom: 16 }}>
+            {settingsBack ? '← Zurück zu Einstellungen' : '← Zurück zu Meine Seite'}
+          </button>
 
           {error && <div className="error-box">{error}</div>}
 

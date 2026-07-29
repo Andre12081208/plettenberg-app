@@ -470,7 +470,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
             📍 Kontaktinfos
           </button>
         )}
-        <button className="link-text" onClick={() => setActiveHotspotModal(null)} style={{ marginTop: 6 }}>
+        <button className="link-text" onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }} style={{ marginTop: 6 }}>
           Abbrechen
         </button>
       </div>
@@ -506,7 +506,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
         {activeHotspotModal && (
           <div
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}
-            onClick={() => setActiveHotspotModal(null)}
+            onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }}
           >
             {hotspotModalContent}
           </div>
@@ -553,7 +553,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20
               }}
-              onClick={() => setActiveHotspotModal(null)}
+              onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }}
             >
               <div
                 className="card"
@@ -592,7 +592,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
                       📍 Kontaktinfos
                     </button>
                   )}
-                  <button className="link-text" onClick={() => setActiveHotspotModal(null)} style={{ marginTop: 6 }}>
+                  <button className="link-text" onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }} style={{ marginTop: 6 }}>
                     Abbrechen
                   </button>
                 </div>

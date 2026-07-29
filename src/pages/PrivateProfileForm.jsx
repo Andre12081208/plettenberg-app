@@ -51,7 +51,6 @@ export default function PrivateProfileForm({ userId, onDone }) {
       await supabase.from('installed_system_apps').insert({ user_id: userId, app_key: 'calendar', position: 0 })
       await supabase.from('installed_system_apps').insert({ user_id: userId, app_key: 'ideenwerkstatt', position: 10 })
       await supabase.from('installed_system_apps').insert({ user_id: userId, app_key: 'branchenverzeichnis', position: -1 })
-      await supabase.from('installed_system_apps').insert({ user_id: userId, app_key: 'homeboard', position: -2 })
 
       onDone()
     } catch (err) {

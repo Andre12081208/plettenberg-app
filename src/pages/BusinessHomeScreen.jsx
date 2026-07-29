@@ -6,7 +6,7 @@ import MyBusinessPage from './MyBusinessPage.jsx'
 import BusinessInbox from './BusinessInbox.jsx'
 
 export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, onBackToDashboard, onOpenAdmin, onProfileUpdated }) {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
   const [settingsResetKey, setSettingsResetKey] = useState(0)
 
@@ -26,6 +26,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
       setSettingsResetKey((k) => k + 1)
     }
     setActiveTab(tab)
+    sessionStorage.setItem('pb_business_activeTab', tab)
     if (tab !== 'inbox') checkUnreadInquiries()
   }
 

@@ -275,8 +275,9 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries(); checkPostfach() }} />
   } else if (openApp === 'postfach') {
     content = <ResidentInbox userId={userId} onBack={() => { setOpenApp(null); checkPostfach() }} />
-  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' },
-  homeboard: { icon: '🧩', label: 'Home Board' }
+  } else if (openApp === 'homeboard') {
+    content = <HomeBoard onBack={() => setOpenApp(null)} />
+  } else if (openApp === 'branchenverzeichnis') {
     content = <BusinessDirectory userId={userId} onBack={() => setOpenApp(null)} />
   } else {
     content = (
@@ -416,7 +417,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                           </div>
                         </>
                       )}
-                      {editMode && !['branchenverzeichnis', 'homeboard'].includes(tile.key) && (
+                      {editMode && ['branchenverzeichnis', 'homeboard'].includes(tile.key) && (
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 2 }}>
                           <button className="link-text" style={{ fontSize: 13 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
                           <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>

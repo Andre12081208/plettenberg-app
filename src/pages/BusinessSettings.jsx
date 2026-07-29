@@ -674,7 +674,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
               <p className="hint" style={{ marginBottom: 12 }}>Bestehende 📍 kannst du jederzeit ziehen, um sie neu zu positionieren.</p>
 
               <div
-                style={{ position: 'relative', width: '100%' }}
+                style={{ position: 'relative', width: 'calc(100% + 84px)', marginLeft: -42, marginRight: -42, height: '50vh', minHeight: 320, overflow: 'hidden' }}
                 onMouseMove={handleRoomAreaMove}
                 onMouseUp={handleRoomAreaUp}
                 onMouseLeave={handleRoomAreaUp}
@@ -685,7 +685,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                   src={roomImageUrl}
                   alt=""
                   onClick={handleRoomImageClick}
-                  style={{ width: '100%', borderRadius: 10, display: 'block', cursor: 'crosshair' }}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', cursor: 'crosshair' }}
                 />
                 {hotspots.map((h) => (
                   <div

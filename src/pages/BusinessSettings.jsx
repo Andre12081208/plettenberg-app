@@ -606,6 +606,11 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <main style={{ paddingBottom: 90 }}>
           <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
 
+          <div className="btn-row" style={{ marginBottom: 16 }}>
+            <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Meine Seite</button>
+            <button className="btn btn-primary">Virtueller Raum</button>
+          </div>
+
           {roomError && <div className="error-box">{roomError}</div>}
 
           <div className="card">
@@ -1060,6 +1065,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         onProfileUpdated={onProfileUpdated}
         startEditing
         settingsBack={() => setView(null)}
+        onSwitchToRoom={() => setView('raum')}
       />
     )
   }

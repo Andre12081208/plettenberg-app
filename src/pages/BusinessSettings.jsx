@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
@@ -369,6 +369,8 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     setSlots((prev) => prev.filter((s) => s.id !== slotId))
   }
 
+  const [bhubEditorUrl, setBhubEditorUrl] = useState(null)
+
   async function handleBhubIconUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -379,7 +381,17 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     if (uploadError) return
 
     const { data } = supabase.storage.from('logos').getPublicUrl(path)
-    await supabase.from('business_profiles').update({ bhub_icon_url: data.publicUrl }).eq('id', profile.id)
+    setBhubEditorUrl(data.publicUrl)
+  }
+
+  async function saveBhubIconAdjustment({ posX, posY, zoom }) {
+    await supabase.from('business_profiles').update({
+      bhub_icon_url: bhubEditorUrl,
+      bhub_icon_pos_x: posX,
+      bhub_icon_pos_y: posY,
+      bhub_icon_zoom: zoom
+    }).eq('id', profile.id)
+    setBhubEditorUrl(null)
     onProfileUpdated?.()
   }
 
@@ -979,15 +991,43 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
             Lade ein eigenes Bild hoch, das statt des Standard-Symbols bei "B.HUB" in deiner Leiste angezeigt wird.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="avatar-preview" style={{ width: 52, height: 52 }}>
-              {profile.bhub_icon_url ? <img src={profile.bhub_icon_url} alt="" /> : '🏠'}
+            <div
+              style={{
+                width: 64, height: 64, borderRadius: 16, overflow: 'hidden', flexShrink: 0,
+                background: profile.bhub_icon_url ? undefined : 'var(--forest)',
+                backgroundImage: profile.bhub_icon_url ? `url(${profile.bhub_icon_url})` : 'none',
+                backgroundPosition: `${profile.bhub_icon_pos_x ?? 50}% ${profile.bhub_icon_pos_y ?? 50}%`,
+                backgroundSize: `${profile.bhub_icon_zoom ?? 100}%`,
+                backgroundRepeat: 'no-repeat',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#fff'
+              }}
+            >
+              {!profile.bhub_icon_url && '🏠'}
             </div>
             <div>
-              <label className="link-text" htmlFor="bhubIconUpload" style={{ cursor: 'pointer' }}>Bild hochladen</label>
+              <label className="link-text" htmlFor="bhubIconUpload" style={{ cursor: 'pointer', display: 'block' }}>
+                {profile.bhub_icon_url ? 'Neues Bild hochladen' : 'Bild hochladen'}
+              </label>
               <input id="bhubIconUpload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleBhubIconUpload} />
+              {profile.bhub_icon_url && (
+                <button className="link-text" style={{ marginTop: 6 }} onClick={() => setBhubEditorUrl(profile.bhub_icon_url)}>
+                  Ausschnitt anpassen
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {bhubEditorUrl && (
+          <BhubIconEditor
+            imageUrl={bhubEditorUrl}
+            initialX={profile.bhub_icon_pos_x ?? 50}
+            initialY={profile.bhub_icon_pos_y ?? 50}
+            initialZoom={profile.bhub_icon_zoom ?? 100}
+            onSave={saveBhubIconAdjustment}
+            onCancel={() => setBhubEditorUrl(null)}
+          />
+        )}
 
         <div className="app-grid">
           {canManageProducts && (
@@ -1354,5 +1394,65 @@ function PlanUndZusatzpakete({ profile, onBack }) {
         )}
       </main>
     </>
+  )
+}
+function BhubIconEditor({ imageUrl, initialX, initialY, initialZoom, onSave, onCancel }) {
+  const [posX, setPosX] = useState(initialX)
+  const [posY, setPosY] = useState(initialY)
+  const [zoom, setZoom] = useState(initialZoom)
+  const dragging = useRef(false)
+  const lastPos = useRef({ x: 0, y: 0 })
+
+  function getPoint(e) {
+    if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    return { x: e.clientX, y: e.clientY }
+  }
+
+  function handleDown(e) {
+    dragging.current = true
+    lastPos.current = getPoint(e)
+  }
+  function handleMove(e) {
+    if (!dragging.current) return
+    const point = getPoint(e)
+    const dx = point.x - lastPos.current.x
+    const dy = point.y - lastPos.current.y
+    lastPos.current = point
+    setPosX((prev) => Math.min(100, Math.max(0, prev - dx / 2)))
+    setPosY((prev) => Math.min(100, Math.max(0, prev - dy / 2)))
+  }
+  function handleUp() {
+    dragging.current = false
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+      <div className="card" style={{ maxWidth: 340, width: '100%' }}>
+        <h3 style={{ marginTop: 0 }}>Bild anpassen</h3>
+        <p className="hint" style={{ marginBottom: 14 }}>Zum Verschieben ziehen, mit dem Regler zoomen.</p>
+        <div
+          style={{
+            width: 180, height: 180, margin: '0 auto 16px', borderRadius: 16, overflow: 'hidden',
+            backgroundImage: `url(${imageUrl})`, backgroundPosition: `${posX}% ${posY}%`, backgroundSize: `${zoom}%`, backgroundRepeat: 'no-repeat',
+            cursor: 'grab', touchAction: 'none', border: '2px solid var(--line)'
+          }}
+          onMouseDown={handleDown}
+          onMouseMove={handleMove}
+          onMouseUp={handleUp}
+          onMouseLeave={handleUp}
+          onTouchStart={handleDown}
+          onTouchMove={handleMove}
+          onTouchEnd={handleUp}
+        />
+        <div className="field">
+          <label htmlFor="bhubZoom">Zoom</label>
+          <input id="bhubZoom" type="range" min={100} max={300} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ width: '100%' }} />
+        </div>
+        <div className="btn-row">
+          <button className="btn btn-primary" onClick={() => onSave({ posX, posY, zoom })}>Speichern</button>
+          <button className="btn btn-secondary" onClick={onCancel}>Abbrechen</button>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -401,3 +401,15 @@ body.dark-mode {
 .postfach-tag-gewerbe { background: #E5EFEA; color: #1F4D3D; }
 .postfach-tag-stadtverwaltung { background: #E3ECF7; color: #2C4A73; }
 .postfach-tag-ideenwerkstatt { background: #FBF0DE; color: #8A5A1E; }
+.admin-tab-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .admin-tab-grid button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}

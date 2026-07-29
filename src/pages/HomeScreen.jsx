@@ -30,10 +30,21 @@ const SYSTEM_APP_META = {
   branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' }
 }
 
+const INACTIVITY_HOME_LIMIT_MS = 5 * 60 * 1000
+
+function isInactivityExpired() {
+  const last = Number(localStorage.getItem('pb_lastInteractionAt') || 0)
+  return Date.now() - last > INACTIVITY_HOME_LIMIT_MS
+}
+
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
   const { t } = useLanguage()
-  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_activeTab') || 'apps')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (isInactivityExpired()) return 'homeboard'
+    return sessionStorage.getItem('pb_activeTab') || 'homeboard'
+  })
   const [openApp, setOpenApp] = useState(() => {
+    if (isInactivityExpired()) return null
     const saved = sessionStorage.getItem('pb_openApp')
     if (!saved || saved.startsWith('business:')) return null
     return saved
@@ -42,6 +53,20 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     const saved = sessionStorage.getItem('pb_openApp')
     return saved && saved.startsWith('business:') ? saved.replace('business:', '') : null
   })
+
+  useEffect(() => {
+    localStorage.setItem('pb_lastInteractionAt', String(Date.now()))
+    const markActivity = () => localStorage.setItem('pb_lastInteractionAt', String(Date.now()))
+    window.addEventListener('click', markActivity)
+    window.addEventListener('keydown', markActivity)
+    window.addEventListener('touchstart', markActivity)
+    return () => {
+      window.removeEventListener('click', markActivity)
+      window.removeEventListener('keydown', markActivity)
+      window.removeEventListener('touchstart', markActivity)
+    }
+  }, [])
+
   const [movableTiles, setMovableTiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)

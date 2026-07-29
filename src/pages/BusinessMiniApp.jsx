@@ -432,10 +432,36 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     // eslint-disable-next-line
   }, [showRoom, hasRoomAddon, app.room_image_url, fullScreenRoom])
 
+  function getModalWrapperStyle(hotspot) {
+    const format = hotspot?.modal_format || 'zentriert'
+    const base = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', zIndex: 50, padding: 20 }
+
+    if (format === 'unten') return { ...base, alignItems: 'flex-end', justifyContent: 'center' }
+    if (format === 'oben') return { ...base, alignItems: 'flex-start', justifyContent: 'center' }
+    if (format === 'links') return { ...base, alignItems: 'center', justifyContent: 'flex-start' }
+    if (format === 'rechts') return { ...base, alignItems: 'center', justifyContent: 'flex-end' }
+    if (format === 'frei') return { ...base, padding: 0 }
+    return { ...base, alignItems: 'center', justifyContent: 'center' }
+  }
+
+  function getModalCardStyle(hotspot) {
+    const format = hotspot?.modal_format || 'zentriert'
+    if (format === 'frei') {
+      return {
+        maxWidth: 360, width: '90%',
+        position: 'absolute',
+        left: `${hotspot.modal_position_x ?? 50}%`,
+        top: `${hotspot.modal_position_y ?? 50}%`,
+        transform: 'translate(-50%, -50%)'
+      }
+    }
+    return { maxWidth: 360, width: '100%' }
+  }
+
   const hotspotModalContent = activeHotspotModal && (
     <div
       className="card"
-      style={{ maxWidth: 360, width: '100%' }}
+      style={getModalCardStyle(activeHotspotModal)}
       onClick={(e) => e.stopPropagation()}
     >
       <h3 style={{ marginTop: 0 }}>{activeHotspotModal.label}</h3>
@@ -505,7 +531,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
         )}
         {activeHotspotModal && (
           <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}
+            style={getModalWrapperStyle(activeHotspotModal)}
             onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }}
           >
             {hotspotModalContent}
@@ -549,15 +575,12 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
 
           {activeHotspotModal && (
             <div
-              style={{
-                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20
-              }}
+              style={getModalWrapperStyle(activeHotspotModal)}
               onClick={() => { setActiveHotspotModal(null); setActiveAreaImage(null) }}
             >
               <div
                 className="card"
-                style={{ maxWidth: 360, width: '100%' }}
+                style={getModalCardStyle(activeHotspotModal)}
                 onClick={(e) => e.stopPropagation()}
               >
                 <h3 style={{ marginTop: 0 }}>{activeHotspotModal.label}</h3>

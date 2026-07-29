@@ -46,10 +46,12 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
       {content}
 
       <nav className="tab-bar">
-        <button className={`tab-bar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => goToTab('dashboard')}>
-          <span className="tab-bar-icon">🏠</span>
-          Admin Dashboard
-        </button>
+        {isMasterAdmin && (
+          <button className="tab-bar-item" onClick={onBackToDashboard}>
+            <span className="tab-bar-icon">🧭</span>
+            Master Dashboard
+          </button>
+        )}
         <button className={`tab-bar-item ${activeTab === 'mypage' ? 'active' : ''}`} onClick={() => goToTab('mypage')}>
           <span className="tab-bar-icon">🏬</span>
           Meine Seite
@@ -63,16 +65,16 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
             </span>
           )}
         </button>
+        <button className={`tab-bar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => goToTab('dashboard')}>
+          <span className="tab-bar-icon" style={{ overflow: 'hidden', borderRadius: '50%' }}>
+            {profile.bhub_icon_url ? <img src={profile.bhub_icon_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🏠'}
+          </span>
+          B.HUB
+        </button>
         <button className={`tab-bar-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => goToTab('settings')}>
           <span className="tab-bar-icon">⚙️</span>
           Einstellungen
         </button>
-        {isMasterAdmin && (
-          <button className="tab-bar-item" onClick={onBackToDashboard}>
-            <span className="tab-bar-icon">🧭</span>
-            Master Dashboard
-          </button>
-        )}
       </nav>
     </div>
   )

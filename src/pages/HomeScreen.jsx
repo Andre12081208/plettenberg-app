@@ -29,8 +29,6 @@ const SYSTEM_APP_META = {
   ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' },
   branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' }
 }
-  homeboard: { icon: '🧩', label: 'Home Board' }
-}
 
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
   const { t } = useLanguage()

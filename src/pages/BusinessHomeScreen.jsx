@@ -66,8 +66,17 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
           )}
         </button>
         <button className={`tab-bar-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => goToTab('dashboard')}>
-          <span className="tab-bar-icon" style={{ overflow: 'hidden', borderRadius: '50%' }}>
-            {profile.bhub_icon_url ? <img src={profile.bhub_icon_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🏠'}
+          <span
+            className="tab-bar-icon"
+            style={{
+              width: 24, height: 24, borderRadius: 6, overflow: 'hidden', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              backgroundImage: profile.bhub_icon_url ? `url(${profile.bhub_icon_url})` : 'none',
+              backgroundPosition: `${profile.bhub_icon_pos_x ?? 50}% ${profile.bhub_icon_pos_y ?? 50}%`,
+              backgroundSize: `${profile.bhub_icon_zoom ?? 100}%`,
+              backgroundRepeat: 'no-repeat'
+            }}
+          >
+            {!profile.bhub_icon_url && '🏠'}
           </span>
           B.HUB
         </button>

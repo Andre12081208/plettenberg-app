@@ -52,7 +52,12 @@ function PresenceDot({ lastSeenAt }) {
 }
 
 export default function AdminPanel({ onBack }) {
-  const [tab, setTab] = useState('nutzer')
+  const [tab, setTab] = useState(() => sessionStorage.getItem('pb_admin_tab') || 'nutzer')
+
+  function goToTab(newTab) {
+    setTab(newTab)
+    sessionStorage.setItem('pb_admin_tab', newTab)
+  }
   const [adminUnreadIdeaCount, setAdminUnreadIdeaCount] = useState(0)
 
   useEffect(() => {
@@ -68,11 +73,18 @@ export default function AdminPanel({ onBack }) {
 
   const content = (
     <>
-      <div className="btn-row" style={{ marginBottom: 18, flexWrap: 'wrap' }}>
-        <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('nutzer')}>Nutzer</button>
-        <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe')}>Gewerbe</button>
-        <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('channels')}>Channels</button>
-        <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('ideenwerkstatt')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <div className="admin-tab-grid" style={{ marginBottom: 18 }}>
+        <button className={tab === 'channels' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('channels')}>Channels</button>
+        <button className={tab === 'testprofile' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('testprofile')}>Testprofile</button>
+        <button className={tab === 'gewerbe-bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('gewerbe-bestellungen')}>Gewerbe-Umsätze</button>
+
+        <button className={tab === 'gewerbe' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('gewerbe')}>Gewerbe</button>
+        <button className={tab === 'archiviert' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('archiviert')}>Archivierte Gewerbeaccounts</button>
+        <button className={tab === 'nutzer' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('nutzer')}>Nutzer</button>
+
+        <button className={tab === 'meldungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('meldungen')}>Meldungen</button>
+        <button className={tab === 'datenanfragen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('datenanfragen')}>Datenanfragen</button>
+        <button className={tab === 'ideenwerkstatt' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => goToTab('ideenwerkstatt')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           Ideenwerkstatt
           {adminUnreadIdeaCount > 0 && (
             <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
@@ -80,11 +92,6 @@ export default function AdminPanel({ onBack }) {
             </span>
           )}
         </button>
-        <button className={tab === 'gewerbe-bestellungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('gewerbe-bestellungen')}>Gewerbe-Umsätze</button>
-        <button className={tab === 'meldungen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('meldungen')}>Meldungen</button>
-        <button className={tab === 'testprofile' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('testprofile')}>Testprofile</button>
-        <button className={tab === 'archiviert' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('archiviert')}>Archivierte Gewerbeaccounts</button>
-        <button className={tab === 'datenanfragen' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('datenanfragen')}>Datenanfragen</button>
       </div>
 
       {tab === 'nutzer' && <NutzerTab />}

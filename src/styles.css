@@ -413,3 +413,22 @@ body.dark-mode {
     font-size: 13px;
   }
 }
+.tab-bar-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.55);
+  border-top: none;
+  backdrop-filter: blur(6px);
+  z-index: 100;
+}
+
+.tab-bar-overlay .tab-bar-item {
+  color: #fff;
+}
+
+.tab-bar-overlay .tab-bar-item.active {
+  color: #fff;
+  font-weight: 700;
+}

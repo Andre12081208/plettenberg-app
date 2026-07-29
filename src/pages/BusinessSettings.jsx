@@ -185,6 +185,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
   }
 
   function startDragHotspot(e, id) {
+    console.log('startDragHotspot ausgelöst für:', id)
     e.stopPropagation()
     hasDraggedRef.current = false
     setDraggingHotspotId(id)
@@ -192,6 +193,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 
   function handleRoomAreaMove(e) {
     if (!draggingHotspotId) return
+    console.log('handleRoomAreaMove läuft, draggingHotspotId:', draggingHotspotId)
     hasDraggedRef.current = true
     const rect = e.currentTarget.getBoundingClientRect()
     const point = e.touches?.[0] || e

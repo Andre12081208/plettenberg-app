@@ -29,6 +29,9 @@ export default function App() {
   const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
+    useEffect(() => {
+    let isInitialCheck = true
+
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
@@ -46,11 +49,14 @@ export default function App() {
         setPasswordRecovery(true)
       }
 
-      if (event === 'SIGNED_IN') {
+      // Nur bei einem echten, neuen Login zurücksetzen – nicht wenn beim Neuladen der Seite
+      // lediglich eine bestehende Sitzung wiederhergestellt wird (das feuert Supabase auch als "SIGNED_IN").
+      if (event === 'SIGNED_IN' && !isInitialCheck) {
         sessionStorage.removeItem('pb_activeTab')
         sessionStorage.removeItem('pb_openApp')
         sessionStorage.removeItem('pb_adminMode')
       }
+      isInitialCheck = false
       setSession(newSession)
       setChosenType(null)
     })

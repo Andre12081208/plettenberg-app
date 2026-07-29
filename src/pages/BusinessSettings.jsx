@@ -1183,8 +1183,11 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
   }
 
   async function updateModalFormat(hotspotId, format) {
-    await supabase.from('business_room_hotspots').update({ modal_format: format }).eq('id', hotspotId)
+    console.log('updateModalFormat aufgerufen mit:', hotspotId, format)
+    const { error } = await supabase.from('business_room_hotspots').update({ modal_format: format }).eq('id', hotspotId)
+    console.log('Supabase-Antwort, Fehler:', error)
     setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_format: format } : h)))
+    console.log('setHotspots wurde aufgerufen')
   }
 
   async function updateModalPosition(hotspotId, x, y) {

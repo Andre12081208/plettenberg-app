@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
 
-export default function DirectoryListingDetail({ listing, userId, onBack }) {
+export default function DirectoryListingDetail({ listing, userId, onBack, onFullScreenChange }) {
   const [linkedBusiness, setLinkedBusiness] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -66,7 +66,7 @@ export default function DirectoryListingDetail({ listing, userId, onBack }) {
   const isPartner = linkedBusiness?.status === 'live' && linkedBusiness?.plan === 'basis'
 
   if (isPartner) {
-    return <BusinessMiniApp app={linkedBusiness} userId={userId} onBack={onBack} />
+    return <BusinessMiniApp app={linkedBusiness} userId={userId} onBack={onBack} fullScreenRoom onFullScreenChange={onFullScreenChange} />
   }
 
   return (

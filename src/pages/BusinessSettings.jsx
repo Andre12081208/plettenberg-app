@@ -369,6 +369,20 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     setSlots((prev) => prev.filter((s) => s.id !== slotId))
   }
 
+  async function handleBhubIconUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const ext = file.name.split('.').pop()
+    const path = `${profile.id}/bhub-icon.${ext}`
+    const { error: uploadError } = await supabase.storage.from('logos').upload(path, file, { upsert: true })
+    if (uploadError) return
+
+    const { data } = supabase.storage.from('logos').getPublicUrl(path)
+    await supabase.from('business_profiles').update({ bhub_icon_url: data.publicUrl }).eq('id', profile.id)
+    onProfileUpdated?.()
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
   }
@@ -959,6 +973,22 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <h1>Einstellungen</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>B.HUB Symbol</h3>
+          <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-soft)' }}>
+            Lade ein eigenes Bild hoch, das statt des Standard-Symbols bei "B.HUB" in deiner Leiste angezeigt wird.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="avatar-preview" style={{ width: 52, height: 52 }}>
+              {profile.bhub_icon_url ? <img src={profile.bhub_icon_url} alt="" /> : '🏠'}
+            </div>
+            <div>
+              <label className="link-text" htmlFor="bhubIconUpload" style={{ cursor: 'pointer' }}>Bild hochladen</label>
+              <input id="bhubIconUpload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleBhubIconUpload} />
+            </div>
+          </div>
+        </div>
+
         <div className="app-grid">
           {canManageProducts && (
             <button className="app-tile" onClick={() => setView('produkte')}>

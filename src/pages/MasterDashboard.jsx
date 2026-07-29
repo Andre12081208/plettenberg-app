@@ -149,6 +149,90 @@ function Ampel({ value, low, high }) {
   )
 }
 
+const PROJECT_BIRTH = new Date(2026, 6, 22, 9, 30, 0)
+const MS_PER_SECOND = 1000
+const MS_PER_MINUTE = MS_PER_SECOND * 60
+const MS_PER_HOUR = MS_PER_MINUTE * 60
+const MS_PER_DAY = MS_PER_HOUR * 24
+const MS_PER_WEEK = MS_PER_DAY * 7
+const MS_PER_MONTH = MS_PER_DAY * 30.44
+const MS_PER_YEAR = MS_PER_DAY * 365.25
+
+const UNIT_BUTTONS = [
+  { key: 'sek', label: 'Sek.' },
+  { key: 'min', label: 'Min.' },
+  { key: 'std', label: 'Std.' },
+  { key: 'tage', label: 'T.' },
+  { key: 'wochen', label: 'W.' },
+  { key: 'monate', label: 'M.' },
+  { key: 'jahre', label: 'J.' }
+]
+
+function ProjectAgeClock() {
+  const [now, setNow] = useState(() => new Date())
+  const [unit, setUnit] = useState(null)
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const elapsedMs = Math.max(0, now.getTime() - PROJECT_BIRTH.getTime())
+
+  let display
+  if (!unit) {
+    const days = Math.floor(elapsedMs / MS_PER_DAY)
+    const hours = Math.floor((elapsedMs % MS_PER_DAY) / MS_PER_HOUR)
+    const minutes = Math.floor((elapsedMs % MS_PER_HOUR) / MS_PER_MINUTE)
+    const seconds = Math.floor((elapsedMs % MS_PER_MINUTE) / MS_PER_SECOND)
+    display = `${days}T ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  } else if (unit === 'sek') {
+    display = `${Math.floor(elapsedMs / MS_PER_SECOND).toLocaleString('de-DE')} Sek.`
+  } else if (unit === 'min') {
+    display = `${Math.floor(elapsedMs / MS_PER_MINUTE).toLocaleString('de-DE')} Min.`
+  } else if (unit === 'std') {
+    display = `${Math.floor(elapsedMs / MS_PER_HOUR).toLocaleString('de-DE')} Std.`
+  } else if (unit === 'tage') {
+    display = `${Math.floor(elapsedMs / MS_PER_DAY).toLocaleString('de-DE')} Tage`
+  } else if (unit === 'wochen') {
+    display = `${(elapsedMs / MS_PER_WEEK).toFixed(2)} Wochen`
+  } else if (unit === 'monate') {
+    display = `${(elapsedMs / MS_PER_MONTH).toFixed(2)} Monate`
+  } else if (unit === 'jahre') {
+    display = `${(elapsedMs / MS_PER_YEAR).toFixed(2)} Jahre`
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+      <div
+        style={{
+          background: 'var(--forest)', color: '#D9E5DD', fontFamily: 'monospace',
+          fontSize: 13, fontWeight: 600, letterSpacing: '0.05em', padding: '5px 10px',
+          borderRadius: 8, whiteSpace: 'nowrap'
+        }}
+      >
+        {display}
+      </div>
+      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        {UNIT_BUTTONS.map((u) => (
+          <button
+            key={u.key}
+            onClick={() => setUnit((prev) => (prev === u.key ? null : u.key))}
+            style={{
+              fontSize: 10, padding: '2px 5px', borderRadius: 5, border: '1px solid var(--line)',
+              background: unit === u.key ? 'var(--forest)' : 'transparent',
+              color: unit === u.key ? '#fff' : 'var(--ink-soft)',
+              cursor: 'pointer'
+            }}
+          >
+            {u.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile, onChooseMode }) {
   const [adminUnreadIdeaCount, setAdminUnreadIdeaCount] = useState(0)
 
@@ -348,8 +432,13 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
-        <h1>Master Dashboard</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+          <div>
+            <div className="mark">Plettenberg</div>
+            <h1>Master Dashboard</h1>
+          </div>
+          <ProjectAgeClock />
+        </div>
       </div>
       <main style={{ paddingBottom: 90 }}>
         {error && <div className="error-box">{error}</div>}

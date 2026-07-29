@@ -27,7 +27,8 @@ const SYSTEM_APP_META = {
   calendar: { icon: '📅', label: 'Kalender' },
   snake: { icon: '🐍', label: 'Snake' },
   ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' },
-  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' },
+  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' }
+}
   homeboard: { icon: '🧩', label: 'Home Board' }
 }
 
@@ -275,8 +276,6 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries(); checkPostfach() }} />
   } else if (openApp === 'postfach') {
     content = <ResidentInbox userId={userId} onBack={() => { setOpenApp(null); checkPostfach() }} />
-  } else if (openApp === 'homeboard') {
-    content = <HomeBoard onBack={() => setOpenApp(null)} />
   } else if (openApp === 'branchenverzeichnis') {
     content = <BusinessDirectory userId={userId} onBack={() => setOpenApp(null)} />
   } else {
@@ -293,6 +292,8 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
             onConsumedInitial={() => setInitialGroupCode(null)}
           />
         )}
+
+        {activeTab === 'homeboard' && <HomeBoard embedded />}
 
         {activeTab === 'apps' && (
           <>
@@ -403,7 +404,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                         <div className="app-tile-label">{label}</div>
                       </button>
 
-                      {editMode && !['branchenverzeichnis', 'homeboard'].includes(tile.key) && (
+                      {editMode && tile.key !== 'branchenverzeichnis' && (
                         <>
                           <button
                             onClick={() => removeTile(tile)}
@@ -417,7 +418,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                           </div>
                         </>
                       )}
-                      {editMode && ['branchenverzeichnis', 'homeboard'].includes(tile.key) && (
+                      {editMode && tile.key === 'branchenverzeichnis' && (
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 2 }}>
                           <button className="link-text" style={{ fontSize: 13 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>
                           <button className="link-text" style={{ fontSize: 13 }} disabled={index === movableTiles.length - 1} onClick={() => moveTile(index, 1)}>›</button>
@@ -458,6 +459,13 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
               {unreadChatCount}
             </span>
           )}
+        </button>
+        <button
+          className={`tab-bar-item ${activeTab === 'homeboard' && !openApp ? 'active' : ''}`}
+          onClick={() => goToTab('homeboard')}
+        >
+          <span className="tab-bar-icon" style={{ fontSize: 24 }}>🧩</span>
+          Home Board
         </button>
         <button
           className={`tab-bar-item ${activeTab === 'apps' && !openApp ? 'active' : ''}`}

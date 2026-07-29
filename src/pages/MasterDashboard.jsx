@@ -73,6 +73,7 @@ function PieChart({ data, showCumulativeRates }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color || PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
             {d.label}: {d.value}
+          </div>
           {showCumulativeRates && !isLast && (
             <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginLeft: 16, marginTop: 2 }}>
               Rate: {rate}%

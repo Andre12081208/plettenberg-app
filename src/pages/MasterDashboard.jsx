@@ -48,7 +48,14 @@ function BarChart({ data, showTotal }) {
   )
 }
 
-function PieChart({ data, showCumulativeRates }) {
+function getRateColor(rate) {
+  if (rate <= 25) return '#C0392B'
+  if (rate <= 49) return '#D9822B'
+  if (rate <= 59) return '#D9B23C'
+  return '#2E7D46'
+}
+
+function PieChart({ data, showCumulativeRates, centerValue }) {
   const total = data.reduce((sum, d) => sum + d.value, 0) || 1
   let cumulative = 0
   const parts = data.map((d, i) => {
@@ -62,24 +69,37 @@ function PieChart({ data, showCumulativeRates }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-      <div style={{ width: 110, height: 110, borderRadius: '50%', background: `conic-gradient(${parts.join(', ')})`, flexShrink: 0 }} />
+      <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0 }}>
+        <div style={{ width: 110, height: 110, borderRadius: '50%', background: `conic-gradient(${parts.join(', ')})` }} />
+        <div
+          style={{
+            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            width: 66, height: 66, borderRadius: '50%', background: 'var(--surface)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, fontWeight: 700,
+            color: showCumulativeRates && centerValue != null ? getRateColor(centerValue) : 'var(--ink)'
+          }}
+        >
+          {showCumulativeRates && centerValue != null ? `${Math.round(centerValue)}%` : ''}
+        </div>
+      </div>
       <div>
         {data.map((d, i) => {
           runningCount += d.value
           const rate = Math.round((runningCount / total) * 100)
           const isLast = i === data.length - 1
           return (
-          <div key={i} style={{ marginBottom: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color || PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
-            {d.label}: {d.value}
-          </div>
-          {showCumulativeRates && !isLast && (
-            <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginLeft: 16, marginTop: 2 }}>
-              Rate: {rate}%
+            <div key={i} style={{ marginBottom: isLast ? 0 : 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color || PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
+                {d.label}: {d.value}
+              </div>
+              {showCumulativeRates && !isLast && (
+                <div style={{ fontSize: 12, fontWeight: 700, color: getRateColor(rate), marginLeft: 16, marginTop: 2 }}>
+                  Rate: {rate}%
+                </div>
+              )}
             </div>
-          )}
-          </div>
           )
         })}
       </div>
@@ -272,6 +292,13 @@ function ProjectAgeClock() {
 }
 
 export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile, onChooseMode }) {
+  const [averageEngagement, setAverageEngagement] = useState(null)
+
+  useEffect(() => {
+    supabase.rpc('record_and_get_average_engagement').then(({ data }) => {
+      if (data) setAverageEngagement(data.average)
+    })
+  }, [])
   const [adminUnreadIdeaCount, setAdminUnreadIdeaCount] = useState(0)
 
   useEffect(() => {
@@ -462,7 +489,11 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
       return Array.isArray(value) ? <BarChart data={value} showTotal={tile.show_total} /> : <p className="center-note">Keine Daten.</p>
     }
     if (tile.viz_type === 'kreis') {
-      return Array.isArray(value) ? <PieChart data={value} showCumulativeRates={tile.metric_key_1 === 'einwohner_aktivitaet'} /> : <p className="center-note">Keine Daten.</p>
+      const isEngagementTile = tile.metric_key_1 === 'einwohner_aktivitaet'
+      return Array.isArray(value) ? (
+        <PieChart data={value} showCumulativeRates={isEngagementTile} centerValue={isEngagementTile ? averageEngagement : null} />
+      ) : <p className="center-note">Keine Daten.</p>
+    }
     }
     return null
   }

@@ -216,6 +216,18 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     setPlacingHotspot(null)
   }
 
+  async function updateModalFormat(hotspotId, format) {
+    const { error } = await supabase.from('business_room_hotspots').update({ modal_format: format }).eq('id', hotspotId)
+    if (error) console.error('updateModalFormat Fehler:', error)
+    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_format: format } : h)))
+  }
+
+  async function updateModalPosition(hotspotId, x, y) {
+    const { error } = await supabase.from('business_room_hotspots').update({ modal_position_x: x, modal_position_y: y }).eq('id', hotspotId)
+    if (error) console.error('updateModalPosition Fehler:', error)
+    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_position_x: x, modal_position_y: y } : h)))
+  }
+
   async function handleAreaImageUpload(hotspotId, file) {
     if (!file) return
     const ext = file.name.split('.').pop()
@@ -1182,18 +1194,6 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
     setPreview(URL.createObjectURL(f))
   }
 
-  async function updateModalFormat(hotspotId, format) {
-    console.log('updateModalFormat aufgerufen mit:', hotspotId, format)
-    const { error } = await supabase.from('business_room_hotspots').update({ modal_format: format }).eq('id', hotspotId)
-    console.log('Supabase-Antwort, Fehler:', error)
-    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_format: format } : h)))
-    console.log('setHotspots wurde aufgerufen')
-  }
-
-  async function updateModalPosition(hotspotId, x, y) {
-    await supabase.from('business_room_hotspots').update({ modal_position_x: x, modal_position_y: y }).eq('id', hotspotId)
-    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_position_x: x, modal_position_y: y } : h)))
-  }
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')

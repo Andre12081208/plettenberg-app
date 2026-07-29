@@ -716,6 +716,47 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                     />
                   </div>
 
+                  <div className="field" style={{ marginTop: 10 }}>
+                    <label>Fenster-Format</label>
+                    <select
+                      value={h.modal_format || 'zentriert'}
+                      onChange={(e) => updateModalFormat(h.id, e.target.value)}
+                    >
+                      <option value="zentriert">Zentriert</option>
+                      <option value="oben">Oben</option>
+                      <option value="unten">Unten</option>
+                      <option value="links">Links</option>
+                      <option value="rechts">Rechts</option>
+                      <option value="frei">Frei positionieren</option>
+                    </select>
+                  </div>
+
+                  {h.modal_format === 'frei' && (
+                    <div style={{ marginTop: 10 }}>
+                      <p className="hint" style={{ marginBottom: 8 }}>Zieh den Punkt dahin, wo das Fenster erscheinen soll.</p>
+                      <div
+                        style={{ position: 'relative', width: '100%', maxWidth: 260, height: 150, borderRadius: 8, border: '2px solid var(--line)', background: h.area_image_url ? `url(${h.area_image_url})` : 'var(--bg-soft)', backgroundSize: 'cover', backgroundPosition: 'center', cursor: 'crosshair' }}
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          const x = ((e.clientX - rect.left) / rect.width) * 100
+                          const y = ((e.clientY - rect.top) / rect.height) * 100
+                          updateModalPosition(h.id, x, y)
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: `${h.modal_position_x ?? 50}%`,
+                            top: `${h.modal_position_y ?? 50}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 18, height: 18, borderRadius: '50%',
+                            background: 'var(--clay)', border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.4)'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     className="link-text"
                     style={{ marginTop: 6 }}
@@ -1141,6 +1182,15 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
     setPreview(URL.createObjectURL(f))
   }
 
+  async function updateModalFormat(hotspotId, format) {
+    await supabase.from('business_room_hotspots').update({ modal_format: format }).eq('id', hotspotId)
+    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_format: format } : h)))
+  }
+
+  async function updateModalPosition(hotspotId, x, y) {
+    await supabase.from('business_room_hotspots').update({ modal_position_x: x, modal_position_y: y }).eq('id', hotspotId)
+    setHotspots((prev) => prev.map((h) => (h.id === hotspotId ? { ...h, modal_position_x: x, modal_position_y: y } : h)))
+  }
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')

@@ -30,11 +30,13 @@ export default function App() {
 
   useEffect(() => {
     let isInitialCheck = true
+    // Beim Neuladen feuert Supabase kurz nacheinander sowohl INITIAL_SESSION als auch SIGNED_IN.
+    // Erst nach diesem kurzen "Anlauf-Fenster" gilt ein SIGNED_IN als echter, neuer Login.
+    const settleTimer = setTimeout(() => { isInitialCheck = false }, 800)
 
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
-      console.log('AUTH EVENT:', event, '| isInitialCheck war:', isInitialCheck, '| pb_adminMode vorher:', sessionStorage.getItem('pb_adminMode'))
       const isEmailConfirmation = window.location.hash.includes('type=signup')
 
       if (event === 'SIGNED_IN' && isEmailConfirmation) {
@@ -56,12 +58,14 @@ export default function App() {
         sessionStorage.removeItem('pb_openApp')
         sessionStorage.removeItem('pb_adminMode')
       }
-      isInitialCheck = false
       setSession(newSession)
       setChosenType(null)
     })
 
-    return () => listener.subscription.unsubscribe()
+    return () => {
+      clearTimeout(settleTimer)
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {

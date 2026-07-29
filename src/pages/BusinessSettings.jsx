@@ -601,14 +601,14 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
       <>
         <div className="topbar">
           <div className="mark">Plettenberg</div>
-          <h1>Virtueller Raum</h1>
+          <h1>Mein virtueller Standort</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
           <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
 
           <div className="btn-row" style={{ marginBottom: 16 }}>
-            <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Meine Seite</button>
-            <button className="btn btn-primary">Virtueller Raum</button>
+            <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Visitenkarte (Kostenlos)</button>
+            <button className="btn btn-primary">Mein virtueller Standort (Zusatzpaket)</button>
           </div>
 
           {roomError && <div className="error-box">{roomError}</div>}

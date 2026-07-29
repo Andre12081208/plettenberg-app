@@ -33,6 +33,7 @@ const SYSTEM_APP_META = {
 
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
   const { t } = useLanguage()
+  const [businessAppFullScreen, setBusinessAppFullScreen] = useState(false)
   const [activeTab, setActiveTab] = useState(() => {
     if (isInactivityExpired()) return 'homeboard'
     return sessionStorage.getItem('pb_activeTab') || 'homeboard'
@@ -277,11 +278,19 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
       />
     )
   } else if (openApp && typeof openApp === 'object' && openApp.id) {
-    content = <BusinessMiniApp app={openApp} userId={userId} onBack={() => { setOpenApp(null); checkBusinessInquiries(); checkPostfach() }} />
+    content = (
+      <BusinessMiniApp
+        app={openApp}
+        userId={userId}
+        onBack={() => { setOpenApp(null); setBusinessAppFullScreen(false); checkBusinessInquiries(); checkPostfach() }}
+        fullScreenRoom
+        onFullScreenChange={setBusinessAppFullScreen}
+      />
+    )
   } else if (openApp === 'postfach') {
     content = <ResidentInbox userId={userId} onBack={() => { setOpenApp(null); checkPostfach() }} />
   } else if (openApp === 'branchenverzeichnis') {
-    content = <BusinessDirectory userId={userId} onBack={() => setOpenApp(null)} />
+    content = <BusinessDirectory userId={userId} onBack={() => { setOpenApp(null); setBusinessAppFullScreen(false) }} onFullScreenChange={setBusinessAppFullScreen} />
   } else {
     content = (
       <>
@@ -443,7 +452,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     <div className="app-shell">
       {content}
 
-      <nav className="tab-bar">
+      <nav className={`tab-bar ${businessAppFullScreen ? 'tab-bar-overlay' : ''}`}>
         <button
           className={`tab-bar-item ${activeTab === 'feed' && !openApp ? 'active' : ''}`}
           onClick={() => goToTab('feed')}

@@ -1182,7 +1182,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           {canManageProducts && hasRoomAddon && (
             <button className="app-tile" onClick={() => setView('raum')}>
               <div className="app-tile-icon">🏠</div>
-              <div className="app-tile-label">Virtueller Raum</div>
+              <div className="app-tile-label">Meine Seite</div>
             </button>
           )}
 

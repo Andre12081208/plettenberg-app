@@ -29,7 +29,6 @@ export default function App() {
   const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
-    useEffect(() => {
     let isInitialCheck = true
 
     supabase.auth.getSession().then(({ data }) => setSession(data.session))

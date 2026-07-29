@@ -34,6 +34,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log('AUTH EVENT:', event, '| isInitialCheck war:', isInitialCheck, '| pb_adminMode vorher:', sessionStorage.getItem('pb_adminMode'))
       const isEmailConfirmation = window.location.hash.includes('type=signup')
 
       if (event === 'SIGNED_IN' && isEmailConfirmation) {

@@ -179,41 +179,74 @@ function ProjectAgeClock() {
 
   const elapsedMs = Math.max(0, now.getTime() - PROJECT_BIRTH.getTime())
 
-  let display
-  if (!unit) {
-    const days = Math.floor(elapsedMs / MS_PER_DAY)
-    const hours = Math.floor((elapsedMs % MS_PER_DAY) / MS_PER_HOUR)
-    const minutes = Math.floor((elapsedMs % MS_PER_HOUR) / MS_PER_MINUTE)
-    const seconds = Math.floor((elapsedMs % MS_PER_MINUTE) / MS_PER_SECOND)
-    display = `${days}T ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-  } else if (unit === 'sek') {
-    display = `${Math.floor(elapsedMs / MS_PER_SECOND).toLocaleString('de-DE')} Sek.`
-  } else if (unit === 'min') {
-    display = `${Math.floor(elapsedMs / MS_PER_MINUTE).toLocaleString('de-DE')} Min.`
-  } else if (unit === 'std') {
-    display = `${Math.floor(elapsedMs / MS_PER_HOUR).toLocaleString('de-DE')} Std.`
-  } else if (unit === 'tage') {
-    display = `${Math.floor(elapsedMs / MS_PER_DAY).toLocaleString('de-DE')} Tage`
-  } else if (unit === 'wochen') {
-    display = `${(elapsedMs / MS_PER_WEEK).toFixed(2)} Wochen`
-  } else if (unit === 'monate') {
-    display = `${(elapsedMs / MS_PER_MONTH).toFixed(2)} Monate`
-  } else if (unit === 'jahre') {
-    display = `${(elapsedMs / MS_PER_YEAR).toFixed(2)} Jahre`
+  const isWeeklyAnniversary = now.getDay() === 3
+  const isMonthlyAnniversary = now.getDate() === 22
+  const isYearlyAnniversary = now.getMonth() === 6 && now.getDate() === 22
+  const ageInYears = now.getFullYear() - PROJECT_BIRTH.getFullYear()
+
+  const DEFAULT_COLOR = '#D9E5DD'
+  let tageColor = DEFAULT_COLOR
+  let stdColor = DEFAULT_COLOR
+  let minColor = DEFAULT_COLOR
+  let sekColor = DEFAULT_COLOR
+
+  if (isYearlyAnniversary) {
+    tageColor = '#FF6B6B'
+    stdColor = '#FFD93D'
+    minColor = '#6BCB77'
+    sekColor = '#4D96FF'
+  } else if (isMonthlyAnniversary) {
+    tageColor = '#E3CE8C'
+  } else if (isWeeklyAnniversary) {
+    tageColor = '#A9C7E8'
   }
 
+  let unitDisplay = null
+  if (unit === 'sek') {
+    unitDisplay = `${Math.floor(elapsedMs / MS_PER_SECOND).toLocaleString('de-DE')} Sek.`
+  } else if (unit === 'min') {
+    unitDisplay = `${Math.floor(elapsedMs / MS_PER_MINUTE).toLocaleString('de-DE')} Min.`
+  } else if (unit === 'std') {
+    unitDisplay = `${Math.floor(elapsedMs / MS_PER_HOUR).toLocaleString('de-DE')} Std.`
+  } else if (unit === 'tage') {
+    unitDisplay = `${Math.floor(elapsedMs / MS_PER_DAY).toLocaleString('de-DE')} Tage`
+  } else if (unit === 'wochen') {
+    unitDisplay = `${(elapsedMs / MS_PER_WEEK).toFixed(2)} Wochen`
+  } else if (unit === 'monate') {
+    unitDisplay = `${(elapsedMs / MS_PER_MONTH).toFixed(2)} Monate`
+  } else if (unit === 'jahre') {
+    unitDisplay = `${(elapsedMs / MS_PER_YEAR).toFixed(2)} Jahre`
+  }
+
+  const days = Math.floor(elapsedMs / MS_PER_DAY)
+  const hours = Math.floor((elapsedMs % MS_PER_DAY) / MS_PER_HOUR)
+  const minutes = Math.floor((elapsedMs % MS_PER_HOUR) / MS_PER_MINUTE)
+  const seconds = Math.floor((elapsedMs % MS_PER_MINUTE) / MS_PER_SECOND)
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+    <div style={{ width: '100%', marginTop: 10 }}>
       <div
         style={{
-          background: 'var(--forest)', color: '#D9E5DD', fontFamily: 'monospace',
-          fontSize: 13, fontWeight: 600, letterSpacing: '0.05em', padding: '5px 10px',
+          width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 4,
+          background: 'var(--forest)', fontFamily: 'monospace',
+          fontSize: 13, fontWeight: 600, letterSpacing: '0.05em', padding: '6px 10px',
           borderRadius: 8, whiteSpace: 'nowrap'
         }}
       >
-        {display}
+        {unit ? (
+          <span style={{ color: DEFAULT_COLOR }}>{unitDisplay}</span>
+        ) : (
+          <>
+            <span style={{ color: tageColor }}>{days}T</span>
+            <span style={{ color: stdColor }}>{String(hours).padStart(2, '0')}</span>
+            <span style={{ color: DEFAULT_COLOR }}>:</span>
+            <span style={{ color: minColor }}>{String(minutes).padStart(2, '0')}</span>
+            <span style={{ color: DEFAULT_COLOR }}>:</span>
+            <span style={{ color: sekColor }}>{String(seconds).padStart(2, '0')}</span>
+          </>
+        )}
       </div>
-      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
         {UNIT_BUTTONS.map((u) => (
           <button
             key={u.key}
@@ -229,6 +262,11 @@ function ProjectAgeClock() {
           </button>
         ))}
       </div>
+      {isYearlyAnniversary && (
+        <p style={{ textAlign: 'center', marginTop: 8, fontSize: 13 }}>
+          🎂 Alles Gute zum {ageInYears}. Geburtstag, Plettenberg App!
+        </p>
+      )}
     </div>
   )
 }
@@ -432,13 +470,9 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-          <div>
-            <div className="mark">Plettenberg</div>
-            <h1>Master Dashboard</h1>
-          </div>
-          <ProjectAgeClock />
-        </div>
+        <div className="mark">Plettenberg</div>
+        <h1>Master Dashboard</h1>
+        <ProjectAgeClock />
       </div>
       <main style={{ paddingBottom: 90 }}>
         {error && <div className="error-box">{error}</div>}

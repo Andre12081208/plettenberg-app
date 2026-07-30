@@ -262,7 +262,7 @@ function InsightsTab() {
             <div>
               <h3 style={{ margin: 0 }}>
                 {u.display_name}
-                {u.email === ADMIN_EMAIL && (
+                {u.is_admin && (
                   <span className="status-pill status-live" style={{ marginLeft: 8, fontSize: 10 }}>Admin</span>
                 )}
               </h3>

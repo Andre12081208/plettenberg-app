@@ -502,7 +502,6 @@ const [averageEngagement, setAverageEngagement] = useState(null)
         <div className="mark">Plettenberg</div>
         <h1>Master Dashboard</h1>
         <ProjectAgeClock />
-        </div>
       </div>
       <main style={{ paddingBottom: 90 }}>
         {error && <div className="error-box">{error}</div>}

@@ -291,18 +291,7 @@ function ProjectAgeClock() {
   )
 }
 
-export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile, onChooseMode }) {
-  const [averageEngagement, setAverageEngagement] = useState(null)
-  const [debugScopeTest, setDebugScopeTest] = useState('lädt...')
-
-  useEffect(() => {
-    Promise.all([
-      supabase.rpc('is_platform_admin'),
-      supabase.rpc('is_city_admin', { target_city_id: 'plettenberg' })
-    ]).then(([a, b]) => {
-      setDebugScopeTest(`Plattform: ${a.data} (Fehler: ${a.error?.message || 'keiner'}) | Stadt Plettenberg: ${b.data} (Fehler: ${b.error?.message || 'keiner'})`)
-    })
-  }, [])
+const [averageEngagement, setAverageEngagement] = useState(null)
 
   useEffect(() => {
     supabase.rpc('record_and_get_average_engagement').then(({ data }) => {
@@ -514,8 +503,6 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
         <h1>Master Dashboard</h1>
         <ProjectAgeClock />
         </div>
-        <div style={{ background: '#FEF3C7', border: '1px solid #D97706', borderRadius: 8, padding: 10, marginTop: 10, fontSize: 12, fontFamily: 'monospace' }}>
-          DEBUG: {debugScopeTest}
       </div>
       <main style={{ paddingBottom: 90 }}>
         {error && <div className="error-box">{error}</div>}

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { renderAnonAvatar } from '../lib/anonAvatar.js'
-import { ADMIN_EMAIL } from '../lib/adminConfig'
 
 const STATUS_OPTIONS = [
   { value: 'in_pruefung', label: 'In Prüfung' },

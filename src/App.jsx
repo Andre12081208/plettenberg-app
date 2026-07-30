@@ -16,6 +16,7 @@ import MasterDashboard from './pages/MasterDashboard.jsx'
 import { isInactivityExpired, markActivity } from './lib/inactivity.js'
 
 export default function App() {
+  const [isPlatformAdminFlag, setIsPlatformAdminFlag] = useState(false)
   const [justConfirmedMsg, setJustConfirmedMsg] = useState('')
   const [session, setSession] = useState(undefined)
   const [profileType, setProfileType] = useState(null)
@@ -125,6 +126,8 @@ export default function App() {
   async function loadProfile(userId) {
     setCheckingProfile(true)
 
+    supabase.rpc('is_platform_admin').then(({ data }) => setIsPlatformAdminFlag(!!data))
+
     const admin = session?.user?.email === ADMIN_EMAIL
 
     const { data: privateData } = await supabase
@@ -203,7 +206,7 @@ export default function App() {
     return <div className="loading-dot">Einen Moment...</div>
   }
 
-  const isAdmin = session.user.email === ADMIN_EMAIL
+  const isAdmin = session.user.email === ADMIN_EMAIL || isPlatformAdminFlag
 
   if (isAdmin) {
     if (!adminMode) {

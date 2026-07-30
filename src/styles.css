@@ -445,3 +445,9 @@ body.dark-mode {
 .room-transition-slide_rechts { animation-name: roomSlideRight; animation-timing-function: ease; animation-fill-mode: both; }
 .room-transition-slide_oben { animation-name: roomSlideUp; animation-timing-function: ease; animation-fill-mode: both; }
 .room-transition-slide_unten { animation-name: roomSlideDown; animation-timing-function: ease; animation-fill-mode: both; }
+
+.dashboard-tile-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}

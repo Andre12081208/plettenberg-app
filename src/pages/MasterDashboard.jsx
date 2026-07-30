@@ -291,7 +291,8 @@ function ProjectAgeClock() {
   )
 }
 
-const [averageEngagement, setAverageEngagement] = useState(null)
+export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile, onChooseMode }) {
+  const [averageEngagement, setAverageEngagement] = useState(null)
 
   useEffect(() => {
     supabase.rpc('record_and_get_average_engagement').then(({ data }) => {

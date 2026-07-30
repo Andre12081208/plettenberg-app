@@ -34,6 +34,13 @@ const SYSTEM_APP_META = {
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
   const { t } = useLanguage()
   const [businessAppFullScreen, setBusinessAppFullScreen] = useState(false)
+  const [verwaltungModuleEnabled, setVerwaltungModuleEnabled] = useState(false)
+
+  useEffect(() => {
+    if (!profile?.city_id) return
+    supabase.rpc('is_module_enabled_for_city', { target_city_id: profile.city_id, target_module_key: 'verwaltung' })
+      .then(({ data }) => setVerwaltungModuleEnabled(!!data))
+  }, [profile?.city_id])
   const [activeTab, setActiveTab] = useState(() => {
     if (isInactivityExpired()) return 'homeboard'
     return sessionStorage.getItem('pb_activeTab') || 'homeboard'
@@ -347,10 +354,12 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
                   <div className="app-tile-label">Postfach</div>
                 </button>
 
-                <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
-                  <div className="app-tile-icon">🏛️</div>
-                  <div className="app-tile-label">{t('apps.cityHall')}</div>
-                </button>
+                {verwaltungModuleEnabled && (
+                  <button className="app-tile" onClick={() => setOpenApp('stadtverwaltung')}>
+                    <div className="app-tile-icon">🏛️</div>
+                    <div className="app-tile-label">{t('apps.cityHall')}</div>
+                  </button>
+                )}
 
                 <button className="app-tile" onClick={() => setOpenApp('channels')}>
                   <div className="app-tile-icon">📢</div>

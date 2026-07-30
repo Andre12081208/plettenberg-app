@@ -618,7 +618,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
           {!loading && tiles.map((tile, index) => (
             <div className={`card tile-${tile.tile_width || 'voll'}`} key={tile.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                <h3 style={{ margin: 0, fontSize: 15 }}>{tile.title}</h3>
+                <h3 className="dashboard-tile-title">{tile.title}</h3>
                 {editMode && (
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <button className="link-text" style={{ fontSize: 15 }} disabled={index === 0} onClick={() => moveTile(index, -1)}>‹</button>

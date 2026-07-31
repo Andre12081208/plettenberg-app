@@ -729,10 +729,6 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
               onCancel={() => setBhubEditorUrl(null)}
             />
           )}
-          </div>
-          )}
-          </div>
-          )}
           <div className="app-grid">
             {(() => {
               const items = []

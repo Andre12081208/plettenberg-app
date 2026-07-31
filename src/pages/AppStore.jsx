@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const APP_CATEGORIES = [
   { value: 'alle', label: 'Alle' },
@@ -25,6 +26,7 @@ async function getNextPosition(userId) {
 }
 
 export default function AppStore({ userId, onBack, onChanged }) {
+  const { name: cityName } = useCity()
   const [entries, setEntries] = useState([])
   const [installedIds, setInstalledIds] = useState(new Set())
   const [followedIds, setFollowedIds] = useState(new Set())
@@ -197,7 +199,7 @@ export default function AppStore({ userId, onBack, onChanged }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>App Store</h1>
       </div>
       <main>

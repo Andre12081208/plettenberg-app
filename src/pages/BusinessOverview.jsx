@@ -89,7 +89,7 @@ const STATUS_EXPLANATION = {
   abgelehnt: 'Dein Profil wurde aktuell nicht freigeschaltet.'
 }
 
-function ProfileStatusTile({ profile, isLive }) {
+function ProfileStatusTile({ profile, isLive, onOpenVisitorPreview }) {
   const [addons, setAddons] = useState([])
   const [hasChannel, setHasChannel] = useState(false)
   const [hasTerminProduct, setHasTerminProduct] = useState(false)
@@ -121,9 +121,14 @@ function ProfileStatusTile({ profile, isLive }) {
 
   return (
     <>
-      <p style={{ margin: items.length > 0 ? '0 0 12px' : 0, fontSize: 14 }}>
-        Dein Profil ist öffentlich sichtbar. {isLive ? '✅' : '❌'}
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: items.length > 0 ? 12 : 0 }}>
+        <p style={{ margin: 0, fontSize: 14 }}>
+          Dein Profil ist öffentlich sichtbar. {isLive ? '✅' : '❌'}
+        </p>
+        <button className="link-text" onClick={onOpenVisitorPreview} style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
+          Meine Seite in Besucheransicht →
+        </button>
+      </div>
 
       {items.map((item) => (
         <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderTop: '1px solid var(--line)' }}>
@@ -139,7 +144,7 @@ function ProfileStatusTile({ profile, isLive }) {
 
 const WIDTH_LABELS = { voll: 'Volle Breite', halb: 'Halbe Breite', drittel: 'Drittelbreite', viertel: 'Viertelbreite' }
 
-export default function BusinessOverview({ profile }) {
+export default function BusinessOverview({ profile, onOpenVisitorPreview }) {
   const { name: cityName } = useCity()
   const [tiles, setTiles] = useState([])
   const [tileValues, setTileValues] = useState({})
@@ -328,7 +333,7 @@ export default function BusinessOverview({ profile }) {
 
   function renderTileContent(tile) {
     if (tile.viz_type === 'status') {
-      return <ProfileStatusTile profile={profile} isLive={isLive} />
+      return <ProfileStatusTile profile={profile} isLive={isLive} onOpenVisitorPreview={onOpenVisitorPreview} />
     }
 
     const value = tileValues[tile.id]

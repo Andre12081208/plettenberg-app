@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import StadtverwaltungApp from './StadtverwaltungApp.jsx'
 import AppStore from './AppStore.jsx'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
@@ -32,7 +33,9 @@ const SYSTEM_APP_META = {
 }
 
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
+  const { name: cityName } = useCity()
   const { t } = useLanguage()
+  const { name: cityName } = useCity()
   const [businessAppFullScreen, setBusinessAppFullScreen] = useState(false)
   const [verwaltungModuleEnabled, setVerwaltungModuleEnabled] = useState(false)
 
@@ -319,7 +322,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
           <>
             <div className="topbar">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div className="mark">Plettenberg</div>
+                <div className="mark">{cityName}</div>
                 <button className="link-text" onClick={() => setEditMode(!editMode)}>
                   {editMode ? t('apps.done') : t('apps.arrange')}
                 </button>

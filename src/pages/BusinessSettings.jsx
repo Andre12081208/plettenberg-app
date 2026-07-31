@@ -29,6 +29,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 
   const [hasAppointmentAddon, setHasAppointmentAddon] = useState(false)
   const [hasRoomAddon, setHasRoomAddon] = useState(false)
+  const [hasHomeboardSizeAddon, setHasHomeboardSizeAddon] = useState(false)
   const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
   const [roomImageUrl, setRoomImageUrl] = useState(null)
   const [roomFile, setRoomFile] = useState(null)
@@ -99,6 +100,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     ])
 
     setHasRoomAddon((addonRows || []).some((a) => a.addon_key === 'raum'))
+    setHasHomeboardSizeAddon((addonRows || []).some((a) => a.addon_key === 'homeboard_groessen'))
     setRoomImageUrl(profileRow?.room_image_url || null)
     setHotspots(hotspotRows || [])
 
@@ -630,6 +632,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         </main>
       </>
     )
+  }
+
+  if (view === 'homeboard-groessen') {
+    return <HomeboardGroessenSettings profile={profile} onBack={() => setView(null)} />
   }
 
   if (view === 'raum') {
@@ -1234,6 +1240,13 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
             </button>
           )}
 
+          {canManageProducts && hasHomeboardSizeAddon && (
+            <button className="app-tile" onClick={() => setView('homeboard-groessen')}>
+              <div className="app-tile-icon">🧩</div>
+              <div className="app-tile-label">Homeboard-Größen</div>
+            </button>
+          )}
+
           {canManageChannel && (
             <button className="app-tile" onClick={() => setView('news')}>
               <div className="app-tile-icon">📢</div>
@@ -1397,10 +1410,80 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
     </>
   )
 }
+function HomeboardGroessenSettings({ profile, onBack }) {
+  const { name: cityName } = useCity()
+  const [settings, setSettings] = useState({ allow_drittel: false, allow_zweidrittel: false, allow_voll: false, is_published: false })
+  const [loading, setLoading] = useState(true)
+  const [savedHint, setSavedHint] = useState('')
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line
+  }, [])
+
+  async function load() {
+    const { data } = await supabase.from('business_homeboard_size_settings').select('*').eq('business_profile_id', profile.id).maybeSingle()
+    if (data) setSettings(data)
+    setLoading(false)
+  }
+
+  function toggle(key) {
+    setSettings((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  async function save(publish) {
+    const payload = { business_profile_id: profile.id, allow_drittel: settings.allow_drittel, allow_zweidrittel: settings.allow_zweidrittel, allow_voll: settings.allow_voll, is_published: publish }
+    await supabase.from('business_homeboard_size_settings').upsert(payload)
+    setSettings(payload)
+    setSavedHint(publish ? 'Veröffentlicht!' : 'Gespeichert (noch nicht live)')
+    setTimeout(() => setSavedHint(''), 2500)
+  }
+
+  if (loading) return <div className="loading-dot">Lädt...</div>
+
+  return (
+    <>
+      <div className="topbar">
+        <div className="mark">{cityName}</div>
+        <h1>Homeboard-Größen</h1>
+      </div>
+      <main style={{ paddingBottom: 90 }}>
+        <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Welche Formate dürfen Einwohner auf ihrem Homeboard für deine Kachel nutzen?</h3>
+          <p className="hint" style={{ marginBottom: 12 }}>"App" (kompaktes Symbol) ist immer verfügbar, unabhängig von dieser Einstellung.</p>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+            <input type="checkbox" checked={settings.allow_drittel} onChange={() => toggle('allow_drittel')} />
+            1/3 – schmale Karte
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+            <input type="checkbox" checked={settings.allow_zweidrittel} onChange={() => toggle('allow_zweidrittel')} />
+            2/3 – breite Karte
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+            <input type="checkbox" checked={settings.allow_voll} onChange={() => toggle('allow_voll')} />
+            3/3 – volle Breite
+          </label>
+
+          <div className="btn-row" style={{ marginTop: 16 }}>
+            <button className="btn btn-secondary" onClick={() => save(false)}>Speichern (Entwurf)</button>
+            <button className="btn btn-primary" onClick={() => save(true)}>Live stellen</button>
+          </div>
+          {settings.is_published && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>Aktuell live für Einwohner sichtbar.</p>}
+          {savedHint && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>{savedHint}</p>}
+        </div>
+      </main>
+    </>
+  )
+}
+
 const ADDON_REGISTRY = [
   { key: 'channel', label: 'Eigener Channel', description: 'Poste Neuigkeiten, die deine Follower im Newsfeed sehen.' },
   { key: 'termine', label: 'Termine', description: 'Biete buchbare Zeitfenster für deine Dienstleistungen an.' },
-  { key: 'raum', label: 'Virtueller Raum', description: 'Ein interaktives Raumbild statt der Standard-Ansicht.' }
+  { key: 'raum', label: 'Virtueller Raum', description: 'Ein interaktives Raumbild statt der Standard-Ansicht.' },
+  { key: 'homeboard_groessen', label: 'Homeboard-Größen', description: 'Einwohner können deine Kachel auf ihrem Homeboard in größeren Formaten (1/3, 2/3, 3/3) anzeigen, statt nur als kompaktes App-Symbol.' }
 ]
 
 function PlanUndZusatzpakete({ profile, onBack }) {
@@ -1408,6 +1491,7 @@ function PlanUndZusatzpakete({ profile, onBack }) {
   const [addons, setAddons] = useState([])
   const [hasChannel, setHasChannel] = useState(false)
   const [hasTerminProduct, setHasTerminProduct] = useState(false)
+  const [sizeSettings, setSizeSettings] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyKey, setBusyKey] = useState(null)
@@ -1423,14 +1507,16 @@ function PlanUndZusatzpakete({ profile, onBack }) {
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: addonRows }, { data: channelRow }, { data: terminRow }] = await Promise.all([
+    const [{ data: addonRows }, { data: channelRow }, { data: terminRow }, { data: sizeRow }] = await Promise.all([
       supabase.from('business_addons').select('*').eq('business_profile_id', profile.id),
       supabase.from('channels').select('id').eq('created_by', profile.id).limit(1).maybeSingle(),
-      supabase.from('business_products').select('id').eq('business_profile_id', profile.id).eq('sale_mode', 'termin').eq('active', true).limit(1).maybeSingle()
+      supabase.from('business_products').select('id').eq('business_profile_id', profile.id).eq('sale_mode', 'termin').eq('active', true).limit(1).maybeSingle(),
+      supabase.from('business_homeboard_size_settings').select('is_published').eq('business_profile_id', profile.id).maybeSingle()
     ])
     setAddons(addonRows || [])
     setHasChannel(!!channelRow)
     setHasTerminProduct(!!terminRow)
+    setSizeSettings(sizeRow)
     setLoading(false)
   }
 
@@ -1439,6 +1525,7 @@ function PlanUndZusatzpakete({ profile, onBack }) {
     if (key === 'channel') return hasChannel
     if (key === 'termine') return hasTerminProduct
     if (key === 'raum') return !!profile.room_image_url
+    if (key === 'homeboard_groessen') return !!sizeSettings?.is_published
     return false
   }
 

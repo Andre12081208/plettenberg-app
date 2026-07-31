@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function Connections({ userId, profile, initialSearchValue, onBack }) {
+  const { name: cityName } = useCity()
   const [searchValue, setSearchValue] = useState(initialSearchValue || '')
   const [searchResult, setSearchResult] = useState(null)
   const [searchError, setSearchError] = useState('')
@@ -102,7 +104,7 @@ export default function Connections({ userId, profile, initialSearchValue, onBac
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Vernetzen</h1>
       </div>
       <main>

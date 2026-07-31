@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const METRIC_REGISTRY = [
   { key: 'bestellungen_offen', label: 'Offene Bestellungen', type: 'number' },
@@ -139,6 +140,7 @@ function ProfileStatusTile({ profile, isLive }) {
 const WIDTH_LABELS = { voll: 'Volle Breite', halb: 'Halbe Breite', drittel: 'Drittelbreite', viertel: 'Viertelbreite' }
 
 export default function BusinessOverview({ profile }) {
+  const { name: cityName } = useCity()
   const [tiles, setTiles] = useState([])
   const [tileValues, setTileValues] = useState({})
   const [loading, setLoading] = useState(true)
@@ -352,7 +354,7 @@ export default function BusinessOverview({ profile }) {
       <div className="topbar">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <div>
-            <div className="mark">Plettenberg</div>
+            <div className="mark">{cityName}</div>
             <h1>Admin Dashboard</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

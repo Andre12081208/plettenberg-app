@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 import BusinessAccountProfile from './BusinessAccountProfile.jsx'
@@ -11,6 +12,7 @@ import BusinessPrivacy from './BusinessPrivacy.jsx'
 import BusinessNotifications from './BusinessNotifications.jsx'
 
 export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite }) {
+  const { name: cityName } = useCity()
   const [view, setView] = useState(null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
 
   const [products, setProducts] = useState([])
@@ -516,7 +518,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Meine Angebote</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
@@ -634,7 +636,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Mein virtueller Standort</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
@@ -912,7 +914,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Meine Termine</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
@@ -987,7 +989,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Newsfeed-Beiträge</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
@@ -1027,7 +1029,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>News veröffentlichen</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
@@ -1146,7 +1148,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>{item?.label || 'Mein Konto'}</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
@@ -1162,7 +1164,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Einstellungen</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>
@@ -1276,6 +1278,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 }
 
 function ProductForm({ businessId, existing, onDone, onCancel }) {
+  const { name: cityName } = useCity()
   const [type, setType] = useState(existing?.type || 'dienstleistung')
   const [name, setName] = useState(existing?.name || '')
   const [description, setDescription] = useState(existing?.description || '')
@@ -1337,7 +1340,7 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{existing ? 'Angebot bearbeiten' : 'Neues Angebot'}</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>
@@ -1401,6 +1404,7 @@ const ADDON_REGISTRY = [
 ]
 
 function PlanUndZusatzpakete({ profile, onBack }) {
+  const { name: cityName } = useCity()
   const [addons, setAddons] = useState([])
   const [hasChannel, setHasChannel] = useState(false)
   const [hasTerminProduct, setHasTerminProduct] = useState(false)
@@ -1474,7 +1478,7 @@ function PlanUndZusatzpakete({ profile, onBack }) {
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Mein Plan und Zusatzpakete</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>

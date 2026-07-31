@@ -14,6 +14,7 @@ const FREE_X_SIZES = ['app', 'drittel']
 
 export default function HomeBoard({ userId, installedApps, onOpenApp }) {
   const [tiles, setTiles] = useState([])
+  const [sizeSettingsByBusiness, setSizeSettingsByBusiness] = useState({})
   const [loaded, setLoaded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
@@ -26,12 +27,53 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
     // eslint-disable-next-line
   }, [])
 
+  function allowedSizesFor(tile) {
+    if (tile.app_type === 'system') return ['app', 'drittel', 'zweidrittel', 'voll']
+    const s = sizeSettingsByBusiness[tile.business_profile_id]
+    const allowed = ['app']
+    if (s?.is_published) {
+      if (s.allow_drittel) allowed.push('drittel')
+      if (s.allow_zweidrittel) allowed.push('zweidrittel')
+      if (s.allow_voll) allowed.push('voll')
+    }
+    return allowed
+  }
+
   async function loadTiles() {
     const { data } = await supabase
       .from('home_board_tiles')
       .select('*, business_profiles(*)')
       .eq('user_id', userId)
-    setTiles(data || [])
+    const rows = data || []
+
+    const businessIds = [...new Set(rows.filter((t) => t.app_type === 'business').map((t) => t.business_profile_id))]
+    let settingsMap = {}
+    if (businessIds.length > 0) {
+      const { data: settingsRows } = await supabase
+        .from('business_homeboard_size_settings')
+        .select('*')
+        .in('business_profile_id', businessIds)
+      settingsMap = Object.fromEntries((settingsRows || []).map((s) => [s.business_profile_id, s]))
+    }
+    setSizeSettingsByBusiness(settingsMap)
+
+    const clamped = await Promise.all(rows.map(async (tile) => {
+      const allowed = tile.app_type === 'system'
+        ? ['app', 'drittel', 'zweidrittel', 'voll']
+        : ['app', ...(settingsMap[tile.business_profile_id]?.is_published ? [
+            ...(settingsMap[tile.business_profile_id].allow_drittel ? ['drittel'] : []),
+            ...(settingsMap[tile.business_profile_id].allow_zweidrittel ? ['zweidrittel'] : []),
+            ...(settingsMap[tile.business_profile_id].allow_voll ? ['voll'] : [])
+          ] : [])]
+
+      if (!allowed.includes(tile.size)) {
+        await supabase.from('home_board_tiles').update({ size: 'app', pos_x: 50 }).eq('id', tile.id)
+        return { ...tile, size: 'app', pos_x: 50 }
+      }
+      return tile
+    }))
+
+    setTiles(clamped)
     setLoaded(true)
   }
 
@@ -152,6 +194,7 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
           const meta = tileMeta(tile)
           const size = tile.size || 'app'
           const isAppSize = size === 'app'
+          const allowedSizes = allowedSizesFor(tile)
 
           return (
             <div
@@ -188,7 +231,7 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
 
               {editing && (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                  {['app', 'drittel', 'zweidrittel', 'voll'].map((s) => (
+                  {allowedSizes.map((s) => (
                     <button
                       key={s}
                       className={size === s ? 'btn btn-primary' : 'btn btn-secondary'}
@@ -203,6 +246,9 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
                     style={{ width: 22, height: 22, borderRadius: 11, background: '#C0392B', color: '#fff', border: 'none', fontSize: 13 }}
                   >×</button>
                 </div>
+              )}
+              {editing && tile.app_type === 'business' && allowedSizes.length === 1 && (
+                <p className="hint" style={{ textAlign: 'center', marginTop: 4, fontSize: 11 }}>Größer nur, wenn der Anbieter es freischaltet</p>
               )}
             </div>
           )

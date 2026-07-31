@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import ProfileCard from './ProfileCard.jsx'
 
 export default function MyProfile({ userId, profile, onBack, onProfileUpdated }) {
+  onst { name: cityName } = useCity()
   const [firstName, setFirstName] = useState(profile.first_name || '')
   const [lastName, setLastName] = useState(profile.last_name || '')
   const [username, setUsername] = useState(profile.username || '')
@@ -96,7 +98,7 @@ export default function MyProfile({ userId, profile, onBack, onProfileUpdated })
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Mein Profil</h1>
       </div>
       <main>

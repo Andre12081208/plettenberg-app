@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function AccountBlocked({ status }) {
+  const { name: cityName } = useCity()
   async function handleLogout() {
     await supabase.auth.signOut()
   }
@@ -10,7 +12,7 @@ export default function AccountBlocked({ status }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}g</div>
         <h1>Hinweis</h1>
       </div>
       <main>

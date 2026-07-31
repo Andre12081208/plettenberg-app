@@ -65,6 +65,7 @@ export default function BusinessProfileForm({ userId, kind, onDone }) {
 
       const { error: dbError } = await supabase.from('business_profiles').insert({
         id: userId,
+        city_id: cityId,
         company_name: companyName.trim(),
         category,
         profile_kind: kind,

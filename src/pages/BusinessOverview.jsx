@@ -144,8 +144,9 @@ function ProfileStatusTile({ profile, isLive, onOpenVisitorPreview }) {
 
 const WIDTH_LABELS = { voll: 'Volle Breite', halb: 'Halbe Breite', drittel: 'Drittelbreite', viertel: 'Viertelbreite' }
 
-export default function BusinessOverview({ profile, onOpenVisitorPreview }) {
+export default function BusinessOverview({ profile, onOpenVisitorPreview, onOpenIdeenwerkstatt }) {
   const { name: cityName } = useCity()
+  const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
   const [tiles, setTiles] = useState([])
   const [tileValues, setTileValues] = useState({})
   const [loading, setLoading] = useState(true)
@@ -165,6 +166,10 @@ export default function BusinessOverview({ profile, onOpenVisitorPreview }) {
   const [showTotal, setShowTotal] = useState(false)
   const [tileWidth, setTileWidth] = useState('voll')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    supabase.rpc('get_unread_idea_count').then(({ data }) => setUnreadIdeaCount(data || 0))
+  }, [])
 
   const isLive = profile.status === 'live'
   const info1 = metricInfo(metric1)
@@ -491,6 +496,18 @@ export default function BusinessOverview({ profile, onOpenVisitorPreview }) {
             )}
 
             {loading && <div className="loading-dot">Lädt...</div>}
+
+            <button className="card app-tile" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }} onClick={onOpenIdeenwerkstatt}>
+              <div className="app-tile-icon" style={{ position: 'relative', flexShrink: 0 }}>
+                💡
+                {unreadIdeaCount > 0 && (
+                  <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                    {unreadIdeaCount}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontWeight: 600, textAlign: 'left' }}>Ideenwerkstatt</div>
+            </button>
 
             <div className="dashboard-grid">
               {!loading && tiles.map((tile, index) => (

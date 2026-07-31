@@ -60,10 +60,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
             Master Dashboard
           </button>
         )}
-        <button className={`tab-bar-item ${activeTab === 'mypage' ? 'active' : ''}`} onClick={() => goToTab('mypage')}>
-          <span className="tab-bar-icon">🏬</span>
-          Meine Seite
-        </button>
+    
         <button className={`tab-bar-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => goToTab('inbox')} style={{ position: 'relative' }}>
           <span className="tab-bar-icon">💬</span>
           Nachrichten

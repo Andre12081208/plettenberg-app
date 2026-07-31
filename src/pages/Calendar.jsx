@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import CalendarShareSettings from './CalendarShareSettings.jsx'
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
@@ -30,6 +31,7 @@ const STATUS_LABELS = {
 }
 
 export default function Calendar({ userId, onBack, viewOwnerId }) {
+  const { name: cityName } = useCity()
   const [viewDate, setViewDate] = useState(startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(null)
   const [viewedOwnerId, setViewedOwnerId] = useState(viewOwnerId || userId)
@@ -174,7 +176,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Kalender</h1>
       </div>
       <main>
@@ -348,6 +350,7 @@ export default function Calendar({ userId, onBack, viewOwnerId }) {
 }
 
 function EventForm({ userId, targetUserId, date, existing, onDone, onCancel }) {
+  const { name: cityName } = useCity()
   const [title, setTitle] = useState(existing?.title || '')
   const [description, setDescription] = useState(existing?.description || '')
   const [location, setLocation] = useState(existing?.location || '')
@@ -416,7 +419,7 @@ function EventForm({ userId, targetUserId, date, existing, onDone, onCancel }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{existing ? 'Termin bearbeiten' : isProposal ? 'Termin vorschlagen' : 'Neuer Termin'}</h1>
       </div>
       <main>
@@ -482,6 +485,7 @@ function EventForm({ userId, targetUserId, date, existing, onDone, onCancel }) {
 }
 
 function ShareSettings({ userId, onBack }) {
+  const { name: cityName } = useCity()
   const [shares, setShares] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -558,7 +562,7 @@ function ShareSettings({ userId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Freigabe verwalten</h1>
       </div>
       <main>

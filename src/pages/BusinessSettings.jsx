@@ -69,7 +69,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 
   const isStadtverwaltung = profile.category === 'stadtverwaltung'
   const canManageProducts = profile.profile_kind === 'anbieter' && profile.status === 'live' && profile.plan === 'basis' && profile.account_status !== 'beobachter'
-  const canManageOwnPage = profile.profile_kind === 'anbieter' && profile.status === 'live' && profile.account_status !== 'beobachter'
+  const canManageOwnPage = profile.profile_kind === 'anbieter' && profile.account_status !== 'beobachter'
   const canManageChannel = profile.status === 'live' && profile.account_status !== 'beobachter' && !isStadtverwaltung
 
   const [content, setContentText] = useState('')
@@ -732,14 +732,13 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
             {(() => {
               const items = []
               if (canManageOwnPage) {
-                items.push({ key: 'raum', icon: '🏠', label: 'Meine Seite', view: 'meine-seite-home', status: 'approved' })
+                items.push({ key: 'raum', icon: '🏠', label: 'Meine Seite', view: profile.plan === 'basis' ? 'meine-seite-home' : 'konto-meineseite', status: 'approved' })
               }
               if (canManageProducts) {
                 items.push({ key: 'termine', icon: '📅', label: 'Meine Termine', view: 'termine', status: getAddonStatus('termine') })
                 items.push({ key: 'homeboard_groessen', icon: '🧩', label: 'Homeboard-Größen', view: 'homeboard-groessen', status: getAddonStatus('homeboard_groessen') })
               }
-              if (canManageChannel) items.push({ key: 'news', icon: '📢', label: 'Newsfeed-Beiträge', view: 'news', status: 'approved' })
-              if (canPostDirectly) items.push({ key: 'newsDirect', icon: '📢', label: 'News veröffentlichen', view: 'newsDirect', status: 'approved' })
+              if (canManageChannel && profile.plan === 'basis') items.push({ key: 'news', icon: '📢', label: 'Newsfeed-Beiträge', view: 'news', status: 'approved' })
 
               const rank = { approved: 0, pending: 1, none: 2 }
               const sorted = [...items].sort((a, b) => rank[a.status] - rank[b.status])
@@ -1308,7 +1307,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         profile={profile}
         onProfileUpdated={onProfileUpdated}
         startEditing
-        settingsBack={() => setView('meine-seite-home')}
+        settingsBack={() => setView(profile.plan === 'basis' ? 'meine-seite-home' : 'werkstatt-home')}
         onSwitchToRoom={getAddonStatus('raum') === 'approved' ? () => setView('raum') : undefined}
       />
     )

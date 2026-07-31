@@ -122,14 +122,16 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
           </button>
 
           {onSwitchToRoom && (
-            <div className="btn-row" style={{ marginBottom: 10, flexWrap: 'wrap' }}>
-              <button className="btn btn-primary">Einstellung</button>
-              <button className="btn btn-secondary" onClick={onSwitchToProducts}>Meine Angebote (Basis)</button>
-            </div>
-            <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-              <button className="btn btn-primary">Visitenkarte (Kostenlos)</button>
-              <button className="btn btn-secondary" onClick={onSwitchToRoom}>Mein virtueller Standort (Zusatzpaket)</button>
-            </div>
+            <>
+              <div className="btn-row" style={{ marginBottom: 10, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary">Einstellung</button>
+                <button className="btn btn-secondary" onClick={onSwitchToProducts}>Meine Angebote (Basis)</button>
+              </div>
+              <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary">Visitenkarte (Kostenlos)</button>
+                <button className="btn btn-secondary" onClick={onSwitchToRoom}>Mein virtueller Standort (Zusatzpaket)</button>
+              </div>
+            </>
           )}
 
           {error && <div className="error-box">{error}</div>}

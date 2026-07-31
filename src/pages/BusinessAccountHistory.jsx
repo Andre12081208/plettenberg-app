@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const EVENT_LABELS = {
   konto_erstellt: 'Konto erstellt',
@@ -10,6 +11,7 @@ const EVENT_LABELS = {
 }
 
 export default function BusinessAccountHistory({ profile, onBack }) {
+  const { name: cityName } = useCity()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -41,7 +43,7 @@ export default function BusinessAccountHistory({ profile, onBack }) {
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Kontohistorie</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>

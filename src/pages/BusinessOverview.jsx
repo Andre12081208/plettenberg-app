@@ -125,7 +125,7 @@ function ProfileStatusTile({ profile, isLive, onOpenVisitorPreview }) {
         <p style={{ margin: 0, fontSize: 14 }}>
           Dein Profil ist öffentlich sichtbar. {isLive ? '✅' : '❌'}
         </p>
-        <button className="link-text" onClick={onOpenVisitorPreview} style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
+        <button className="btn btn-secondary" onClick={onOpenVisitorPreview} style={{ whiteSpace: 'nowrap', fontSize: 13, width: 'auto', padding: '8px 14px' }}>
           Meine Seite in Besucheransicht →
         </button>
       </div>

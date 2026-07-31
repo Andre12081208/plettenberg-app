@@ -686,24 +686,59 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
             {(() => {
               const items = []
               if (canManageProducts) {
-                items.push({ key: 'termine', icon: '📅', label: 'Meine Termine', active: hasAppointmentAddon, onClick: () => (hasAppointmentAddon ? setView('termine') : bookWerkstattAddon('termine')) })
-                items.push({ key: 'raum', icon: '🏠', label: 'Meine Seite', active: true, onClick: () => setView('raum') })
-                items.push({ key: 'homeboard', icon: '🧩', label: 'Homeboard-Größen', active: hasHomeboardSizeAddon, onClick: () => (hasHomeboardSizeAddon ? setView('homeboard-groessen') : bookWerkstattAddon('homeboard_groessen')) })
+                items.push({ key: 'termine', icon: '📅', label: 'Meine Termine', view: 'termine', status: getAddonStatus('termine') })
+                items.push({ key: 'raum', icon: '🏠', label: 'Meine Seite', view: 'raum', status: 'approved' })
+                items.push({ key: 'homeboard_groessen', icon: '🧩', label: 'Homeboard-Größen', view: 'homeboard-groessen', status: getAddonStatus('homeboard_groessen') })
               }
-              if (canManageChannel) items.push({ key: 'news', icon: '📢', label: 'Newsfeed-Beiträge', active: true, onClick: () => setView('news') })
-              if (canPostDirectly) items.push({ key: 'newsDirect', icon: '📢', label: 'News veröffentlichen', active: true, onClick: () => setView('newsDirect') })
+              if (canManageChannel) items.push({ key: 'news', icon: '📢', label: 'Newsfeed-Beiträge', view: 'news', status: 'approved' })
+              if (canPostDirectly) items.push({ key: 'newsDirect', icon: '📢', label: 'News veröffentlichen', view: 'newsDirect', status: 'approved' })
 
-              const sorted = [...items].sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1))
+              const rank = { approved: 0, pending: 1, none: 2 }
+              const sorted = [...items].sort((a, b) => rank[a.status] - rank[b.status])
 
               return sorted.map((item) => (
-                <button key={item.key} className="app-tile" onClick={item.onClick} style={!item.active ? { opacity: 0.55 } : undefined}>
+                <button
+                  key={item.key}
+                  className="app-tile"
+                  style={item.status !== 'approved' ? { opacity: 0.55 } : undefined}
+                  onClick={() => {
+                    if (item.status === 'approved') setView(item.view)
+                    else if (item.status === 'pending') setPendingModalKey(item.key)
+                    else setInfoModalKey(item.key)
+                  }}
+                >
                   <div className="app-tile-icon">{item.icon}</div>
                   <div className="app-tile-label">{item.label}</div>
-                  {!item.active && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
+                  {item.status === 'pending' && <div className="hint" style={{ fontSize: 10, marginTop: 2, color: '#D9822B' }}>Beantragt</div>}
+                  {item.status === 'none' && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
                 </button>
               ))
             })()}
           </div>
+
+          {infoModalKey && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }} onClick={() => setInfoModalKey(null)}>
+              <div className="card" style={{ maxWidth: 360, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ marginTop: 0 }}>{WERKSTATT_ADDON_INFO[infoModalKey].label}</h3>
+                <p>{WERKSTATT_ADDON_INFO[infoModalKey].description}</p>
+                <p style={{ fontWeight: 700, fontSize: 18 }}>{WERKSTATT_ADDON_INFO[infoModalKey].price}</p>
+                <div className="btn-row">
+                  <button className="btn btn-primary" onClick={() => requestWerkstattAddon(infoModalKey)} disabled={bookingBusy}>Zubuchen</button>
+                  <button className="btn btn-secondary" onClick={() => setInfoModalKey(null)}>Abbrechen</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {pendingModalKey && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }} onClick={() => setPendingModalKey(null)}>
+              <div className="card" style={{ maxWidth: 360, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ marginTop: 0 }}>{WERKSTATT_ADDON_INFO[pendingModalKey].label}</h3>
+                <p style={{ color: '#D9822B', fontWeight: 600 }}>Beantragt – wartet auf Freischaltung durch die Verwaltung.</p>
+                <button className="btn btn-secondary" onClick={() => setPendingModalKey(null)}>Schließen</button>
+              </div>
+            </div>
+          )}
           {!canManageProducts && !canManageChannel && !canPostDirectly && (
             <p className="hint" style={{ marginTop: 12 }}>Zusatzpakete brauchen zuerst das Basis-Paket. Unter Einstellungen → Mein Konto → Plan & Zusatzpakete kannst du es buchen.</p>
           )}

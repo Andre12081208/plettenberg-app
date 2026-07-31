@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function CreateListing({ userId, existingListing, onDone, onBack }) {
+  const { name: cityName } = useCity()
   const isEditing = !!existingListing
 
   const [title, setTitle] = useState(existingListing?.title || '')
@@ -100,7 +102,7 @@ export default function CreateListing({ userId, existingListing, onDone, onBack 
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{isEditing ? 'Anzeige bearbeiten' : 'Anzeige erstellen'}</h1>
       </div>
       <main>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function PrivateProfileForm({ userId, onDone, cityId }) {
+export default function PrivateProfileForm({ userId, onDone, cityId, cityName }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [username, setUsername] = useState('')
@@ -70,7 +70,7 @@ export default function PrivateProfileForm({ userId, onDone, cityId }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Dein Profil</h1>
       </div>
       <main>

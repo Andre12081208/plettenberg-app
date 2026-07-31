@@ -35,7 +35,6 @@ const SYSTEM_APP_META = {
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
   const { name: cityName } = useCity()
   const { t } = useLanguage()
-  const { name: cityName } = useCity()
   const [businessAppFullScreen, setBusinessAppFullScreen] = useState(false)
   const [verwaltungModuleEnabled, setVerwaltungModuleEnabled] = useState(false)
 

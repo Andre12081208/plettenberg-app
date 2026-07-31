@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const ORDER_STATUS_LABELS = {
   eingegangen: 'Eingegangen',
@@ -9,6 +10,7 @@ const ORDER_STATUS_LABELS = {
 }
 
 export default function Kiosk({ userId, onBack }) {
+  const { name: cityName } = useCity()
   const [view, setView] = useState('browse')
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -131,7 +133,7 @@ export default function Kiosk({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <<div className="mark">{cityName}</div>
           <h1>Warenkorb</h1>
         </div>
         <main>
@@ -186,7 +188,7 @@ export default function Kiosk({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Meine Bestellungen</h1>
         </div>
         <main>
@@ -221,7 +223,7 @@ export default function Kiosk({ userId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Kiosk</h1>
       </div>
       <main>

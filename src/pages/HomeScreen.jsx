@@ -16,6 +16,7 @@ import Settings from './Settings.jsx'
 import ChannelsHub from './ChannelsHub.jsx'
 import GastroHub from './GastroHub.jsx'
 import Ideenwerkstatt from './Ideenwerkstatt.jsx'
+import Stammtisch from './Stammtisch.jsx'
 import Kontakte from './Kontakte.jsx'
 import ResidentInbox from './ResidentInbox.jsx'
 import BusinessDirectory from './BusinessDirectory.jsx'
@@ -69,6 +70,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
   const [initialUsername, setInitialUsername] = useState(null)
   const [initialGroupCode, setInitialGroupCode] = useState(null)
   const [initialChannelCode, setInitialChannelCode] = useState(null)
+  const [initialStammtischCode, setInitialStammtischCode] = useState(null)
 
   useEffect(() => {
     loadInstalled()
@@ -89,6 +91,10 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     } else if (c) {
       setOpenApp('channels')
       setInitialChannelCode(c)
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (params.get('st')) {
+      setOpenApp('stammtisch')
+      setInitialStammtischCode(params.get('st'))
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
@@ -278,6 +284,15 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
     )
   } else if (openApp === 'ideenwerkstatt') {
     content = <Ideenwerkstatt userId={userId} onBack={() => { setOpenApp(null); checkUnreadIdeas() }} />
+  } else if (openApp === 'stammtisch') {
+    content = (
+      <Stammtisch
+        userId={userId}
+        onBack={() => setOpenApp(null)}
+        initialCode={initialStammtischCode}
+        onConsumedInitial={() => setInitialStammtischCode(null)}
+      />
+    )
   } else if (openApp === 'store') {
     content = (
       <AppStore

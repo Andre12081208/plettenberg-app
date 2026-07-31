@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 
 export default function BusinessInbox({ profile, onInquiryRead }) {
+  const { name: cityName } = useCity()
   const [orders, setOrders] = useState([])
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [inquiries, setInquiries] = useState([])
@@ -79,7 +81,7 @@ export default function BusinessInbox({ profile, onInquiryRead }) {
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Nachrichten</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>

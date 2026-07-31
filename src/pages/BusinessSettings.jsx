@@ -1413,6 +1413,7 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
 function HomeboardGroessenSettings({ profile, onBack }) {
   const { name: cityName } = useCity()
   const [settings, setSettings] = useState({ allow_drittel: false, allow_zweidrittel: false, allow_voll: false, is_published: false })
+  const [approved, setApproved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [savedHint, setSavedHint] = useState('')
 
@@ -1422,8 +1423,12 @@ function HomeboardGroessenSettings({ profile, onBack }) {
   }, [])
 
   async function load() {
-    const { data } = await supabase.from('business_homeboard_size_settings').select('*').eq('business_profile_id', profile.id).maybeSingle()
+    const [{ data }, { data: addonRow }] = await Promise.all([
+      supabase.from('business_homeboard_size_settings').select('*').eq('business_profile_id', profile.id).maybeSingle(),
+      supabase.from('business_addons').select('approved').eq('business_profile_id', profile.id).eq('addon_key', 'homeboard_groessen').maybeSingle()
+    ])
     if (data) setSettings(data)
+    setApproved(!!addonRow?.approved)
     setLoading(false)
   }
 
@@ -1467,9 +1472,12 @@ function HomeboardGroessenSettings({ profile, onBack }) {
             3/3 – volle Breite
           </label>
 
+          {!approved && (
+            <p className="hint" style={{ color: '#D9822B', marginBottom: 12 }}>Deine Buchung wartet noch auf Freischaltung durch die Verwaltung. Du kannst schon jetzt auswählen, "Live stellen" geht aber erst danach.</p>
+          )}
           <div className="btn-row" style={{ marginTop: 16 }}>
             <button className="btn btn-secondary" onClick={() => save(false)}>Speichern (Entwurf)</button>
-            <button className="btn btn-primary" onClick={() => save(true)}>Live stellen</button>
+            <button className="btn btn-primary" onClick={() => save(true)} disabled={!approved}>Live stellen</button>
           </div>
           {settings.is_published && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>Aktuell live für Einwohner sichtbar.</p>}
           {savedHint && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>{savedHint}</p>}
@@ -1540,7 +1548,7 @@ function PlanUndZusatzpakete({ profile, onBack }) {
   async function bookAddon(key) {
     setBusyKey(key)
     setError('')
-    const { error } = await supabase.from('business_addons').insert({ business_profile_id: profile.id, addon_key: key })
+    const { error } = await supabase.from('business_addons').insert({ business_profile_id: profile.id, addon_key: key, approved: key !== 'homeboard_groessen' })
     if (error) {
       setError(error.message)
     } else {

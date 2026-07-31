@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function GroupChat({ userId, groupId, groupName, isAdmin, onOpenSettings, onBack }) {
+  const { name: cityName } = useCity()
   const [messages, setMessages] = useState([])
   const [members, setMembers] = useState({})
   const [loading, setLoading] = useState(true)
@@ -166,7 +168,7 @@ export default function GroupChat({ userId, groupId, groupName, isAdmin, onOpenS
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>{groupName}</h1>
           {isAdmin && <button className="link-text" onClick={onOpenSettings}>Verwalten</button>}

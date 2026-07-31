@@ -14,10 +14,13 @@ import ResetPassword from './pages/ResetPassword.jsx'
 import AccountBlocked from './pages/AccountBlocked.jsx'
 import MasterDashboard from './pages/MasterDashboard.jsx'
 import { isInactivityExpired, markActivity } from './lib/inactivity.js'
+import ChooseCity from './pages/ChooseCity.jsx'
 
 export default function App() {
   const [isPlatformAdminFlag, setIsPlatformAdminFlag] = useState(false)
   const [justConfirmedMsg, setJustConfirmedMsg] = useState('')
+  const [activeCities, setActiveCities] = useState(null)
+  const [chosenCity, setChosenCity] = useState(null)
   const [session, setSession] = useState(undefined)
   const [profileType, setProfileType] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -256,14 +259,30 @@ export default function App() {
     return <div className="loading-dot">Einen Moment...</div>
   }
 
+  if (!profileType && !chosenCity) {
+    if (activeCities === null) {
+      supabase.from('cities').select('id, name').eq('is_active', true).order('name').then(({ data }) => {
+        const list = data || []
+        setActiveCities(list)
+        if (list.length === 1) setChosenCity(list[0])
+      })
+      return <div className="loading-dot">Einen Moment...</div>
+    }
+    if (activeCities.length <= 1) {
+      return <div className="loading-dot">Einen Moment...</div>
+    }
+    return <ChooseCity cities={activeCities} onChoose={setChosenCity} />
+  }
+
   if (!profileType && !chosenType) {
-    return <Onboarding onChoose={setChosenType} />
+    return <Onboarding onChoose={setChosenType} cityName={chosenCity.name} />
   }
 
   if (!profileType && chosenType === 'private') {
     return (
       <PrivateProfileForm
         userId={session.user.id}
+        cityId={chosenCity.id}
         onDone={() => loadProfile(session.user.id)}
       />
     )
@@ -274,6 +293,7 @@ export default function App() {
       <BusinessProfileForm
         userId={session.user.id}
         kind={chosenType}
+        cityId={chosenCity.id}
         onDone={() => loadProfile(session.user.id)}
       />
     )

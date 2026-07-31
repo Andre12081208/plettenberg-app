@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 import { IdeaDetail } from './Ideenwerkstatt.jsx'
 
@@ -10,6 +11,7 @@ const CATEGORY_META = {
 }
 
 export default function ResidentInbox({ userId, onBack }) {
+  const { name: cityName } = useCity()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -333,7 +335,7 @@ export default function ResidentInbox({ userId, onBack }) {
       return (
         <div className="app-shell">
           <div className="topbar">
-            <div className="mark">Plettenberg</div>
+            <div className="mark">{cityName}</div>
             <h1>{composeTarget.company_name}</h1>
           </div>
           <main>
@@ -356,7 +358,7 @@ export default function ResidentInbox({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Neue Nachricht</h1>
         </div>
         <main>
@@ -392,7 +394,7 @@ export default function ResidentInbox({ userId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Postfach</h1>
       </div>
       <main>

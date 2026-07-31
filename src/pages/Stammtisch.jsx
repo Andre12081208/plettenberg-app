@@ -560,6 +560,73 @@ function AbstimmungenView({ stammtischId, isOrganisator }) {
   )
 }
 
+function ChronikView({ stammtischId }) {
+  const [events, setEvents] = useState([])
+
+  useEffect(() => {
+    supabase.rpc('get_stammtisch_chronik', { p_stammtisch_id: stammtischId }).then(({ data }) => setEvents(data || []))
+  }, [stammtischId])
+
+  const ICONS = { gruendung: '🎉', beitritt: '👋', termin: '📅', jubilaeum: '🏆' }
+
+  return (
+    <div>
+      {events.length === 0 && <p className="hint">Noch keine Ereignisse.</p>}
+      {events.map((e, i) => (
+        <div key={i} className="card" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{ fontSize: 22 }}>{ICONS[e.event_type] || '•'}</div>
+          <div>
+            <div>{e.description}</div>
+            <div className="hint">{new Date(e.event_date).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EinstellungenView({ stammtisch, isOrganisator, myNickname, onRenamed, onLeave }) {
+  const [nickname, setNickname] = useState(myNickname || '')
+  const [name, setName] = useState(stammtisch.name)
+  const [savedHint, setSavedHint] = useState('')
+
+  async function saveNickname() {
+    await supabase.rpc('set_my_stammtisch_nickname', { p_stammtisch_id: stammtisch.id, p_nickname: nickname })
+    setSavedHint('Gespeichert!')
+    setTimeout(() => setSavedHint(''), 2000)
+  }
+
+  async function saveName() {
+    if (!name.trim()) return
+    await supabase.rpc('rename_stammtisch', { p_stammtisch_id: stammtisch.id, p_name: name.trim() })
+    onRenamed(name.trim())
+  }
+
+  return (
+    <div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Mein Spitzname in diesem Stammtisch</h3>
+        <input placeholder="z. B. Kalle" value={nickname} onChange={(e) => setNickname(e.target.value)} style={{ marginBottom: 10 }} />
+        <button className="btn btn-primary" onClick={saveNickname}>Speichern</button>
+        {savedHint && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>{savedHint}</p>}
+      </div>
+
+      {isOrganisator && (
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Stammtisch umbenennen</h3>
+          <input value={name} onChange={(e) => setName(e.target.value)} style={{ marginBottom: 10 }} />
+          <button className="btn btn-secondary" onClick={saveName}>Umbenennen</button>
+        </div>
+      )}
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Stammtisch verlassen</h3>
+        <button className="btn btn-secondary" onClick={onLeave}>Verlassen</button>
+      </div>
+    </div>
+  )
+}
+
 export default function Stammtisch({ userId, onBack, initialCode, onConsumedInitial }) {
   const { name: cityName } = useCity()
   const [loading, setLoading] = useState(true)
@@ -840,8 +907,11 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
                   {m.avatar_url ? <img src={m.avatar_url} alt="" /> : '👤'}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600 }}>{m.display_name || `@${m.username}`}</div>
-                  <div className="hint">seit {new Date(m.joined_at).toLocaleDateString('de-DE')}</div>
+                  <div style={{ fontWeight: 600 }}>{m.nickname || m.display_name || `@${m.username}`}</div>
+                  <div className="hint">
+                    seit {new Date(m.joined_at).toLocaleDateString('de-DE')}
+                    {m.teilnahmequote !== null && ` · ${m.teilnahmequote}% Teilnahmequote`}
+                  </div>
                 </div>
                 {isOrganisator && m.user_id !== userId ? (
                   <select value={m.role} onChange={(e) => handleRoleChange(m.user_id, e.target.value)}>
@@ -888,15 +958,35 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
               <button className="link-text" onClick={() => setMehrView(null)} style={{ marginBottom: 16 }}>← Zurück</button>
               <AbstimmungenView stammtischId={active.id} isOrganisator={isOrganisator} />
             </div>
+          ) : mehrView === 'chronik' ? (
+            <div>
+              <button className="link-text" onClick={() => setMehrView(null)} style={{ marginBottom: 16 }}>← Zurück</button>
+              <ChronikView stammtischId={active.id} />
+            </div>
+          ) : mehrView === 'einstellungen' ? (
+            <div>
+              <button className="link-text" onClick={() => setMehrView(null)} style={{ marginBottom: 16 }}>← Zurück</button>
+              <EinstellungenView
+                stammtisch={active}
+                isOrganisator={isOrganisator}
+                myNickname={members.find((m) => m.user_id === userId)?.nickname}
+                onRenamed={(newName) => { setList((prev) => prev.map((s) => s.id === active.id ? { ...s, name: newName } : s)) }}
+                onLeave={() => handleLeave(active.id)}
+              />
+            </div>
           ) : (
             <div>
               <button className="card-choice" onClick={() => setMehrView('fotos')} style={{ marginBottom: 10 }}>
                 <strong>📷 Fotos</strong>
                 <p className="hint" style={{ margin: '4px 0 0' }}>Gemeinsame Erinnerungen ansehen und hochladen</p>
               </button>
-              <button className="card-choice" onClick={() => setMehrView('abstimmungen')} style={{ marginBottom: 16 }}>
+              <button className="card-choice" onClick={() => setMehrView('abstimmungen')} style={{ marginBottom: 10 }}>
                 <strong>🗳️ Abstimmungen</strong>
                 <p className="hint" style={{ margin: '4px 0 0' }}>Über Treffpunkte, Ausflüge und mehr abstimmen</p>
+              </button>
+              <button className="card-choice" onClick={() => setMehrView('chronik')} style={{ marginBottom: 16 }}>
+                <strong>📖 Chronik</strong>
+                <p className="hint" style={{ margin: '4px 0 0' }}>Gründung, Beitritte und besondere Ereignisse</p>
               </button>
 
               <div className="card">
@@ -905,10 +995,11 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
                 <button className="btn btn-secondary" onClick={() => shareLink(active.invite_code)}>Einladungslink kopieren</button>
                 {copyHint && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>{copyHint}</p>}
               </div>
-              <div className="card">
-                <h3 style={{ marginTop: 0 }}>Stammtisch verlassen</h3>
-                <button className="btn btn-secondary" onClick={() => handleLeave(active.id)}>Verlassen</button>
-              </div>
+
+              <button className="card-choice" onClick={() => setMehrView('einstellungen')}>
+                <strong>⚙️ Einstellungen</strong>
+                <p className="hint" style={{ margin: '4px 0 0' }}>Spitzname, Umbenennen, Verlassen</p>
+              </button>
             </div>
           )
         )}

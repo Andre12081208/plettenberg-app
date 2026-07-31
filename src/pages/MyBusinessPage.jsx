@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
 
 const DAYS = [
@@ -13,6 +14,7 @@ const DAYS = [
 ]
 
 export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack, onSwitchToRoom }) {
+  const { name: cityName } = useCity()
   const [editing, setEditing] = useState(!!startEditing)
   const [tagline, setTagline] = useState(profile.tagline || '')
   const [description, setDescription] = useState(profile.description || '')
@@ -111,7 +113,7 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Angaben bearbeiten</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>

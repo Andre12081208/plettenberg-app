@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const GRID_SIZE = 16
 const CELL_SIZE = 20
@@ -10,6 +11,7 @@ function todayStr() {
 }
 
 export default function SnakeGame({ userId, onBack }) {
+  const { name: cityName } = useCity()
   const canvasRef = useRef(null)
   const [score, setScore] = useState(0)
   const [highScore, setHighScore] = useState(0)
@@ -182,7 +184,7 @@ export default function SnakeGame({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Snake · Einstellungen</h1>
         </div>
         <main>
@@ -201,7 +203,7 @@ export default function SnakeGame({ userId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>Snake</h1>
           <button className="link-text" onClick={() => setScreen('settings')}>⚙️</button>

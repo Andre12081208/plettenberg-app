@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
 
+import { useCity } from '../lib/useCity.js'
+
 export default function QRScanner({ onScan, onBack }) {
+  const { name: cityName } = useCity()
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
@@ -62,7 +65,7 @@ export default function QRScanner({ onScan, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>QR-Code scannen</h1>
       </div>
       <main>

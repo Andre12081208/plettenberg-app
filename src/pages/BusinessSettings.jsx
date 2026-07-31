@@ -478,6 +478,16 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     )
   }
 
+  async function bookWerkstattAddon(key) {
+    const { error } = await supabase.from('business_addons').insert({ business_profile_id: profile.id, addon_key: key, approved: key !== 'homeboard_groessen' })
+    if (!error) {
+      if (key === 'termine') setHasAppointmentAddon(true)
+      if (key === 'raum') setHasRoomAddon(true)
+      if (key === 'homeboard_groessen') setHasHomeboardSizeAddon(true)
+      setView(key === 'termine' ? 'termine' : key === 'raum' ? 'raum' : 'homeboard-groessen')
+    }
+  }
+
   if (view === 'createChannel') {
     return (
       <CreateChannel
@@ -642,26 +652,41 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           <h1>Werkstatt</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
-          <p className="hint" style={{ marginBottom: 16 }}>Hier bearbeitest du alles, was du dir zusätzlich gebucht hast.</p>
+          <p className="hint" style={{ marginBottom: 16 }}>Hier bearbeitest du alles, was du dir zusätzlich gebucht hast – und kannst direkt weitere Zusatzpakete dazu buchen.</p>
           <div className="app-grid">
-            {canManageProducts && hasAppointmentAddon && (
-              <button className="app-tile" onClick={() => setView('termine')}>
+            {canManageProducts && (
+              <button
+                className="app-tile"
+                onClick={() => (hasAppointmentAddon ? setView('termine') : bookWerkstattAddon('termine'))}
+                style={!hasAppointmentAddon ? { opacity: 0.55 } : undefined}
+              >
                 <div className="app-tile-icon">📅</div>
                 <div className="app-tile-label">Meine Termine</div>
+                {!hasAppointmentAddon && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
               </button>
             )}
 
-            {canManageProducts && hasRoomAddon && (
-              <button className="app-tile" onClick={() => setView('raum')}>
+            {canManageProducts && (
+              <button
+                className="app-tile"
+                onClick={() => (hasRoomAddon ? setView('raum') : bookWerkstattAddon('raum'))}
+                style={!hasRoomAddon ? { opacity: 0.55 } : undefined}
+              >
                 <div className="app-tile-icon">🏠</div>
                 <div className="app-tile-label">Meine Seite</div>
+                {!hasRoomAddon && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
               </button>
             )}
 
-            {canManageProducts && hasHomeboardSizeAddon && (
-              <button className="app-tile" onClick={() => setView('homeboard-groessen')}>
+            {canManageProducts && (
+              <button
+                className="app-tile"
+                onClick={() => (hasHomeboardSizeAddon ? setView('homeboard-groessen') : bookWerkstattAddon('homeboard_groessen'))}
+                style={!hasHomeboardSizeAddon ? { opacity: 0.55 } : undefined}
+              >
                 <div className="app-tile-icon">🧩</div>
                 <div className="app-tile-label">Homeboard-Größen</div>
+                {!hasHomeboardSizeAddon && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
               </button>
             )}
 
@@ -678,11 +703,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                 <div className="app-tile-label">News veröffentlichen</div>
               </button>
             )}
-
-            {!hasAppointmentAddon && !hasRoomAddon && !hasHomeboardSizeAddon && !canManageChannel && !canPostDirectly && (
-              <p className="hint">Du hast noch keine Zusatzpakete gebucht. Unter Einstellungen → Mein Konto → Plan & Zusatzpakete kannst du welche hinzufügen.</p>
-            )}
           </div>
+          {!canManageProducts && !canManageChannel && !canPostDirectly && (
+            <p className="hint" style={{ marginTop: 12 }}>Zusatzpakete brauchen zuerst das Basis-Paket. Unter Einstellungen → Mein Konto → Plan & Zusatzpakete kannst du es buchen.</p>
+          )}
         </main>
       </>
     )

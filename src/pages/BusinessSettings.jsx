@@ -11,9 +11,9 @@ import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 import BusinessPrivacy from './BusinessPrivacy.jsx'
 import BusinessNotifications from './BusinessNotifications.jsx'
 
-export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite }) {
+export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite, initialView }) {
   const { name: cityName } = useCity()
-  const [view, setView] = useState(null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
+  const [view, setView] = useState(initialView || null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
 
   const [products, setProducts] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
@@ -524,7 +524,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           <h1>Meine Angebote</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
-          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+          <button className="link-text" onClick={() => setView('werkstatt-home')} style={{ marginBottom: 16 }}>← Zurück zur Werkstatt</button>
 
           <div className="field">
             <input
@@ -634,8 +634,62 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     )
   }
 
+  if (view === 'werkstatt-home') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="mark">{cityName}</div>
+          <h1>Werkstatt</h1>
+        </div>
+        <main style={{ paddingBottom: 90 }}>
+          <p className="hint" style={{ marginBottom: 16 }}>Hier bearbeitest du alles, was du dir zusätzlich gebucht hast.</p>
+          <div className="app-grid">
+            {canManageProducts && hasAppointmentAddon && (
+              <button className="app-tile" onClick={() => setView('termine')}>
+                <div className="app-tile-icon">📅</div>
+                <div className="app-tile-label">Meine Termine</div>
+              </button>
+            )}
+
+            {canManageProducts && hasRoomAddon && (
+              <button className="app-tile" onClick={() => setView('raum')}>
+                <div className="app-tile-icon">🏠</div>
+                <div className="app-tile-label">Meine Seite</div>
+              </button>
+            )}
+
+            {canManageProducts && hasHomeboardSizeAddon && (
+              <button className="app-tile" onClick={() => setView('homeboard-groessen')}>
+                <div className="app-tile-icon">🧩</div>
+                <div className="app-tile-label">Homeboard-Größen</div>
+              </button>
+            )}
+
+            {canManageChannel && (
+              <button className="app-tile" onClick={() => setView('news')}>
+                <div className="app-tile-icon">📢</div>
+                <div className="app-tile-label">Newsfeed-Beiträge</div>
+              </button>
+            )}
+
+            {canPostDirectly && (
+              <button className="app-tile" onClick={() => setView('newsDirect')}>
+                <div className="app-tile-icon">📢</div>
+                <div className="app-tile-label">News veröffentlichen</div>
+              </button>
+            )}
+
+            {!hasAppointmentAddon && !hasRoomAddon && !hasHomeboardSizeAddon && !canManageChannel && !canPostDirectly && (
+              <p className="hint">Du hast noch keine Zusatzpakete gebucht. Unter Einstellungen → Mein Konto → Plan & Zusatzpakete kannst du welche hinzufügen.</p>
+            )}
+          </div>
+        </main>
+      </>
+    )
+  }
+
   if (view === 'homeboard-groessen') {
-    return <HomeboardGroessenSettings profile={profile} onBack={() => setView(null)} />
+    return <HomeboardGroessenSettings profile={profile} onBack={() => setView('werkstatt-home')} />
   }
 
   if (view === 'raum') {
@@ -646,7 +700,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           <h1>Mein virtueller Standort</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
-          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+          <button className="link-text" onClick={() => setView('werkstatt-home')} style={{ marginBottom: 16 }}>← Zurück zur Werkstatt</button>
 
           <div className="btn-row" style={{ marginBottom: 16 }}>
             <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Visitenkarte (Kostenlos)</button>
@@ -999,7 +1053,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           <h1>Newsfeed-Beiträge</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
-          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+          <button className="link-text" onClick={() => setView('werkstatt-home')} style={{ marginBottom: 16 }}>← Zurück zur Werkstatt</button>
 
           <div className="card">
             {loadingChannel && <div className="loading-dot">Lädt...</div>}
@@ -1039,7 +1093,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           <h1>News veröffentlichen</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>
-          <button className="link-text" onClick={() => setView(null)} style={{ marginBottom: 16 }}>← Zurück zu Einstellungen</button>
+          <button className="link-text" onClick={() => setView('werkstatt-home')} style={{ marginBottom: 16 }}>← Zurück zur Werkstatt</button>
 
           <div className="card">
             {postError && <div className="error-box">{postError}</div>}
@@ -1223,41 +1277,6 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
             <button className="app-tile" onClick={() => setView('produkte')}>
               <div className="app-tile-icon">🛍️</div>
               <div className="app-tile-label">Meine Angebote</div>
-            </button>
-          )}
-
-          {canManageProducts && hasAppointmentAddon && (
-            <button className="app-tile" onClick={() => setView('termine')}>
-              <div className="app-tile-icon">📅</div>
-              <div className="app-tile-label">Meine Termine</div>
-            </button>
-          )}
-
-          {canManageProducts && hasRoomAddon && (
-            <button className="app-tile" onClick={() => setView('raum')}>
-              <div className="app-tile-icon">🏠</div>
-              <div className="app-tile-label">Meine Seite</div>
-            </button>
-          )}
-
-          {canManageProducts && hasHomeboardSizeAddon && (
-            <button className="app-tile" onClick={() => setView('homeboard-groessen')}>
-              <div className="app-tile-icon">🧩</div>
-              <div className="app-tile-label">Homeboard-Größen</div>
-            </button>
-          )}
-
-          {canManageChannel && (
-            <button className="app-tile" onClick={() => setView('news')}>
-              <div className="app-tile-icon">📢</div>
-              <div className="app-tile-label">Newsfeed-Beiträge</div>
-            </button>
-          )}
-
-          {canPostDirectly && (
-            <button className="app-tile" onClick={() => setView('newsDirect')}>
-              <div className="app-tile-icon">📢</div>
-              <div className="app-tile-label">News veröffentlichen</div>
             </button>
           )}
 

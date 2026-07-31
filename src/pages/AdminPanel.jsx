@@ -374,28 +374,28 @@ function GewerbeTab() {
     return addons.some((a) => a.business_profile_id === businessId && a.addon_key === key)
   }
 
-  function hasApprovedSizeAddon(businessId) {
-    return addons.some((a) => a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen' && a.approved)
+  function hasApprovedAddon(businessId, key) {
+    return addons.some((a) => a.business_profile_id === businessId && a.addon_key === key && a.approved)
   }
 
-  function hasPendingSizeAddon(businessId) {
-    return addons.some((a) => a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen' && !a.approved)
+  function hasPendingAddon(businessId, key) {
+    return addons.some((a) => a.business_profile_id === businessId && a.addon_key === key && !a.approved)
   }
 
-  async function toggleSizeAddon(businessId) {
+  async function toggleApprovalAddon(businessId, key) {
     setSavingId(businessId)
-    const existing = addons.find((a) => a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen')
+    const existing = addons.find((a) => a.business_profile_id === businessId && a.addon_key === key)
 
     if (existing && existing.approved) {
-      const { error } = await supabase.from('business_addons').delete().eq('business_profile_id', businessId).eq('addon_key', 'homeboard_groessen')
-      if (!error) setAddons((prev) => prev.filter((a) => !(a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen')))
+      const { error } = await supabase.from('business_addons').delete().eq('business_profile_id', businessId).eq('addon_key', key)
+      if (!error) setAddons((prev) => prev.filter((a) => !(a.business_profile_id === businessId && a.addon_key === key)))
       else setError(error.message)
     } else if (existing && !existing.approved) {
-      const { error } = await supabase.from('business_addons').update({ approved: true }).eq('business_profile_id', businessId).eq('addon_key', 'homeboard_groessen')
-      if (!error) setAddons((prev) => prev.map((a) => (a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen') ? { ...a, approved: true } : a))
+      const { error } = await supabase.from('business_addons').update({ approved: true }).eq('business_profile_id', businessId).eq('addon_key', key)
+      if (!error) setAddons((prev) => prev.map((a) => (a.business_profile_id === businessId && a.addon_key === key) ? { ...a, approved: true } : a))
       else setError(error.message)
     } else {
-      const { data, error } = await supabase.from('business_addons').insert({ business_profile_id: businessId, addon_key: 'homeboard_groessen', approved: true }).select('*').single()
+      const { data, error } = await supabase.from('business_addons').insert({ business_profile_id: businessId, addon_key: key, approved: true }).select('*').single()
       if (!error) setAddons((prev) => [...prev, data])
       else setError(error.message)
     }
@@ -521,11 +521,12 @@ function GewerbeTab() {
               <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input
                   type="checkbox"
-                  checked={hasAddon(entry.id, 'termine')}
+                  checked={hasApprovedAddon(entry.id, 'termine')}
                   disabled={savingId === entry.id || entry.plan === 'kostenlos'}
-                  onChange={() => toggleAddon(entry.id, 'termine')}
+                  onChange={() => toggleApprovalAddon(entry.id, 'termine')}
                 />
                 Zusatz: Termine anbieten
+                {hasPendingAddon(entry.id, 'termine') && <span style={{ color: '#D9822B', fontSize: 12 }}>(beantragt – anklicken zum Freischalten)</span>}
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
@@ -541,12 +542,12 @@ function GewerbeTab() {
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <input
                   type="checkbox"
-                  checked={hasApprovedSizeAddon(entry.id)}
+                  checked={hasApprovedAddon(entry.id, 'homeboard_groessen')}
                   disabled={savingId === entry.id || entry.plan === 'kostenlos'}
-                  onChange={() => toggleSizeAddon(entry.id)}
+                  onChange={() => toggleApprovalAddon(entry.id, 'homeboard_groessen')}
                 />
                 Zusatz: Kachelgröße
-                {hasPendingSizeAddon(entry.id) && <span style={{ color: '#D9822B', fontSize: 12 }}>(beantragt – anklicken zum Freischalten)</span>}
+                {hasPendingAddon(entry.id, 'homeboard_groessen') && <span style={{ color: '#D9822B', fontSize: 12 }}>(beantragt – anklicken zum Freischalten)</span>}
               </label>
               {entry.plan === 'kostenlos' && (
                 <p className="hint" style={{ marginTop: 4 }}>Zusatzfunktionen brauchen zuerst das Basis-Paket.</p>

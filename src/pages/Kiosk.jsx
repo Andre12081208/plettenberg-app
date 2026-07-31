@@ -133,7 +133,7 @@ export default function Kiosk({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <<div className="mark">{cityName}</div>
+          <div className="mark">{cityName}</div>
           <h1>Warenkorb</h1>
         </div>
         <main>

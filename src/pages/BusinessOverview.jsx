@@ -144,9 +144,23 @@ function ProfileStatusTile({ profile, isLive, onOpenVisitorPreview }) {
 
 const WIDTH_LABELS = { voll: 'Volle Breite', halb: 'Halbe Breite', drittel: 'Drittelbreite', viertel: 'Viertelbreite' }
 
+const OVERVIEW_ADDON_LIST = [
+  { key: 'termine', label: 'Meine Termine' },
+  { key: 'raum', label: 'Mein virtueller Standort' },
+  { key: 'homeboard_groessen', label: 'Homeboard-Größen' }
+]
+
+function addonStatusLabel(key, addons) {
+  const row = addons.find((a) => a.addon_key === key)
+  if (!row) return { label: 'Nicht gebucht', color: 'var(--ink-soft)' }
+  if (!row.approved) return { label: 'Beantragt – wartet auf Freischaltung', color: '#D9822B' }
+  return { label: 'Aktiv', color: '#2E7D46' }
+}
+
 export default function BusinessOverview({ profile, onOpenVisitorPreview, onOpenIdeenwerkstatt }) {
   const { name: cityName } = useCity()
   const [unreadIdeaCount, setUnreadIdeaCount] = useState(0)
+  const [ownAddons, setOwnAddons] = useState([])
   const [tiles, setTiles] = useState([])
   const [tileValues, setTileValues] = useState({})
   const [loading, setLoading] = useState(true)
@@ -169,6 +183,7 @@ export default function BusinessOverview({ profile, onOpenVisitorPreview, onOpen
 
   useEffect(() => {
     supabase.rpc('get_unread_idea_count').then(({ data }) => setUnreadIdeaCount(data || 0))
+    supabase.from('business_addons').select('addon_key, approved').eq('business_profile_id', profile.id).then(({ data }) => setOwnAddons(data || []))
   }, [])
 
   const isLive = profile.status === 'live'
@@ -508,6 +523,21 @@ export default function BusinessOverview({ profile, onOpenVisitorPreview, onOpen
               </div>
               <div style={{ fontWeight: 600, textAlign: 'left' }}>Ideenwerkstatt</div>
             </button>
+
+            {profile.plan === 'basis' && (
+              <div className="card" style={{ marginBottom: 16 }}>
+                <h3 style={{ marginTop: 0 }}>Zusatzpakete</h3>
+                {OVERVIEW_ADDON_LIST.map((a) => {
+                  const status = addonStatusLabel(a.key, ownAddons)
+                  return (
+                    <div key={a.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                      <span>{a.label}</span>
+                      <span style={{ color: status.color, fontWeight: 600, fontSize: 13 }}>{status.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
             <div className="dashboard-grid">
               {!loading && tiles.map((tile, index) => (

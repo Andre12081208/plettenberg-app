@@ -4,9 +4,11 @@ import BusinessOverview from './BusinessOverview.jsx'
 import BusinessSettings from './BusinessSettings.jsx'
 import MyBusinessPage from './MyBusinessPage.jsx'
 import BusinessInbox from './BusinessInbox.jsx'
+import { useCity } from '../lib/useCity.js'
 import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 
 export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, onBackToDashboard, onOpenAdmin, onProfileUpdated }) {
+  const { name: cityName } = useCity()
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
   const [settingsResetKey, setSettingsResetKey] = useState(0)
@@ -45,7 +47,22 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   } else if (activeTab === 'mypage') {
     content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} onFullScreenChange={setMypageFullScreen} visitorMode onBack={() => goToTab('dashboard')} />
   } else if (activeTab === 'inbox') {
-    content = <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
+    content = profile.plan === 'basis' ? (
+      <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
+    ) : (
+      <div className="app-shell">
+        <div className="topbar">
+          <div className="mark">{cityName}</div>
+          <h1>Nachrichten</h1>
+        </div>
+        <main>
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Noch nicht verfügbar</h3>
+            <p>Nachrichten sind Teil von "Basic Erweiterung" (19,99 € / Monat). Buche dieses Paket, um mit Einwohnern in Kontakt zu treten.</p>
+          </div>
+        </main>
+      </div>
+    )
   } else if (activeTab === 'werkstatt') {
     content = <BusinessSettings key={werkstattResetKey} profile={profile} onProfileUpdated={onProfileUpdated} onGoToMySeite={() => goToTab('mypage')} initialView="werkstatt-home" />
   } else if (activeTab === 'settings') {

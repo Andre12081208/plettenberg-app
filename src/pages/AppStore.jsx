@@ -57,6 +57,7 @@ export default function AppStore({ userId, onBack, onChanged }) {
         .select('*')
         .eq('status', 'live')
         .eq('profile_kind', 'anbieter')
+        .eq('plan', 'basis')
         .neq('category', 'stadtverwaltung')
         .order('company_name', { ascending: true }),
       supabase

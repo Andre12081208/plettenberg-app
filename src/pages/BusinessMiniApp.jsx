@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 
@@ -61,6 +62,7 @@ function RoomBackground({ imageUrl, transitionType, transitionDuration }) {
 }
 
 export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, onFullScreenChange }) {
+  const { name: cityName } = useCity()
   const [showRoom, setShowRoom] = useState(true)
   const [hotspots, setHotspots] = useState([])
   const [hotspotActionsMap, setHotspotActionsMap] = useState({})
@@ -599,7 +601,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>{app.company_name}</h1>
         </div>
         <main>
@@ -686,7 +688,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Termin auswählen</h1>
         </div>
         <main>
@@ -706,7 +708,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Newsfeed-Channel</h1>
         </div>
         <main>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useCity } from '../lib/useCity.js'
+import { maybeRemoveFromHomeBoard } from '../lib/homeBoardCleanup.js'
 
 const APP_CATEGORIES = [
   { value: 'alle', label: 'Alle' },
@@ -96,6 +97,7 @@ export default function AppStore({ userId, onBack, onChanged }) {
         .eq('app_key', app.key)
 
       if (!error) {
+        await maybeRemoveFromHomeBoard(userId, 'system', app.key)
         setInstalledSystemKeys((prev) => {
           const next = new Set(prev)
           next.delete(app.key)
@@ -133,6 +135,7 @@ export default function AppStore({ userId, onBack, onChanged }) {
         .eq('business_profile_id', app.id)
 
       if (!error) {
+        await maybeRemoveFromHomeBoard(userId, 'business', app.id)
         setInstalledIds((prev) => {
           const next = new Set(prev)
           next.delete(app.id)

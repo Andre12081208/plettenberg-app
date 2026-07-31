@@ -1,8 +1,8 @@
-export default function Onboarding({ onChoose }) {
+export default function Onboarding({ onChoose, cityName }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Wer bist du?</h1>
       </div>
       <main>

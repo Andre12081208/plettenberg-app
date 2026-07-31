@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const STATUS_META = {
   angefragt: { label: '⚪ Angefragt', cls: 'status-pruefung' },
@@ -8,6 +9,7 @@ const STATUS_META = {
 }
 
 export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onBack }) {
+  const { name: cityName } = useCity()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -214,7 +216,7 @@ export default function BusinessInquiryChat({ userId, inquiryId, isBusiness, onB
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
             {otherAvatarUrl ? <img src={otherAvatarUrl} alt="" /> : (isBusiness ? '🕶️' : '🏬')}

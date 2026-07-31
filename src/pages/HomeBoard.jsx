@@ -9,8 +9,8 @@ const SYSTEM_APP_META = {
   stammtisch: { icon: '👥', label: 'Stammtisch' }
 }
 
-const SIZE_WIDTH = { drittel: '30%', zweidrittel: '62%', voll: '94%' }
-const SIZE_LABEL = { drittel: '1/3', zweidrittel: '2/3', voll: '3/3' }
+const SIZE_LABEL = { app: 'App', drittel: '1/3', zweidrittel: '2/3', voll: '3/3' }
+const FREE_X_SIZES = ['app', 'drittel']
 
 export default function HomeBoard({ userId, installedApps, onOpenApp }) {
   const [tiles, setTiles] = useState([])
@@ -43,7 +43,7 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
       business_profile_id: app.type === 'business' ? app.data.id : null,
       pos_x: 50,
       pos_y: 50,
-      size: 'drittel'
+      size: 'app'
     })
     if (!error) {
       setShowPicker(false)
@@ -59,7 +59,7 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
 
   async function setTileSize(tileId, size) {
     const tile = tiles.find((t) => t.id === tileId)
-    const nextPosX = size === 'drittel' ? tile.pos_x : 50
+    const nextPosX = FREE_X_SIZES.includes(size) ? tile.pos_x : 50
     await supabase.from('home_board_tiles').update({ size, pos_x: nextPosX }).eq('id', tileId)
     setTiles((prev) => prev.map((t) => (t.id === tileId ? { ...t, size, pos_x: nextPosX } : t)))
   }
@@ -78,7 +78,7 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
     const point = e.touches?.[0] || e
     const y = Math.min(96, Math.max(4, ((point.clientY - rect.top) / rect.height) * 100))
 
-    if (tile?.size && tile.size !== 'drittel') {
+    if (tile?.size && !FREE_X_SIZES.includes(tile.size)) {
       setTiles((prev) => prev.map((t) => (t.id === draggingId ? { ...t, pos_y: y } : t)))
     } else {
       const x = Math.min(96, Math.max(4, ((point.clientX - rect.left) / rect.width) * 100))
@@ -113,7 +113,7 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
     if (tile.app_type === 'business' && tile.business_profiles) {
       return {
         icon: tile.business_profiles.logo_url
-          ? <img src={tile.business_profiles.logo_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 12 }} />
+          ? <img src={tile.business_profiles.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
           : tile.business_profiles.company_name?.[0],
         label: tile.business_profiles.company_name
       }
@@ -150,33 +150,49 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
       >
         {tiles.map((tile) => {
           const meta = tileMeta(tile)
-          const size = tile.size || 'drittel'
+          const size = tile.size || 'app'
+          const isAppSize = size === 'app'
+
           return (
             <div
               key={tile.id}
               style={{
                 position: 'absolute', left: `${tile.pos_x}%`, top: `${tile.pos_y}%`,
-                transform: 'translate(-50%, -50%)', width: SIZE_WIDTH[size]
+                transform: 'translate(-50%, -50%)',
+                width: isAppSize ? 76 : size === 'drittel' ? '30%' : size === 'zweidrittel' ? '62%' : '94%'
               }}
             >
-              <button
-                className="card"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, cursor: editing ? 'grab' : 'pointer', touchAction: 'none' }}
-                onMouseDown={editing ? (e) => startDrag(e, tile.id) : undefined}
-                onTouchStart={editing ? (e) => startDrag(e, tile.id) : undefined}
-                onClick={() => handleTileClick(tile)}
-              >
-                <div className="app-tile-icon" style={{ flexShrink: 0 }}>{meta.icon}</div>
-                <div style={{ fontWeight: 600, textAlign: 'left' }}>{meta.label}</div>
-              </button>
+              {isAppSize ? (
+                <button
+                  className="app-tile"
+                  style={{ width: '100%', cursor: editing ? 'grab' : 'pointer', touchAction: 'none' }}
+                  onMouseDown={editing ? (e) => startDrag(e, tile.id) : undefined}
+                  onTouchStart={editing ? (e) => startDrag(e, tile.id) : undefined}
+                  onClick={() => handleTileClick(tile)}
+                >
+                  <div className="app-tile-icon">{meta.icon}</div>
+                  <div className="app-tile-label">{meta.label}</div>
+                </button>
+              ) : (
+                <button
+                  className="card"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, cursor: editing ? 'grab' : 'pointer', touchAction: 'none' }}
+                  onMouseDown={editing ? (e) => startDrag(e, tile.id) : undefined}
+                  onTouchStart={editing ? (e) => startDrag(e, tile.id) : undefined}
+                  onClick={() => handleTileClick(tile)}
+                >
+                  <div className="app-tile-icon" style={{ flexShrink: 0 }}>{meta.icon}</div>
+                  <div style={{ fontWeight: 600, textAlign: 'left' }}>{meta.label}</div>
+                </button>
+              )}
 
               {editing && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                  {['drittel', 'zweidrittel', 'voll'].map((s) => (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                  {['app', 'drittel', 'zweidrittel', 'voll'].map((s) => (
                     <button
                       key={s}
                       className={size === s ? 'btn btn-primary' : 'btn btn-secondary'}
-                      style={{ padding: '2px 10px', fontSize: 11 }}
+                      style={{ padding: '2px 8px', fontSize: 11 }}
                       onClick={() => setTileSize(tile.id, s)}
                     >
                       {SIZE_LABEL[s]}

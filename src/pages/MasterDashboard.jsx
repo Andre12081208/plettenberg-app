@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const METRIC_REGISTRY = [
   { key: 'einwohner_anzahl', label: 'Anzahl Einwohner', type: 'number' },
@@ -292,6 +293,7 @@ function ProjectAgeClock() {
 }
 
 export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile, onChooseMode }) {
+  const { name: cityName } = useCity()
   const [averageEngagement, setAverageEngagement] = useState(null)
 
   useEffect(() => {
@@ -500,7 +502,7 @@ export default function MasterDashboard({ hasPrivateProfile, hasBusinessProfile,
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Master Dashboard</h1>
         <ProjectAgeClock />
       </div>

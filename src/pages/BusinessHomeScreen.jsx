@@ -58,7 +58,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
         <main>
           <div className="card">
             <h3 style={{ marginTop: 0 }}>Noch nicht verfügbar</h3>
-            <p>Nachrichten sind Teil von "Basic Erweiterung" (19,99 € / Monat). Buche dieses Paket, um mit Einwohnern in Kontakt zu treten.</p>
+            <p>Im Basispaket (kostenlos) nicht enthalten. Nachrichten sind Teil von "Basic Erweiterung" (19,99 € / Monat). Buche dieses Paket, um mit Einwohnern in Kontakt zu treten.</p>
           </div>
         </main>
       </div>

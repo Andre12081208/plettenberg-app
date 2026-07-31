@@ -4,7 +4,7 @@ import { useCity } from '../lib/useCity.js'
 import ProfileCard from './ProfileCard.jsx'
 
 export default function MyProfile({ userId, profile, onBack, onProfileUpdated }) {
-  onst { name: cityName } = useCity()
+  const { name: cityName } = useCity()
   const [firstName, setFirstName] = useState(profile.first_name || '')
   const [lastName, setLastName] = useState(profile.last_name || '')
   const [username, setUsername] = useState(profile.username || '')

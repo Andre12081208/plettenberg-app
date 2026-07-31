@@ -54,13 +54,10 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
       {content}
 
       <nav className={`tab-bar ${mypageFullScreen ? 'tab-bar-overlay' : ''}`}>
-        {isMasterAdmin && (
-          <button className="tab-bar-item" onClick={onBackToDashboard}>
-            <span className="tab-bar-icon">🧭</span>
-            Master Dashboard
-          </button>
-        )}
-    
+        <button className={`tab-bar-item ${activeTab === 'werkstatt' ? 'active' : ''}`} onClick={() => goToTab('werkstatt')}>
+          <span className="tab-bar-icon">🛠️</span>
+          Werkstatt
+        </button>
         <button className={`tab-bar-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => goToTab('inbox')} style={{ position: 'relative' }}>
           <span className="tab-bar-icon">💬</span>
           Nachrichten
@@ -85,14 +82,16 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
           </span>
           B.HUB
         </button>
-        <button className={`tab-bar-item ${activeTab === 'werkstatt' ? 'active' : ''}`} onClick={() => goToTab('werkstatt')}>
-          <span className="tab-bar-icon">🛠️</span>
-          Werkstatt
-        </button>
         <button className={`tab-bar-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => goToTab('settings')}>
           <span className="tab-bar-icon">⚙️</span>
           Einstellungen
         </button>
+        {isMasterAdmin && (
+          <button className="tab-bar-item" onClick={onBackToDashboard}>
+            <span className="tab-bar-icon">🧭</span>
+            Master Dashboard
+          </button>
+        )}
       </nav>
     </div>
   )

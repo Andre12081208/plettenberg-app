@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function ResetPassword({ onDone }) {
+  const { name: cityName } = useCity()
   const [password1, setPassword1] = useState('')
   const [password2, setPassword2] = useState('')
   const [saving, setSaving] = useState(false)
@@ -37,7 +39,7 @@ export default function ResetPassword({ onDone }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Neues Passwort festlegen</h1>
       </div>
       <main>

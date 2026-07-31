@@ -559,7 +559,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     </div>
   )
 
-  if (showRoom && hasRoomAddon && app.room_image_url && fullScreenRoom) {
+  if (showRoom && hasRoomAddon && app.room_image_url && fullScreenRoom && hasShop) {
     return (
       <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
         <RoomBackground imageUrl={activeAreaImage || app.room_image_url} transitionType={activeTransition.type} transitionDuration={activeTransition.duration} />
@@ -597,7 +597,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     )
   }
 
-  if (showRoom && hasRoomAddon && app.room_image_url) {
+  if (showRoom && hasRoomAddon && app.room_image_url && hasShop) {
     return (
       <div className="app-shell">
         <div className="topbar">
@@ -917,6 +917,12 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
 
         {error && <div className="error-box">{error}</div>}
         {placedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{placedMsg}</div>}
+
+        {!hasShop && (
+          <div style={{ position: 'relative', background: '#FEF3C7', border: '1px solid #D97706', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, lineHeight: 1.4 }}>
+            💬 Dieser Betrieb hat sein Paket gekündigt und bietet aktuell nur die Visitenkarte an. Angebote, Bestellungen und weitere Funktionen sind vorübergehend nicht verfügbar.
+          </div>
+        )}
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ width: '100%', height: 120, background: app.banner_url ? undefined : 'var(--forest-light)' }}>

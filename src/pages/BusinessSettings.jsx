@@ -731,6 +731,8 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           )}
           </div>
           )}
+          </div>
+          )}
           <div className="app-grid">
             {(() => {
               const items = []

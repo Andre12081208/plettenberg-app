@@ -38,9 +38,9 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
 
   let content
   if (activeTab === 'dashboard') {
-    content = <BusinessOverview profile={profile} />
+    content = <BusinessOverview profile={profile} onOpenVisitorPreview={() => goToTab('mypage')} />
   } else if (activeTab === 'mypage') {
-    content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} onFullScreenChange={setMypageFullScreen} />
+    content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} onFullScreenChange={setMypageFullScreen} visitorMode onBack={() => goToTab('dashboard')} />
   } else if (activeTab === 'inbox') {
     content = <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
   } else if (activeTab === 'werkstatt') {

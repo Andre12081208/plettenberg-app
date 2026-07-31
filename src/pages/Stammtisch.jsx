@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import jsPDF from 'jspdf'
 import { supabase } from '../lib/supabaseClient'
 import { useCity } from '../lib/useCity.js'
 
@@ -6,6 +7,12 @@ const STATUS_META = {
   zugesagt: { label: 'Zugesagt', color: '#2E7D46' },
   abgesagt: { label: 'Abgesagt', color: '#C0392B' },
   unsicher: { label: 'Unsicher', color: '#D9B23C' }
+}
+
+const BUCHUNG_META = {
+  einnahme: { label: 'Einnahme', color: '#2E7D46', sign: '+' },
+  einzahlung: { label: 'Einzahlung', color: '#2E7D46', sign: '+' },
+  ausgabe: { label: 'Ausgabe', color: '#C0392B', sign: '-' }
 }
 
 function TerminForm({ stammtischId, onDone, onCancel }) {
@@ -148,6 +155,220 @@ function TerminDetail({ termin, isOrganisator, onBack, onDeleted }) {
   )
 }
 
+function BuchungForm({ stammtischId, members, onDone, onCancel }) {
+  const [type, setType] = useState('ausgabe')
+  const [amount, setAmount] = useState('')
+  const [description, setDescription] = useState('')
+  const [splitIds, setSplitIds] = useState([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function toggleSplit(userId) {
+    setSplitIds((prev) => prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId])
+  }
+
+  async function handleSave() {
+    const amountNum = parseFloat(amount.replace(',', '.'))
+    if (!amountNum || amountNum <= 0) return
+    setSaving(true)
+    setError('')
+    const { error } = await supabase.rpc('create_kasse_buchung', {
+      p_stammtisch_id: stammtischId,
+      p_type: type,
+      p_amount: amountNum,
+      p_description: description.trim() || null,
+      p_split_user_ids: type === 'ausgabe' && splitIds.length > 0 ? splitIds : null
+    })
+    setSaving(false)
+    if (error) { setError(error.message); return }
+    onDone()
+  }
+
+  const share = splitIds.length > 0 && amount ? (parseFloat(amount.replace(',', '.')) / splitIds.length).toFixed(2) : null
+
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0 }}>Neue Buchung</h3>
+      {error && <div className="error-box">{error}</div>}
+      <select value={type} onChange={(e) => setType(e.target.value)} style={{ marginBottom: 10 }}>
+        <option value="ausgabe">Ausgabe</option>
+        <option value="einnahme">Einnahme</option>
+        <option value="einzahlung">Einzahlung</option>
+      </select>
+      <input placeholder="Betrag in €" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ marginBottom: 10 }} />
+      <input placeholder="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} style={{ marginBottom: 10 }} />
+
+      {type === 'ausgabe' && (
+        <>
+          <p className="hint" style={{ marginBottom: 8 }}>Auf Teilnehmer aufteilen (optional):</p>
+          {members.map((m) => (
+            <label key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+              <input type="checkbox" checked={splitIds.includes(m.user_id)} onChange={() => toggleSplit(m.user_id)} />
+              {m.display_name || `@${m.username}`}
+            </label>
+          ))}
+          {share && <p className="hint" style={{ marginTop: 8 }}>→ {share} € pro Person ({splitIds.length} Teilnehmer)</p>}
+        </>
+      )}
+
+      <div className="btn-row" style={{ marginTop: 10 }}>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving || !amount}>Speichern</button>
+        <button className="btn btn-secondary" onClick={onCancel}>Abbrechen</button>
+      </div>
+    </div>
+  )
+}
+
+function BuchungRow({ buchung, isOrganisator, onChanged }) {
+  const [expanded, setExpanded] = useState(false)
+  const [anteile, setAnteile] = useState([])
+
+  async function toggleExpand() {
+    if (!expanded) {
+      const { data } = await supabase.rpc('get_buchung_anteile', { p_buchung_id: buchung.id })
+      setAnteile(data || [])
+    }
+    setExpanded(!expanded)
+  }
+
+  async function togglePaid(anteil) {
+    await supabase.rpc('mark_anteil_paid', { p_anteil_id: anteil.id, p_paid: !anteil.paid })
+    const { data } = await supabase.rpc('get_buchung_anteile', { p_buchung_id: buchung.id })
+    setAnteile(data || [])
+    onChanged()
+  }
+
+  const meta = BUCHUNG_META[buchung.type]
+
+  return (
+    <div className="card" style={{ marginBottom: 10 }}>
+      <button className="card-choice" style={{ padding: 0 }} onClick={toggleExpand}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div>
+            <strong>{buchung.description || meta.label}</strong>
+            <p className="hint" style={{ margin: '4px 0 0' }}>{meta.label} · {buchung.creator_name} · {new Date(buchung.created_at).toLocaleDateString('de-DE')}</p>
+          </div>
+          <div style={{ color: meta.color, fontWeight: 700 }}>{meta.sign}{Number(buchung.amount).toFixed(2)} €</div>
+        </div>
+      </button>
+
+      {expanded && anteile.length > 0 && (
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+          {anteile.map((a) => (
+            <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+              <span>{a.display_name} · {Number(a.amount).toFixed(2)} €</span>
+              <button
+                className={a.paid ? 'btn btn-primary' : 'btn btn-secondary'}
+                style={{ padding: '4px 10px', fontSize: 12 }}
+                onClick={() => togglePaid(a)}
+              >
+                {a.paid ? 'Bezahlt ✓' : 'Als bezahlt markieren'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function KasseTab({ stammtischId, stammtischName, members, isOrganisator }) {
+  const [overview, setOverview] = useState(null)
+  const [buchungen, setBuchungen] = useState([])
+  const [showForm, setShowForm] = useState(false)
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line
+  }, [])
+
+  async function load() {
+    const [{ data: o }, { data: b }] = await Promise.all([
+      supabase.rpc('get_kasse_overview', { p_stammtisch_id: stammtischId }),
+      supabase.rpc('get_kasse_buchungen', { p_stammtisch_id: stammtischId })
+    ])
+    setOverview((o && o[0]) || null)
+    setBuchungen(b || [])
+  }
+
+  function exportPdf() {
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.text(`Stammtischkasse – ${stammtischName}`, 14, 18)
+    doc.setFontSize(10)
+    doc.text(`Erstellt am ${new Date().toLocaleDateString('de-DE')}`, 14, 25)
+    doc.setFontSize(12)
+    doc.text(`Kontostand: ${Number(overview?.kontostand || 0).toFixed(2)} €`, 14, 36)
+
+    let y = 48
+    doc.setFontSize(11)
+    doc.text('Datum', 14, y)
+    doc.text('Typ', 45, y)
+    doc.text('Beschreibung', 75, y)
+    doc.text('Betrag', 175, y)
+    y += 6
+    doc.line(14, y - 2, 196, y - 2)
+
+    buchungen.forEach((b) => {
+      if (y > 280) { doc.addPage(); y = 20 }
+      doc.setFontSize(9)
+      doc.text(new Date(b.created_at).toLocaleDateString('de-DE'), 14, y)
+      doc.text(BUCHUNG_META[b.type].label, 45, y)
+      doc.text((b.description || '-').slice(0, 45), 75, y)
+      doc.text(`${BUCHUNG_META[b.type].sign}${Number(b.amount).toFixed(2)} €`, 175, y)
+      y += 6
+    })
+
+    doc.save(`Stammtischkasse-${stammtischName}.pdf`)
+  }
+
+  if (!overview) return <div className="loading-dot">Lädt...</div>
+
+  return (
+    <div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Kontostand</h3>
+        <p style={{ fontSize: 28, fontWeight: 700, margin: 0, color: overview.kontostand >= 0 ? 'var(--forest)' : '#C0392B' }}>
+          {Number(overview.kontostand).toFixed(2)} €
+        </p>
+      </div>
+
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span>Einnahmen</span><span>{Number(overview.einnahmen).toFixed(2)} €</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span>Einzahlungen</span><span>{Number(overview.einzahlungen).toFixed(2)} €</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span>Ausgaben</span><span>{Number(overview.ausgaben).toFixed(2)} €</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#D9822B', fontWeight: 600 }}>
+          <span>Offene Beträge ({overview.offene_anzahl})</span><span>{Number(overview.offene_betraege).toFixed(2)} €</span>
+        </div>
+      </div>
+
+      <div className="btn-row" style={{ marginBottom: 16 }}>
+        {!showForm && <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ Neue Buchung</button>}
+        <button className="btn btn-secondary" onClick={exportPdf}>Als PDF exportieren</button>
+      </div>
+
+      {showForm && (
+        <BuchungForm
+          stammtischId={stammtischId}
+          members={members}
+          onDone={() => { setShowForm(false); load() }}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
+
+      {buchungen.map((b) => (
+        <BuchungRow key={b.id} buchung={b} isOrganisator={isOrganisator} onChanged={load} />
+      ))}
+    </div>
+  )
+}
+
 export default function Stammtisch({ userId, onBack, initialCode, onConsumedInitial }) {
   const { name: cityName } = useCity()
   const [loading, setLoading] = useState(true)
@@ -167,6 +388,8 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
 
   const [addableContacts, setAddableContacts] = useState([])
   const [showAddMember, setShowAddMember] = useState(false)
+
+  const [kontostand, setKontostand] = useState(null)
 
   useEffect(() => {
     if (initialCode) {
@@ -217,6 +440,11 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
     setTermine(data || [])
   }
 
+  async function loadKontostand(stammtischId) {
+    const { data } = await supabase.rpc('get_kasse_overview', { p_stammtisch_id: stammtischId })
+    setKontostand((data && data[0]?.kontostand) ?? 0)
+  }
+
   async function loadAddableContacts(stammtischId) {
     const { data } = await supabase.rpc('get_addable_contacts', { p_stammtisch_id: stammtischId })
     setAddableContacts(data || [])
@@ -255,6 +483,7 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
     if (active) {
       loadMembers(active.id)
       loadTermine(active.id)
+      loadKontostand(active.id)
     }
     // eslint-disable-next-line
   }, [activeId])
@@ -345,7 +574,7 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
             <div className="card">
               <h3 style={{ marginTop: 0 }}>Nächster Stammtisch</h3>
               {nextTermin ? (
-                <button className="card-choice" onClick={() => setViewingTermin(nextTermin)}>
+                <button className="card-choice" onClick={() => { setViewingTermin(nextTermin); setTab('termine') }}>
                   <strong>{nextTermin.title}</strong>
                   <p className="hint" style={{ margin: '4px 0 0' }}>
                     {new Date(nextTermin.termin_date).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -360,7 +589,7 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
             </div>
             <div className="card">
               <h3 style={{ marginTop: 0 }}>Stammtischkasse</h3>
-              <p className="hint">Die Kasse folgt in einer späteren Ausbaustufe.</p>
+              <p style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{kontostand !== null ? `${Number(kontostand).toFixed(2)} €` : '...'}</p>
             </div>
             <div className="card">
               <h3 style={{ marginTop: 0 }}>Mitglieder</h3>
@@ -408,7 +637,7 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
         )}
 
         {tab === 'kasse' && (
-          <div className="card"><p className="hint">Die Stammtischkasse folgt in einer späteren Ausbaustufe.</p></div>
+          <KasseTab stammtischId={active.id} stammtischName={active.name} members={members} isOrganisator={isOrganisator} />
         )}
 
         {tab === 'mitglieder' && (

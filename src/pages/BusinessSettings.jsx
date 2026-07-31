@@ -654,55 +654,26 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <main style={{ paddingBottom: 90 }}>
           <p className="hint" style={{ marginBottom: 16 }}>Hier bearbeitest du alles, was du dir zusätzlich gebucht hast – und kannst direkt weitere Zusatzpakete dazu buchen.</p>
           <div className="app-grid">
-            {canManageProducts && (
-              <button
-                className="app-tile"
-                onClick={() => (hasAppointmentAddon ? setView('termine') : bookWerkstattAddon('termine'))}
-                style={!hasAppointmentAddon ? { opacity: 0.55 } : undefined}
-              >
-                <div className="app-tile-icon">📅</div>
-                <div className="app-tile-label">Meine Termine</div>
-                {!hasAppointmentAddon && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
-              </button>
-            )}
+            {(() => {
+              const items = []
+              if (canManageProducts) {
+                items.push({ key: 'termine', icon: '📅', label: 'Meine Termine', active: hasAppointmentAddon, onClick: () => (hasAppointmentAddon ? setView('termine') : bookWerkstattAddon('termine')) })
+                items.push({ key: 'raum', icon: '🏠', label: 'Meine Seite', active: true, onClick: () => setView('raum') })
+                items.push({ key: 'homeboard', icon: '🧩', label: 'Homeboard-Größen', active: hasHomeboardSizeAddon, onClick: () => (hasHomeboardSizeAddon ? setView('homeboard-groessen') : bookWerkstattAddon('homeboard_groessen')) })
+              }
+              if (canManageChannel) items.push({ key: 'news', icon: '📢', label: 'Newsfeed-Beiträge', active: true, onClick: () => setView('news') })
+              if (canPostDirectly) items.push({ key: 'newsDirect', icon: '📢', label: 'News veröffentlichen', active: true, onClick: () => setView('newsDirect') })
 
-            {canManageProducts && (
-              <button
-                className="app-tile"
-                onClick={() => (hasRoomAddon ? setView('raum') : bookWerkstattAddon('raum'))}
-                style={!hasRoomAddon ? { opacity: 0.55 } : undefined}
-              >
-                <div className="app-tile-icon">🏠</div>
-                <div className="app-tile-label">Meine Seite</div>
-                {!hasRoomAddon && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
-              </button>
-            )}
+              const sorted = [...items].sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1))
 
-            {canManageProducts && (
-              <button
-                className="app-tile"
-                onClick={() => (hasHomeboardSizeAddon ? setView('homeboard-groessen') : bookWerkstattAddon('homeboard_groessen'))}
-                style={!hasHomeboardSizeAddon ? { opacity: 0.55 } : undefined}
-              >
-                <div className="app-tile-icon">🧩</div>
-                <div className="app-tile-label">Homeboard-Größen</div>
-                {!hasHomeboardSizeAddon && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
-              </button>
-            )}
-
-            {canManageChannel && (
-              <button className="app-tile" onClick={() => setView('news')}>
-                <div className="app-tile-icon">📢</div>
-                <div className="app-tile-label">Newsfeed-Beiträge</div>
-              </button>
-            )}
-
-            {canPostDirectly && (
-              <button className="app-tile" onClick={() => setView('newsDirect')}>
-                <div className="app-tile-icon">📢</div>
-                <div className="app-tile-label">News veröffentlichen</div>
-              </button>
-            )}
+              return sorted.map((item) => (
+                <button key={item.key} className="app-tile" onClick={item.onClick} style={!item.active ? { opacity: 0.55 } : undefined}>
+                  <div className="app-tile-icon">{item.icon}</div>
+                  <div className="app-tile-label">{item.label}</div>
+                  {!item.active && <div className="hint" style={{ fontSize: 10, marginTop: 2 }}>Jetzt buchen</div>}
+                </button>
+              ))
+            })()}
           </div>
           {!canManageProducts && !canManageChannel && !canPostDirectly && (
             <p className="hint" style={{ marginTop: 12 }}>Zusatzpakete brauchen zuerst das Basis-Paket. Unter Einstellungen → Mein Konto → Plan & Zusatzpakete kannst du es buchen.</p>
@@ -1214,7 +1185,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
   }
 
   const KONTO_ITEMS = [
-    { key: 'konto-meineseite', icon: '🏬', label: 'Meine Seite' },
+     
     { key: 'konto-profil', icon: '👤', label: 'Profil' },
     { key: 'konto-sicherheit', icon: '🔒', label: 'Sicherheit' },
     { key: 'konto-datenschutz', icon: '🛡️', label: 'Datenschutz' },

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import Chat from './Chat.jsx'
 import CreateGroup from './CreateGroup.jsx'
 import GroupChat from './GroupChat.jsx'
 import GroupSettings from './GroupSettings.jsx'
 
 export default function Contacts({ userId, onBack, embedded, onUnreadChanged, initialGroupCode, onConsumedInitial }) {
+  const { name: cityName } = useCity()
   const [view, setView] = useState('list')
   const [openChat, setOpenChat] = useState(null)
   const [openGroup, setOpenGroup] = useState(null)
@@ -119,7 +121,7 @@ export default function Contacts({ userId, onBack, embedded, onUnreadChanged, in
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Gruppeneinladung</h1>
         </div>
         <main>
@@ -212,7 +214,7 @@ export default function Contacts({ userId, onBack, embedded, onUnreadChanged, in
     return (
       <>
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Chats</h1>
         </div>
         <main style={{ paddingBottom: 90 }}>{content}</main>
@@ -223,7 +225,7 @@ export default function Contacts({ userId, onBack, embedded, onUnreadChanged, in
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Chats</h1>
       </div>
       <main>

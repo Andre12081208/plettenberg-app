@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 import { translations, LANGUAGE_NAMES } from '../lib/translations.js'
 import CalendarShareSettings from './CalendarShareSettings.jsx'
 import { ANON_AVATAR_BANK } from '../lib/anonAvatar.js'
 
 export default function Settings({ profile, onBack, onProfileUpdated, onPasswordChanged }) {
+  const { name: cityName } = useCity()
   const { t, language, setLanguage } = useLanguage()
   const [themePreference, setThemePreference] = useState(profile.theme_preference || 'auto')
   const [themeSaving, setThemeSaving] = useState(false)
@@ -155,7 +157,7 @@ export default function Settings({ profile, onBack, onProfileUpdated, onPassword
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{t('settings.title')}</h1>
       </div>
       <main>

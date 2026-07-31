@@ -118,8 +118,15 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
         </div>
         <main style={{ paddingBottom: 90 }}>
           <button className="link-text" onClick={() => (settingsBack ? settingsBack() : setEditing(false))} style={{ marginBottom: 16 }}>
-            {settingsBack ? '← Zurück zu Einstellungen' : '← Zurück zu Meine Seite'}
+            {settingsBack ? '← Zurück zu Meine Seite' : '← Zurück zu Meine Seite'}
           </button>
+
+          {onSwitchToRoom && (
+            <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+              <button className="btn btn-primary">Visitenkarte (Kostenlos)</button>
+              <button className="btn btn-secondary" onClick={onSwitchToRoom}>Mein virtueller Standort (Zusatzpaket)</button>
+            </div>
+          )}
 
           {error && <div className="error-box">{error}</div>}
 

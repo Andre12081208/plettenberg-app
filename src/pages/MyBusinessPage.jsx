@@ -13,7 +13,7 @@ const DAYS = [
   { key: 'so', label: 'Sonntag' }
 ]
 
-export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack, onSwitchToRoom, visitorMode, onBack }) {
+export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack, onSwitchToRoom, onSwitchToProducts, visitorMode, onBack }) {
   const { name: cityName } = useCity()
   const [editing, setEditing] = useState(!!startEditing)
   const [tagline, setTagline] = useState(profile.tagline || '')
@@ -122,8 +122,9 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
           </button>
 
           {onSwitchToRoom && (
-            <div className="btn-row" style={{ marginBottom: 16 }}>
+            <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
               <button className="btn btn-primary">Visitenkarte (Kostenlos)</button>
+              <button className="btn btn-secondary" onClick={onSwitchToProducts}>Meine Angebote (Basis)</button>
               <button className="btn btn-secondary" onClick={onSwitchToRoom}>Mein virtueller Standort (Zusatzpaket)</button>
             </div>
           )}

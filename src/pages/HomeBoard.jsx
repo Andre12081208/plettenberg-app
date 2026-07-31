@@ -9,6 +9,9 @@ const SYSTEM_APP_META = {
   stammtisch: { icon: '👥', label: 'Stammtisch' }
 }
 
+const SIZE_WIDTH = { drittel: '30%', zweidrittel: '62%', voll: '94%' }
+const SIZE_LABEL = { drittel: '1/3', zweidrittel: '2/3', voll: '3/3' }
+
 export default function HomeBoard({ userId, installedApps, onOpenApp }) {
   const [tiles, setTiles] = useState([])
   const [loaded, setLoaded] = useState(false)
@@ -39,7 +42,8 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
       app_key: app.type === 'system' ? app.key : null,
       business_profile_id: app.type === 'business' ? app.data.id : null,
       pos_x: 50,
-      pos_y: 50
+      pos_y: 50,
+      size: 'drittel'
     })
     if (!error) {
       setShowPicker(false)
@@ -53,6 +57,13 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
     loadTiles()
   }
 
+  async function setTileSize(tileId, size) {
+    const tile = tiles.find((t) => t.id === tileId)
+    const nextPosX = size === 'drittel' ? tile.pos_x : 50
+    await supabase.from('home_board_tiles').update({ size, pos_x: nextPosX }).eq('id', tileId)
+    setTiles((prev) => prev.map((t) => (t.id === tileId ? { ...t, size, pos_x: nextPosX } : t)))
+  }
+
   function startDrag(e, tileId) {
     e.stopPropagation()
     hasDraggedRef.current = false
@@ -62,11 +73,17 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
   function handleBoardMove(e) {
     if (!draggingId) return
     hasDraggedRef.current = true
+    const tile = tiles.find((t) => t.id === draggingId)
     const rect = e.currentTarget.getBoundingClientRect()
     const point = e.touches?.[0] || e
-    const x = Math.min(96, Math.max(4, ((point.clientX - rect.left) / rect.width) * 100))
     const y = Math.min(96, Math.max(4, ((point.clientY - rect.top) / rect.height) * 100))
-    setTiles((prev) => prev.map((t) => (t.id === draggingId ? { ...t, pos_x: x, pos_y: y } : t)))
+
+    if (tile?.size && tile.size !== 'drittel') {
+      setTiles((prev) => prev.map((t) => (t.id === draggingId ? { ...t, pos_y: y } : t)))
+    } else {
+      const x = Math.min(96, Math.max(4, ((point.clientX - rect.left) / rect.width) * 100))
+      setTiles((prev) => prev.map((t) => (t.id === draggingId ? { ...t, pos_x: x, pos_y: y } : t)))
+    }
   }
 
   async function handleBoardUp() {
@@ -96,7 +113,7 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
     if (tile.app_type === 'business' && tile.business_profiles) {
       return {
         icon: tile.business_profiles.logo_url
-          ? <img src={tile.business_profiles.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} />
+          ? <img src={tile.business_profiles.logo_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 12 }} />
           : tile.business_profiles.company_name?.[0],
         label: tile.business_profiles.company_name
       }
@@ -133,29 +150,43 @@ export default function HomeBoard({ userId, installedApps, onOpenApp }) {
       >
         {tiles.map((tile) => {
           const meta = tileMeta(tile)
+          const size = tile.size || 'drittel'
           return (
             <div
               key={tile.id}
               style={{
                 position: 'absolute', left: `${tile.pos_x}%`, top: `${tile.pos_y}%`,
-                transform: 'translate(-50%, -50%)', width: 76, textAlign: 'center'
+                transform: 'translate(-50%, -50%)', width: SIZE_WIDTH[size]
               }}
-              onMouseDown={editing ? (e) => startDrag(e, tile.id) : undefined}
-              onTouchStart={editing ? (e) => startDrag(e, tile.id) : undefined}
             >
               <button
-                className="app-tile"
-                style={{ width: '100%', cursor: editing ? 'grab' : 'pointer', touchAction: 'none' }}
+                className="card"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, cursor: editing ? 'grab' : 'pointer', touchAction: 'none' }}
+                onMouseDown={editing ? (e) => startDrag(e, tile.id) : undefined}
+                onTouchStart={editing ? (e) => startDrag(e, tile.id) : undefined}
                 onClick={() => handleTileClick(tile)}
               >
-                <div className="app-tile-icon">{meta.icon}</div>
-                <div className="app-tile-label">{meta.label}</div>
+                <div className="app-tile-icon" style={{ flexShrink: 0 }}>{meta.icon}</div>
+                <div style={{ fontWeight: 600, textAlign: 'left' }}>{meta.label}</div>
               </button>
+
               {editing && (
-                <button
-                  onClick={() => removeBoardTile(tile.id)}
-                  style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, background: '#C0392B', color: '#fff', border: '2px solid #fff', fontSize: 13 }}
-                >×</button>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                  {['drittel', 'zweidrittel', 'voll'].map((s) => (
+                    <button
+                      key={s}
+                      className={size === s ? 'btn btn-primary' : 'btn btn-secondary'}
+                      style={{ padding: '2px 10px', fontSize: 11 }}
+                      onClick={() => setTileSize(tile.id, s)}
+                    >
+                      {SIZE_LABEL[s]}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => removeBoardTile(tile.id)}
+                    style={{ width: 22, height: 22, borderRadius: 11, background: '#C0392B', color: '#fff', border: 'none', fontSize: 13 }}
+                  >×</button>
+                </div>
               )}
             </div>
           )

@@ -13,7 +13,7 @@ const DAYS = [
   { key: 'so', label: 'Sonntag' }
 ]
 
-export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack, onSwitchToRoom }) {
+export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack, onSwitchToRoom, visitorMode, onBack }) {
   const { name: cityName } = useCity()
   const [editing, setEditing] = useState(!!startEditing)
   const [tagline, setTagline] = useState(profile.tagline || '')
@@ -226,14 +226,25 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
   }
 
   return (
+    return (
     <div style={{ position: 'relative' }}>
-      <button
-        className="btn btn-primary"
-        onClick={() => { setEditing(true); onFullScreenChange?.(false) }}
-        style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 40, width: 'auto', padding: '10px 18px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}
-      >
-        ✏️ Bearbeiten
-      </button>
+      {visitorMode ? (
+        <button
+          className="link-text"
+          onClick={onBack}
+          style={{ position: 'fixed', top: 16, left: 16, zIndex: 40, background: 'rgba(255,255,255,0.92)', padding: '8px 14px', borderRadius: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.15)' }}
+        >
+          ← Zurück zum B.HUB
+        </button>
+      ) : (
+        <button
+          className="btn btn-primary"
+          onClick={() => { setEditing(true); onFullScreenChange?.(false) }}
+          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 40, width: 'auto', padding: '10px 18px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}
+        >
+          ✏️ Bearbeiten
+        </button>
+      )}
       <BusinessMiniApp app={profile} userId={profile.id} onBack={() => {}} fullScreenRoom onFullScreenChange={onFullScreenChange} />
     </div>
   )

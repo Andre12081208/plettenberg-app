@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function GroupSettings({ userId, groupId, onBack }) {
+  const { name: cityName } = useCity()
   const [members, setMembers] = useState([])
   const [inviteCode, setInviteCode] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -98,7 +100,7 @@ export default function GroupSettings({ userId, groupId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Gruppe verwalten</h1>
       </div>
       <main>

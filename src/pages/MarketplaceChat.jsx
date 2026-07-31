@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function MarketplaceChat({ userId, threadId, role, onBack }) {
+  const { name: cityName } = useCity()
   const [messages, setMessages] = useState([])
   const [listingInfo, setListingInfo] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -77,7 +79,7 @@ export default function MarketplaceChat({ userId, threadId, role, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{role === 'anbieter' ? 'Interessent' : 'Anbieter'}</h1>
         {listingInfo && (
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>

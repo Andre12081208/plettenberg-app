@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
 
 export default function DirectoryListingDetail({ listing, userId, onBack, onFullScreenChange }) {
+  const { name: cityName } = useCity()
   const [linkedBusiness, setLinkedBusiness] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -72,7 +74,7 @@ export default function DirectoryListingDetail({ listing, userId, onBack, onFull
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{listing.name}</h1>
       </div>
       <main>

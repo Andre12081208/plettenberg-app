@@ -565,10 +565,13 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <main style={{ paddingBottom: 90 }}>
           <button className="link-text" onClick={() => setView('werkstatt-home')} style={{ marginBottom: 16 }}>← Zurück zur Werkstatt</button>
 
+          <div className="btn-row" style={{ marginBottom: 10, flexWrap: 'wrap' }}>
+            <button className="btn btn-primary">Einstellung</button>
+            <button className="btn btn-secondary" onClick={() => setView('produkte')}>Meine Angebote (Basis)</button>
+          </div>
           <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Visitenkarte (Kostenlos)</button>
-            <button className="btn btn-primary">Meine Angebote (Basis)</button>
-            <button className="btn btn-secondary" onClick={() => setView('raum')}>Mein virtueller Standort (Zusatzpaket)</button>
+            <button className="btn btn-primary">Mein virtueller Standort (Zusatzpaket)</button>
           </div>
 
           <div className="field">
@@ -768,9 +771,8 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           <button className="link-text" onClick={() => setView('werkstatt-home')} style={{ marginBottom: 16 }}>← Zurück zur Werkstatt</button>
 
           <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Visitenkarte (Kostenlos)</button>
-            <button className="btn btn-secondary" onClick={() => setView('produkte')}>Meine Angebote (Basis)</button>
-            <button className="btn btn-primary">Mein virtueller Standort (Zusatzpaket)</button>
+            <button className="btn btn-secondary" onClick={() => setView('raum')}>Einstellung</button>
+            <button className="btn btn-primary">Meine Angebote (Basis)</button>
           </div>
 
           {roomError && <div className="error-box">{roomError}</div>}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const GASTRO_CATEGORIES = [
   { value: 'alle', label: 'Alle' },
@@ -12,6 +13,7 @@ const GASTRO_CATEGORIES = [
 ]
 
 export default function GastroHub({ onBack }) {
+  const { name: cityName } = useCity()
   const [places, setPlaces] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -46,7 +48,7 @@ export default function GastroHub({ onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>{selected.company_name}</h1>
         </div>
         <main>
@@ -94,7 +96,7 @@ export default function GastroHub({ onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Gastro</h1>
       </div>
       <main>

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import CreateListing from './CreateListing.jsx'
 import MarketplaceInbox from './MarketplaceInbox.jsx'
 import MarketplaceChat from './MarketplaceChat.jsx'
 import ListingDetail from './ListingDetail.jsx'
 
 export default function Marketplace({ userId, onBack }) {
+  const { name: cityName } = useCity()
   const [view, setView] = useState('browse') // 'browse' | 'create' | 'inbox' | 'mine'
   const [openThread, setOpenThread] = useState(null)
   const [selectedListing, setSelectedListing] = useState(null)
@@ -169,7 +171,7 @@ export default function Marketplace({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Meine Anzeigen</h1>
         </div>
         <main>
@@ -191,7 +193,7 @@ export default function Marketplace({ userId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Marktplatz</h1>
       </div>
       <main>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import { renderAnonAvatar } from '../lib/anonAvatar.js'
 
 const STATUS_OPTIONS = [
@@ -51,6 +52,7 @@ function PresenceDot({ lastSeenAt }) {
 }
 
 export default function AdminPanel({ onBack }) {
+  const { name: cityName } = useCity()
   const [tab, setTab] = useState(() => sessionStorage.getItem('pb_admin_tab') || 'nutzer')
 
   function goToTab(newTab) {
@@ -108,7 +110,7 @@ export default function AdminPanel({ onBack }) {
   const header = (
     <div className="topbar">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="mark">Plettenberg · Admin</div>
+        <div className="mark">{cityName} · Admin</div>
         <span className="status-pill status-live">Admin · Voller Zugriff</span>
       </div>
       <h1>Verwaltung</h1>

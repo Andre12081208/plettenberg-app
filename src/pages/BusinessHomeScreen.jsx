@@ -4,6 +4,7 @@ import BusinessOverview from './BusinessOverview.jsx'
 import BusinessSettings from './BusinessSettings.jsx'
 import MyBusinessPage from './MyBusinessPage.jsx'
 import BusinessInbox from './BusinessInbox.jsx'
+import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 
 export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, onBackToDashboard, onOpenAdmin, onProfileUpdated }) {
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')
@@ -37,8 +38,10 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   }
 
   let content
-  if (activeTab === 'dashboard') {
-    content = <BusinessOverview profile={profile} onOpenVisitorPreview={() => goToTab('mypage')} />
+  if (activeTab === 'ideenwerkstatt') {
+    content = <Ideenwerkstatt userId={profile.id} onBack={() => goToTab('dashboard')} />
+  } else if (activeTab === 'dashboard') {
+    content = <BusinessOverview profile={profile} onOpenVisitorPreview={() => goToTab('mypage')} onOpenIdeenwerkstatt={() => goToTab('ideenwerkstatt')} />
   } else if (activeTab === 'mypage') {
     content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} onFullScreenChange={setMypageFullScreen} visitorMode onBack={() => goToTab('dashboard')} />
   } else if (activeTab === 'inbox') {

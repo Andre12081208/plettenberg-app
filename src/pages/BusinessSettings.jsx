@@ -685,6 +685,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <main style={{ paddingBottom: 90 }}>
           <p className="hint" style={{ marginBottom: 16 }}>Hier bearbeitest du alles, was du dir zusätzlich gebucht hast – und kannst direkt weitere Zusatzpakete dazu buchen.</p>
 
+          {profile.plan === 'basis' && (
           <div className="card">
             <h3 style={{ marginTop: 0 }}>B.HUB Symbol</h3>
             <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-soft)' }}>
@@ -727,6 +728,8 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
               onSave={saveBhubIconAdjustment}
               onCancel={() => setBhubEditorUrl(null)}
             />
+          )}
+          </div>
           )}
           <div className="app-grid">
             {(() => {

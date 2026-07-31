@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const CATEGORIES = {
   idee: { icon: '💡', label: 'Neue Idee' },
@@ -30,6 +31,7 @@ function StatusPill({ status }) {
 }
 
 export default function Ideenwerkstatt({ userId, onBack }) {
+  const { name: cityName } = useCity()
   const [screen, setScreen] = useState('home')
   const [category, setCategory] = useState('idee')
   const [ideas, setIdeas] = useState([])
@@ -102,7 +104,7 @@ export default function Ideenwerkstatt({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>💡 Ideenwerkstatt</h1>
         </div>
         <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '60vh' }}>
@@ -126,7 +128,7 @@ export default function Ideenwerkstatt({ userId, onBack }) {
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Meine Ideen</h1>
         </div>
         <main>
@@ -180,7 +182,7 @@ export default function Ideenwerkstatt({ userId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>💡 Ideenwerkstatt</h1>
       </div>
       <main>
@@ -216,6 +218,7 @@ export default function Ideenwerkstatt({ userId, onBack }) {
 }
 
 function IdeaForm({ userId, initialCategory, onCancel, onDone }) {
+  const { name: cityName } = useCity()
   const [category, setCategory] = useState(initialCategory)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -281,7 +284,7 @@ function IdeaForm({ userId, initialCategory, onCancel, onDone }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{CATEGORIES[category]?.icon} {CATEGORIES[category]?.label}</h1>
       </div>
       <main>
@@ -458,7 +461,7 @@ export function IdeaDetail({ userId, idea, onBack, onUpdated }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{idea.idea_number}</h1>
       </div>
       <main style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>

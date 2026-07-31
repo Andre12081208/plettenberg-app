@@ -9,6 +9,7 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
   const [settingsResetKey, setSettingsResetKey] = useState(0)
+  const [werkstattResetKey, setWerkstattResetKey] = useState(0)
   const [mypageFullScreen, setMypageFullScreen] = useState(false)
 
   useEffect(() => {
@@ -26,6 +27,9 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
     if (tab === 'settings' && activeTab === 'settings') {
       setSettingsResetKey((k) => k + 1)
     }
+    if (tab === 'werkstatt' && activeTab === 'werkstatt') {
+      setWerkstattResetKey((k) => k + 1)
+    }
     if (tab !== 'mypage') setMypageFullScreen(false)
     setActiveTab(tab)
     sessionStorage.setItem('pb_business_activeTab', tab)
@@ -39,6 +43,8 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
     content = <MyBusinessPage profile={profile} onProfileUpdated={onProfileUpdated} onGoToSettings={() => setActiveTab('settings')} onFullScreenChange={setMypageFullScreen} />
   } else if (activeTab === 'inbox') {
     content = <BusinessInbox profile={profile} onInquiryRead={checkUnreadInquiries} />
+  } else if (activeTab === 'werkstatt') {
+    content = <BusinessSettings key={werkstattResetKey} profile={profile} onProfileUpdated={onProfileUpdated} onGoToMySeite={() => goToTab('mypage')} initialView="werkstatt-home" />
   } else if (activeTab === 'settings') {
     content = <BusinessSettings key={settingsResetKey} profile={profile} onProfileUpdated={onProfileUpdated} onGoToMySeite={() => goToTab('mypage')} />
   }
@@ -81,6 +87,10 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
             {!profile.bhub_icon_url && '🏠'}
           </span>
           B.HUB
+        </button>
+        <button className={`tab-bar-item ${activeTab === 'werkstatt' ? 'active' : ''}`} onClick={() => goToTab('werkstatt')}>
+          <span className="tab-bar-icon">🛠️</span>
+          Werkstatt
         </button>
         <button className={`tab-bar-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => goToTab('settings')}>
           <span className="tab-bar-icon">⚙️</span>

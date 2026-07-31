@@ -17,7 +17,7 @@ const GASTRO_CATEGORY_OPTIONS = [
   { value: 'sonstiges', label: 'Sonstiges' }
 ]
 
-export default function BusinessProfileForm({ userId, kind, onDone }) {
+export default function BusinessProfileForm({ userId, kind, onDone, cityId, cityName }) {
   const [companyName, setCompanyName] = useState('')
   const [category, setCategory] = useState('unternehmen')
   const [appCategory, setAppCategory] = useState('sonstiges')
@@ -97,7 +97,7 @@ export default function BusinessProfileForm({ userId, kind, onDone }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{kind === 'unternehmen' ? 'Unternehmensprofil' : 'Anbieterprofil'}</h1>
       </div>
       <main>

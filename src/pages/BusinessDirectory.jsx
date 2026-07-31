@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import DirectoryListingDetail from './DirectoryListingDetail.jsx'
 
 export default function BusinessDirectory({ userId, onBack, onFullScreenChange }) {
+  const { name: cityName } = useCity()
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -61,7 +63,7 @@ export default function BusinessDirectory({ userId, onBack, onFullScreenChange }
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>{selectedSubcategory.name}</h1>
         </div>
         <main>
@@ -97,7 +99,7 @@ export default function BusinessDirectory({ userId, onBack, onFullScreenChange }
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>{selectedCategory.icon} {selectedCategory.name}</h1>
         </div>
         <main>
@@ -118,7 +120,7 @@ export default function BusinessDirectory({ userId, onBack, onFullScreenChange }
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Branchenverzeichnis</h1>
       </div>
       <main>

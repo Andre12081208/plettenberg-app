@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 const STATUS_LABELS = {
   in_pruefung: 'In Prüfung',
@@ -9,6 +10,7 @@ const STATUS_LABELS = {
 }
 
 export default function BusinessAccountProfile({ profile, onBack, onGoToMySeite, onProfileUpdated }) {
+  const { name: cityName } = useCity()
   const [deactivating, setDeactivating] = useState(false)
   const [confirmingDeactivate, setConfirmingDeactivate] = useState(false)
 
@@ -126,7 +128,7 @@ export default function BusinessAccountProfile({ profile, onBack, onGoToMySeite,
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Profil</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>

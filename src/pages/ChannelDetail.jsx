@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function ChannelDetail({ userId, channelId, onBack }) {
+  const { name: cityName } = useCity()
   const [channel, setChannel] = useState(null)
   const [posts, setPosts] = useState([])
   const [followStatus, setFollowStatus] = useState('none') // 'none' | 'active' | 'pending'
@@ -102,7 +104,7 @@ export default function ChannelDetail({ userId, channelId, onBack }) {
   if (loading) {
     return (
       <div className="app-shell">
-        <div className="topbar"><div className="mark">Plettenberg</div><h1>Channel</h1></div>
+        <div className="topbar"><div className="mark">{cityName}</div><h1>Channel</h1></div>
         <main><div className="loading-dot">Lädt...</div></main>
       </div>
     )
@@ -111,7 +113,7 @@ export default function ChannelDetail({ userId, channelId, onBack }) {
   if (!channel) {
     return (
       <div className="app-shell">
-        <div className="topbar"><div className="mark">Plettenberg</div><h1>Channel</h1></div>
+        <div className="topbar"><div className="mark">{cityName}</div><h1>Channel</h1></div>
         <main>
           <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
           <div className="error-box">Dieser Channel ist nicht (mehr) verfügbar.</div>
@@ -126,7 +128,7 @@ export default function ChannelDetail({ userId, channelId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{channel.name}</h1>
       </div>
       <main>

@@ -750,7 +750,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>{terminProduct.name}</h1>
         </div>
         <main>
@@ -783,7 +783,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Warenkorb</h1>
         </div>
         <main>
@@ -828,7 +828,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Meine Bestellungen</h1>
         </div>
         <main>
@@ -861,7 +861,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
     return (
       <div className="app-shell">
         <div className="topbar">
-          <div className="mark">Plettenberg</div>
+          <div className="mark">{cityName}</div>
           <h1>Meine Anfragen</h1>
         </div>
         <main>
@@ -909,7 +909,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{app.company_name}</h1>
       </div>
       <main>

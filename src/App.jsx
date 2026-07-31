@@ -283,6 +283,7 @@ export default function App() {
       <PrivateProfileForm
         userId={session.user.id}
         cityId={chosenCity.id}
+        cityName={chosenCity.name}
         onDone={() => loadProfile(session.user.id)}
       />
     )
@@ -294,6 +295,7 @@ export default function App() {
         userId={session.user.id}
         kind={chosenType}
         cityId={chosenCity.id}
+        cityName={chosenCity.name}
         onDone={() => loadProfile(session.user.id)}
       />
     )

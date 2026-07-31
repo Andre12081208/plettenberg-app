@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 import BusinessInquiryChat from './BusinessInquiryChat.jsx'
@@ -12,6 +13,7 @@ const STATUS_LABELS = {
 }
 
 export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }) {
+  const { name: cityName } = useCity()
   const [products, setProducts] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [productError, setProductError] = useState('')
@@ -263,7 +265,7 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Willkommen{profileType === 'private' ? `, ${profile.first_name}` : ''}</h1>
         {profile.account_status === 'beobachter' && (
           <div className="error-box" style={{ background: '#FCEFE1', color: 'var(--clay)', borderColor: 'var(--clay)' }}>
@@ -523,6 +525,7 @@ export default function Dashboard({ profileType, profile, isAdmin, onOpenAdmin }
 }
 
 function ProductForm({ businessId, existing, onDone, onCancel }) {
+  const { name: cityName } = useCity()
   const [name, setName] = useState(existing?.name || '')
   const [description, setDescription] = useState(existing?.description || '')
   const [price, setPrice] = useState(existing?.price != null ? String(existing.price) : '')
@@ -582,7 +585,7 @@ function ProductForm({ businessId, existing, onDone, onCancel }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{existing ? 'Produkt bearbeiten' : 'Neues Produkt'}</h1>
       </div>
       <main>

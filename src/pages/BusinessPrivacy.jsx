@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung, onGoToBenachrichtigungen, onProfileUpdated }) {
+  const { name: cityName } = useCity()
   const [allowAnalytics, setAllowAnalytics] = useState(profile.privacy_allow_analytics)
   const [allowPersonalization, setAllowPersonalization] = useState(profile.privacy_allow_personalization)
   const [saving, setSaving] = useState(false)
@@ -128,7 +130,7 @@ export default function BusinessPrivacy({ profile, onBack, onGoToKontoverwaltung
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Datenschutz</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>

@@ -13,7 +13,16 @@ import BusinessNotifications from './BusinessNotifications.jsx'
 
 export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite, initialView }) {
   const { name: cityName } = useCity()
-  const [view, setView] = useState(initialView || null) // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
+  const [view, setView] = useState(initialView || null)
+  const [rawWerkstattAddons, setRawWerkstattAddons] = useState([])
+  const [infoModalKey, setInfoModalKey] = useState(null)
+  const [pendingModalKey, setPendingModalKey] = useState(null)
+  const [bookingBusy, setBookingBusy] = useState(false)
+
+  const WERKSTATT_ADDON_INFO = {
+    termine: { label: 'Meine Termine', description: 'Biete buchbare Zeitfenster für deine Dienstleistungen an, die Einwohner direkt buchen können.', price: '9,90 € / Monat' },
+    homeboard_groessen: { label: 'Homeboard-Größen', description: 'Einwohner können deine Kachel auf ihrem Homeboard in größeren Formaten (1/3, 2/3, 3/3) anzeigen.', price: '4,90 € / Monat' }
+  } // null | 'produkte' | 'termine' | 'news' | 'newsDirect' | 'createChannel' | 'channelDetail'
 
   const [products, setProducts] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
@@ -83,9 +92,29 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
     if (canManageChannel) loadChannelInfo()
     if (canPostDirectly) loadPosts()
     loadRoomInfo()
+    loadWerkstattAddonStatus()
     checkUnreadIdeas()
     // eslint-disable-next-line
   }, [])
+
+  async function loadWerkstattAddonStatus() {
+    const { data } = await supabase.from('business_addons').select('addon_key, approved').eq('business_profile_id', profile.id)
+    setRawWerkstattAddons(data || [])
+  }
+
+  function getAddonStatus(key) {
+    const row = rawWerkstattAddons.find((a) => a.addon_key === key)
+    if (!row) return 'none'
+    return row.approved ? 'approved' : 'pending'
+  }
+
+  async function requestWerkstattAddon(key) {
+    setBookingBusy(true)
+    await supabase.from('business_addons').insert({ business_profile_id: profile.id, addon_key: key, approved: false })
+    await loadWerkstattAddonStatus()
+    setBookingBusy(false)
+    setInfoModalKey(null)
+  }
 
   async function checkUnreadIdeas() {
     const { data } = await supabase.rpc('get_unread_idea_count')

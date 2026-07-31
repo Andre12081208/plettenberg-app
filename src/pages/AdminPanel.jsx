@@ -503,8 +503,8 @@ function GewerbeTab() {
                   disabled={savingId === entry.id}
                   onChange={(e) => updatePlan(entry.id, e.target.value)}
                 >
-                  <option value="kostenlos">Kein Paket gebucht</option>
-                  <option value="basis">Basis (virtueller Laden)</option>
+                  <option value="kostenlos">Basic (kostenlos)</option>
+                  <option value="basis">Basic Erweiterung (19,99 € / Monat)</option>
                 </select>
               </div>
 

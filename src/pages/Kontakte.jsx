@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import Connections from './Connections.jsx'
 import Chat from './Chat.jsx'
 import Calendar from './Calendar.jsx'
 import ProfileCard from './ProfileCard.jsx'
 
 export default function Kontakte({ userId, profile, onBack, initialUsername, onConsumedInitial }) {
+  const { name: cityName } = useCity()
   const [view, setView] = useState('menu')
   const [connections, setConnections] = useState([])
   const [loading, setLoading] = useState(true)
@@ -102,7 +104,7 @@ export default function Kontakte({ userId, profile, onBack, initialUsername, onC
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Kontakte</h1>
       </div>
       <main>
@@ -126,6 +128,7 @@ export default function Kontakte({ userId, profile, onBack, initialUsername, onC
 }
 
 function ContactSearch({ connections, onBack, onMessage, onViewCalendar, onViewProfile }) {
+  const { name: cityName } = useCity()
   const [query, setQuery] = useState('')
   const [openActionsFor, setOpenActionsFor] = useState(null)
 
@@ -139,7 +142,7 @@ function ContactSearch({ connections, onBack, onMessage, onViewCalendar, onViewP
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Deine Kontakte</h1>
       </div>
       <main>

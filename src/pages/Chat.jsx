@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function Chat({ userId, connectionId, otherUsername, otherDisplayName, otherAvatarUrl, onBack }) {
+  const { name: cityName } = useCity()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -194,7 +196,7 @@ export default function Chat({ userId, connectionId, otherUsername, otherDisplay
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>
             {otherAvatarUrl ? <img src={otherAvatarUrl} alt="" /> : '👤'}

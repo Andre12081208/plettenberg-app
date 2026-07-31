@@ -682,6 +682,50 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         </div>
         <main style={{ paddingBottom: 90 }}>
           <p className="hint" style={{ marginBottom: 16 }}>Hier bearbeitest du alles, was du dir zusätzlich gebucht hast – und kannst direkt weitere Zusatzpakete dazu buchen.</p>
+
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>B.HUB Symbol</h3>
+            <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-soft)' }}>
+              Lade ein eigenes Bild hoch, das statt des Standard-Symbols bei "B.HUB" in deiner Leiste angezeigt wird.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 64, height: 64, borderRadius: 16, overflow: 'hidden', flexShrink: 0,
+                  background: profile.bhub_icon_url ? undefined : 'var(--forest)',
+                  backgroundImage: profile.bhub_icon_url ? `url(${profile.bhub_icon_url})` : 'none',
+                  backgroundPosition: `${profile.bhub_icon_pos_x ?? 50}% ${profile.bhub_icon_pos_y ?? 50}%`,
+                  backgroundSize: `${profile.bhub_icon_zoom ?? 100}%`,
+                  backgroundRepeat: 'no-repeat',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#fff'
+                }}
+              >
+                {!profile.bhub_icon_url && '🏠'}
+              </div>
+              <div>
+                <label className="link-text" htmlFor="bhubIconUpload" style={{ cursor: 'pointer', display: 'block' }}>
+                  {profile.bhub_icon_url ? 'Neues Bild hochladen' : 'Bild hochladen'}
+                </label>
+                <input id="bhubIconUpload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleBhubIconUpload} />
+                {profile.bhub_icon_url && (
+                  <button className="link-text" style={{ marginTop: 6 }} onClick={() => setBhubEditorUrl(profile.bhub_icon_url)}>
+                    Ausschnitt anpassen
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {bhubEditorUrl && (
+            <BhubIconEditor
+              imageUrl={bhubEditorUrl}
+              initialX={profile.bhub_icon_pos_x ?? 50}
+              initialY={profile.bhub_icon_pos_y ?? 50}
+              initialZoom={profile.bhub_icon_zoom ?? 100}
+              onSave={saveBhubIconAdjustment}
+              onCancel={() => setBhubEditorUrl(null)}
+            />
+          )}
           <div className="app-grid">
             {(() => {
               const items = []
@@ -1306,68 +1350,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <h1>Einstellungen</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>B.HUB Symbol</h3>
-          <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-soft)' }}>
-            Lade ein eigenes Bild hoch, das statt des Standard-Symbols bei "B.HUB" in deiner Leiste angezeigt wird.
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div
-              style={{
-                width: 64, height: 64, borderRadius: 16, overflow: 'hidden', flexShrink: 0,
-                background: profile.bhub_icon_url ? undefined : 'var(--forest)',
-                backgroundImage: profile.bhub_icon_url ? `url(${profile.bhub_icon_url})` : 'none',
-                backgroundPosition: `${profile.bhub_icon_pos_x ?? 50}% ${profile.bhub_icon_pos_y ?? 50}%`,
-                backgroundSize: `${profile.bhub_icon_zoom ?? 100}%`,
-                backgroundRepeat: 'no-repeat',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#fff'
-              }}
-            >
-              {!profile.bhub_icon_url && '🏠'}
-            </div>
-            <div>
-              <label className="link-text" htmlFor="bhubIconUpload" style={{ cursor: 'pointer', display: 'block' }}>
-                {profile.bhub_icon_url ? 'Neues Bild hochladen' : 'Bild hochladen'}
-              </label>
-              <input id="bhubIconUpload" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleBhubIconUpload} />
-              {profile.bhub_icon_url && (
-                <button className="link-text" style={{ marginTop: 6 }} onClick={() => setBhubEditorUrl(profile.bhub_icon_url)}>
-                  Ausschnitt anpassen
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {bhubEditorUrl && (
-          <BhubIconEditor
-            imageUrl={bhubEditorUrl}
-            initialX={profile.bhub_icon_pos_x ?? 50}
-            initialY={profile.bhub_icon_pos_y ?? 50}
-            initialZoom={profile.bhub_icon_zoom ?? 100}
-            onSave={saveBhubIconAdjustment}
-            onCancel={() => setBhubEditorUrl(null)}
-          />
-        )}
-
-        <div className="app-grid">
-
-          <button className="app-tile" onClick={() => setView('ideenwerkstatt')}>
-            <div className="app-tile-icon" style={{ position: 'relative' }}>
-              💡
-              {unreadIdeaCount > 0 && (
-                <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                  {unreadIdeaCount}
-                </span>
-              )}
-            </div>
-            <div className="app-tile-label">Ideenwerkstatt</div>
-          </button>
-        </div>
-
-        <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 24 }}>Abmelden</button>
-
-        <h3 style={{ margin: '28px 0 12px' }}>Mein Konto</h3>
+        <h3 style={{ margin: '0 0 12px' }}>Mein Konto</h3>
         <div className="app-grid">
           {KONTO_ITEMS.map((item) => (
             <button key={item.key} className="app-tile" onClick={() => setView(item.key)}>
@@ -1376,6 +1359,8 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
             </button>
           ))}
         </div>
+
+        <button className="btn btn-secondary" onClick={handleLogout} style={{ marginTop: 24 }}>Abmelden</button>
       </main>
     </>
   )

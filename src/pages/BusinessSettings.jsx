@@ -738,7 +738,6 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
                 items.push({ key: 'termine', icon: '📅', label: 'Meine Termine', view: 'termine', status: getAddonStatus('termine') })
                 items.push({ key: 'homeboard_groessen', icon: '🧩', label: 'Homeboard-Größen', view: 'homeboard-groessen', status: getAddonStatus('homeboard_groessen') })
               }
-              }
               if (canManageChannel) items.push({ key: 'news', icon: '📢', label: 'Newsfeed-Beiträge', view: 'news', status: 'approved' })
               if (canPostDirectly) items.push({ key: 'newsDirect', icon: '📢', label: 'News veröffentlichen', view: 'newsDirect', status: 'approved' })
 

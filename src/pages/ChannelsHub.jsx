@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 import CreateChannel from './CreateChannel.jsx'
 import ChannelDetail from './ChannelDetail.jsx'
 import QRScanner from './QRScanner.jsx'
 
 export default function ChannelsHub({ userId, onBack, initialChannelCode, onConsumedInitial }) {
+  const { name: cityName } = useCity()
   const [view, setView] = useState('list')
   const [channels, setChannels] = useState([])
   const [catalog, setCatalog] = useState([])
@@ -103,7 +105,7 @@ export default function ChannelsHub({ userId, onBack, initialChannelCode, onCons
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Channels</h1>
       </div>
       <main style={{ paddingBottom: 20 }}>

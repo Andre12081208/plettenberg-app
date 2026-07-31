@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function BusinessAccessSecurity({ onBack }) {
+  const { name: cityName } = useCity()
   const [newEmail, setNewEmail] = useState('')
   const [emailSaving, setEmailSaving] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
@@ -95,7 +97,7 @@ export default function BusinessAccessSecurity({ onBack }) {
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Zugang &amp; Sicherheit</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>

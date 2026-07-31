@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function ListingDetail({ listing, userId, onBack, onDeleted, onContact, contacting, onEdit }) {
+  const { name: cityName } = useCity()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -29,7 +31,7 @@ export default function ListingDetail({ listing, userId, onBack, onDeleted, onCo
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Anzeige</h1>
       </div>
       <main>

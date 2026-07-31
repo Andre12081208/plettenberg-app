@@ -21,6 +21,7 @@ import Kontakte from './Kontakte.jsx'
 import ResidentInbox from './ResidentInbox.jsx'
 import BusinessDirectory from './BusinessDirectory.jsx'
 import HomeBoard from './HomeBoard.jsx'
+import { maybeRemoveFromHomeBoard } from '../lib/homeBoardCleanup.js'
 import { useLanguage } from '../lib/LanguageContext.jsx'
 import { isInactivityExpired } from '../lib/inactivity.js'
 
@@ -30,7 +31,8 @@ const SYSTEM_APP_META = {
   calendar: { icon: '📅', label: 'Kalender' },
   snake: { icon: '🐍', label: 'Snake' },
   ideenwerkstatt: { icon: '💡', label: 'Ideenwerkstatt' },
-  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' }
+  branchenverzeichnis: { icon: '📖', label: 'Branchenverzeichnis' },
+  stammtisch: { icon: '👥', label: 'Stammtisch' }
 }
 
 export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, onBackToDashboard, onProfileUpdated, onPasswordChanged }) {
@@ -179,8 +181,10 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
   async function removeTile(tile) {
     if (tile.type === 'business') {
       await supabase.from('installed_apps').delete().eq('user_id', userId).eq('business_profile_id', tile.data.id)
+      await maybeRemoveFromHomeBoard(userId, 'business', tile.data.id)
     } else {
       await supabase.from('installed_system_apps').delete().eq('user_id', userId).eq('app_key', tile.key)
+      await maybeRemoveFromHomeBoard(userId, 'system', tile.key)
     }
     loadInstalled()
   }
@@ -330,7 +334,7 @@ export default function HomeScreen({ profile, userId, isAdmin, isMasterAdmin, on
           />
         )}
 
-        {activeTab === 'homeboard' && <HomeBoard embedded />}
+        {activeTab === 'homeboard' && <HomeBoard userId={userId} installedApps={movableTiles} onOpenApp={(target) => setOpenApp(target)} />}
 
         {activeTab === 'apps' && (
           <>

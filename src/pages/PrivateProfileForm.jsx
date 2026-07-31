@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export default function PrivateProfileForm({ userId, onDone }) {
+export default function PrivateProfileForm({ userId, onDone, cityId }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [username, setUsername] = useState('')
@@ -43,7 +43,8 @@ export default function PrivateProfileForm({ userId, onDone }) {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         username: username.trim().toLowerCase(),
-        avatar_url: avatarUrl
+        avatar_url: avatarUrl,
+        city_id: cityId
       })
 
       if (dbError) throw dbError

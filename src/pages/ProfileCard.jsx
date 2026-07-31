@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function ProfileCard({ contactId, onBack }) {
+  const { name: cityName } = useCity()
   const [card, setCard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -23,7 +25,7 @@ export default function ProfileCard({ contactId, onBack }) {
   if (loading) {
     return (
       <div className="app-shell">
-        <div className="topbar"><div className="mark">Plettenberg</div><h1>Profil</h1></div>
+        <div className="topbar"><div className="mark">{cityName}</div><h1>Profil</h1></div>
         <main><div className="loading-dot">Lädt...</div></main>
       </div>
     )
@@ -32,7 +34,7 @@ export default function ProfileCard({ contactId, onBack }) {
   if (error || !card) {
     return (
       <div className="app-shell">
-        <div className="topbar"><div className="mark">Plettenberg</div><h1>Profil</h1></div>
+        <div className="topbar"><div className="mark">{cityName}</div><h1>Profil</h1></div>
         <main>
           <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück</button>
           <div className="error-box">{error || 'Profil nicht verfügbar.'}</div>
@@ -46,7 +48,7 @@ export default function ProfileCard({ contactId, onBack }) {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>{card.first_name} {card.last_name}</h1>
       </div>
       <main>

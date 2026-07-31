@@ -1239,6 +1239,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         onProfileUpdated={onProfileUpdated}
         startEditing
         settingsBack={() => setView(null)}
+        onSwitchToProducts={() => setView('produkte')}
         onSwitchToRoom={() => setView('raum')}
       />
     )

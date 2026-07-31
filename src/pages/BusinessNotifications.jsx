@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useCity } from '../lib/useCity.js'
 
 export default function BusinessNotifications({ profile, onBack, onProfileUpdated }) {
+  const { name: cityName } = useCity()
   const [values, setValues] = useState({
     notif_push: profile.notif_push,
     notif_email: profile.notif_email,
@@ -48,7 +50,7 @@ export default function BusinessNotifications({ profile, onBack, onProfileUpdate
   return (
     <>
       <div className="topbar">
-        <div className="mark">Plettenberg</div>
+        <div className="mark">{cityName}</div>
         <h1>Benachrichtigungen</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>

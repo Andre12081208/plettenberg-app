@@ -226,8 +226,7 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
   }
 
   return (
-    return (
-    <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
       {visitorMode ? (
         <button
           className="link-text"

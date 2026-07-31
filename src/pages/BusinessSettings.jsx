@@ -14,7 +14,6 @@ import BusinessNotifications from './BusinessNotifications.jsx'
 export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySeite, initialView }) {
   const { name: cityName } = useCity()
   const [view, setView] = useState(initialView || null)
-  const [showEinstellungOptions, setShowEinstellungOptions] = useState(false)
   const [rawWerkstattAddons, setRawWerkstattAddons] = useState([])
   const [infoModalKey, setInfoModalKey] = useState(null)
   const [pendingModalKey, setPendingModalKey] = useState(null)
@@ -762,17 +761,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <main style={{ paddingBottom: 90 }}>
           <button className="link-text" onClick={() => setView('werkstatt-home')} style={{ marginBottom: 16 }}>← Zurück zur Werkstatt</button>
 
-          <div className="btn-row" style={{ marginBottom: showEinstellungOptions ? 10 : 0, flexWrap: 'wrap' }}>
-            <button className={showEinstellungOptions ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setShowEinstellungOptions(!showEinstellungOptions)}>Einstellung</button>
+          <div className="btn-row" style={{ flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" onClick={() => setView(getAddonStatus('raum') === 'approved' ? 'raum' : 'konto-meineseite')}>Einstellung</button>
             <button className="btn btn-secondary" onClick={() => setView('produkte')}>Meine Angebote (Basis)</button>
           </div>
-
-          {showEinstellungOptions && (
-            <div className="btn-row" style={{ flexWrap: 'wrap' }}>
-              <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Visitenkarte (Kostenlos)</button>
-              <button className="btn btn-secondary" onClick={() => setView('raum')}>Mein virtueller Standort (Zusatzpaket)</button>
-            </div>
-          )}
         </main>
       </>
     )
@@ -787,6 +779,11 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         </div>
         <main style={{ paddingBottom: 90 }}>
           <button className="link-text" onClick={() => setView('meine-seite-home')} style={{ marginBottom: 16 }}>← Zurück zu Meine Seite</button>
+
+          <div className="btn-row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" onClick={() => setView('konto-meineseite')}>Visitenkarte (Kostenlos)</button>
+            <button className="btn btn-primary">Mein virtueller Standort (Zusatzpaket)</button>
+          </div>
 
           {roomError && <div className="error-box">{roomError}</div>}
 
@@ -1254,8 +1251,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         onProfileUpdated={onProfileUpdated}
         startEditing
         settingsBack={() => setView('meine-seite-home')}
-        onSwitchToProducts={() => setView('produkte')}
-        onSwitchToRoom={() => setView('raum')}
+        onSwitchToRoom={getAddonStatus('raum') === 'approved' ? () => setView('raum') : undefined}
       />
     )
   }

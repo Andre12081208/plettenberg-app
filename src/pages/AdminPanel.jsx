@@ -374,6 +374,34 @@ function GewerbeTab() {
     return addons.some((a) => a.business_profile_id === businessId && a.addon_key === key)
   }
 
+  function hasApprovedSizeAddon(businessId) {
+    return addons.some((a) => a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen' && a.approved)
+  }
+
+  function hasPendingSizeAddon(businessId) {
+    return addons.some((a) => a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen' && !a.approved)
+  }
+
+  async function toggleSizeAddon(businessId) {
+    setSavingId(businessId)
+    const existing = addons.find((a) => a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen')
+
+    if (existing && existing.approved) {
+      const { error } = await supabase.from('business_addons').delete().eq('business_profile_id', businessId).eq('addon_key', 'homeboard_groessen')
+      if (!error) setAddons((prev) => prev.filter((a) => !(a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen')))
+      else setError(error.message)
+    } else if (existing && !existing.approved) {
+      const { error } = await supabase.from('business_addons').update({ approved: true }).eq('business_profile_id', businessId).eq('addon_key', 'homeboard_groessen')
+      if (!error) setAddons((prev) => prev.map((a) => (a.business_profile_id === businessId && a.addon_key === 'homeboard_groessen') ? { ...a, approved: true } : a))
+      else setError(error.message)
+    } else {
+      const { data, error } = await supabase.from('business_addons').insert({ business_profile_id: businessId, addon_key: 'homeboard_groessen', approved: true }).select('*').single()
+      if (!error) setAddons((prev) => [...prev, data])
+      else setError(error.message)
+    }
+    setSavingId(null)
+  }
+
   async function toggleAddon(businessId, key) {
     setSavingId(businessId)
     if (hasAddon(businessId, key)) {
@@ -508,6 +536,17 @@ function GewerbeTab() {
                   onChange={() => toggleAddon(entry.id, 'raum')}
                 />
                 Zusatz: Virtueller Raum
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={hasApprovedSizeAddon(entry.id)}
+                  disabled={savingId === entry.id || entry.plan === 'kostenlos'}
+                  onChange={() => toggleSizeAddon(entry.id)}
+                />
+                Zusatz: Kachelgröße
+                {hasPendingSizeAddon(entry.id) && <span style={{ color: '#D9822B', fontSize: 12 }}>(beantragt – anklicken zum Freischalten)</span>}
               </label>
               {entry.plan === 'kostenlos' && (
                 <p className="hint" style={{ marginTop: 4 }}>Zusatzfunktionen brauchen zuerst das Basis-Paket.</p>

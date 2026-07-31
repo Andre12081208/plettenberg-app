@@ -369,6 +369,197 @@ function KasseTab({ stammtischId, stammtischName, members, isOrganisator }) {
   )
 }
 
+function FotosView({ stammtischId, userId, isOrganisator }) {
+  const [fotos, setFotos] = useState([])
+  const [uploading, setUploading] = useState(false)
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line
+  }, [])
+
+  async function load() {
+    const { data } = await supabase.rpc('get_stammtisch_fotos', { p_stammtisch_id: stammtischId })
+    const rows = data || []
+    const withUrls = await Promise.all(rows.map(async (f) => {
+      const { data: signed } = await supabase.storage.from('stammtisch-fotos').createSignedUrl(f.path, 3600)
+      return { ...f, signedUrl: signed?.signedUrl }
+    }))
+    setFotos(withUrls)
+  }
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const path = `${stammtischId}/${Date.now()}-${file.name}`
+    const { error } = await supabase.storage.from('stammtisch-fotos').upload(path, file)
+    if (!error) {
+      await supabase.rpc('add_stammtisch_foto', { p_stammtisch_id: stammtischId, p_path: path })
+      load()
+    }
+    setUploading(false)
+  }
+
+  async function handleDelete(foto) {
+    if (!window.confirm('Foto wirklich löschen?')) return
+    await supabase.storage.from('stammtisch-fotos').remove([foto.path])
+    await supabase.rpc('delete_stammtisch_foto', { p_foto_id: foto.id })
+    load()
+  }
+
+  return (
+    <div>
+      <button className="link-text" onClick={() => document.getElementById('foto-upload-input').click()} style={{ marginBottom: 16 }}>
+        {uploading ? 'Wird hochgeladen...' : '+ Foto hochladen'}
+      </button>
+      <input id="foto-upload-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
+
+      {fotos.length === 0 && <p className="hint">Noch keine Fotos.</p>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        {fotos.map((f) => (
+          <div key={f.id} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden' }}>
+            {f.signedUrl && <img src={f.signedUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            {(f.uploaded_by === userId || isOrganisator) && (
+              <button
+                onClick={() => handleDelete(f)}
+                style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: 6, width: 24, height: 24, fontSize: 14 }}
+              >×</button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AbstimmungDetail({ abstimmung, isOrganisator, onBack, onChanged }) {
+  const [optionen, setOptionen] = useState([])
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line
+  }, [])
+
+  async function load() {
+    const { data } = await supabase.rpc('get_abstimmung_optionen', { p_abstimmung_id: abstimmung.id })
+    setOptionen(data || [])
+  }
+
+  async function vote(optionId) {
+    await supabase.rpc('vote_abstimmung', { p_option_id: optionId })
+    load()
+  }
+
+  async function close() {
+    await supabase.rpc('close_abstimmung', { p_abstimmung_id: abstimmung.id })
+    onChanged()
+  }
+
+  const total = optionen.reduce((sum, o) => sum + o.vote_count, 0)
+
+  return (
+    <div>
+      <button className="link-text" onClick={onBack} style={{ marginBottom: 16 }}>← Zurück zu den Abstimmungen</button>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{abstimmung.question}</h3>
+        {abstimmung.closed && <p className="hint" style={{ color: '#C0392B' }}>Diese Abstimmung ist geschlossen.</p>}
+        {optionen.map((o) => {
+          const pct = total > 0 ? Math.round((o.vote_count / total) * 100) : 0
+          return (
+            <button
+              key={o.id}
+              className="card-choice"
+              onClick={() => !abstimmung.closed && vote(o.id)}
+              style={{ marginBottom: 8, border: o.i_voted ? '2px solid var(--forest)' : undefined }}
+              disabled={abstimmung.closed}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{o.label} {o.i_voted && '✓'}</span>
+                <span className="hint">{o.vote_count} · {pct}%</span>
+              </div>
+              <div style={{ height: 6, background: 'var(--bg-soft)', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: 'var(--forest)' }} />
+              </div>
+            </button>
+          )
+        })}
+        {isOrganisator && !abstimmung.closed && (
+          <button className="link-text" onClick={close} style={{ color: '#C0392B' }}>Abstimmung schließen</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AbstimmungenView({ stammtischId, isOrganisator }) {
+  const [list, setList] = useState([])
+  const [viewing, setViewing] = useState(null)
+  const [showForm, setShowForm] = useState(false)
+  const [question, setQuestion] = useState('')
+  const [options, setOptions] = useState(['', ''])
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line
+  }, [])
+
+  async function load() {
+    const { data } = await supabase.rpc('get_stammtisch_abstimmungen', { p_stammtisch_id: stammtischId })
+    setList(data || [])
+  }
+
+  async function handleCreate() {
+    if (!question.trim() || options.filter((o) => o.trim()).length < 2) return
+    await supabase.rpc('create_abstimmung', { p_stammtisch_id: stammtischId, p_question: question.trim(), p_options: options })
+    setQuestion('')
+    setOptions(['', ''])
+    setShowForm(false)
+    load()
+  }
+
+  if (viewing) {
+    return <AbstimmungDetail abstimmung={viewing} isOrganisator={isOrganisator} onBack={() => setViewing(null)} onChanged={() => { setViewing(null); load() }} />
+  }
+
+  return (
+    <div>
+      {!showForm ? (
+        <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ marginBottom: 16 }}>+ Neue Abstimmung</button>
+      ) : (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Neue Abstimmung</h3>
+          <input placeholder="Frage" value={question} onChange={(e) => setQuestion(e.target.value)} style={{ marginBottom: 10 }} />
+          {options.map((o, i) => (
+            <input
+              key={i}
+              placeholder={`Option ${i + 1}`}
+              value={o}
+              onChange={(e) => setOptions((prev) => prev.map((val, idx) => idx === i ? e.target.value : val))}
+              style={{ marginBottom: 10 }}
+            />
+          ))}
+          <button className="link-text" onClick={() => setOptions((prev) => [...prev, ''])} style={{ marginBottom: 10 }}>+ Weitere Option</button>
+          <div className="btn-row">
+            <button className="btn btn-primary" onClick={handleCreate}>Erstellen</button>
+            <button className="btn btn-secondary" onClick={() => setShowForm(false)}>Abbrechen</button>
+          </div>
+        </div>
+      )}
+
+      {list.length === 0 && <p className="hint">Noch keine Abstimmungen.</p>}
+
+      {list.map((a) => (
+        <button key={a.id} className="card-choice" onClick={() => setViewing(a)} style={{ marginBottom: 10 }}>
+          <strong>{a.question}</strong>
+          <p className="hint" style={{ margin: '4px 0 0' }}>{a.closed ? 'Geschlossen' : 'Läuft'}</p>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function Stammtisch({ userId, onBack, initialCode, onConsumedInitial }) {
   const { name: cityName } = useCity()
   const [loading, setLoading] = useState(true)
@@ -390,6 +581,7 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
   const [showAddMember, setShowAddMember] = useState(false)
 
   const [kontostand, setKontostand] = useState(null)
+  const [mehrView, setMehrView] = useState(null)
 
   useEffect(() => {
     if (initialCode) {
@@ -565,7 +757,7 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
         <h1>{active.name}</h1>
       </div>
       <main style={{ paddingBottom: 90 }}>
-        <button className="link-text" onClick={() => { setActiveId(null); setViewingTermin(null) }} style={{ marginBottom: 16 }}>← Zu meinen Stammtischen</button>
+        <button className="link-text" onClick={() => { setActiveId(null); setViewingTermin(null); setMehrView(null) }} style={{ marginBottom: 16 }}>← Zu meinen Stammtischen</button>
 
         {error && <div className="error-box">{error}</div>}
 
@@ -686,18 +878,39 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
         )}
 
         {tab === 'mehr' && (
-          <div>
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Mitglieder einladen</h3>
-              <p className="hint" style={{ marginBottom: 10 }}>Teile diesen Link mit Freunden – auch mit Leuten, die noch nicht verbunden sind.</p>
-              <button className="btn btn-secondary" onClick={() => shareLink(active.invite_code)}>Einladungslink kopieren</button>
-              {copyHint && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>{copyHint}</p>}
+          mehrView === 'fotos' ? (
+            <div>
+              <button className="link-text" onClick={() => setMehrView(null)} style={{ marginBottom: 16 }}>← Zurück</button>
+              <FotosView stammtischId={active.id} userId={userId} isOrganisator={isOrganisator} />
             </div>
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Stammtisch verlassen</h3>
-              <button className="btn btn-secondary" onClick={() => handleLeave(active.id)}>Verlassen</button>
+          ) : mehrView === 'abstimmungen' ? (
+            <div>
+              <button className="link-text" onClick={() => setMehrView(null)} style={{ marginBottom: 16 }}>← Zurück</button>
+              <AbstimmungenView stammtischId={active.id} isOrganisator={isOrganisator} />
             </div>
-          </div>
+          ) : (
+            <div>
+              <button className="card-choice" onClick={() => setMehrView('fotos')} style={{ marginBottom: 10 }}>
+                <strong>📷 Fotos</strong>
+                <p className="hint" style={{ margin: '4px 0 0' }}>Gemeinsame Erinnerungen ansehen und hochladen</p>
+              </button>
+              <button className="card-choice" onClick={() => setMehrView('abstimmungen')} style={{ marginBottom: 16 }}>
+                <strong>🗳️ Abstimmungen</strong>
+                <p className="hint" style={{ margin: '4px 0 0' }}>Über Treffpunkte, Ausflüge und mehr abstimmen</p>
+              </button>
+
+              <div className="card">
+                <h3 style={{ marginTop: 0 }}>Mitglieder einladen</h3>
+                <p className="hint" style={{ marginBottom: 10 }}>Teile diesen Link mit Freunden – auch mit Leuten, die noch nicht verbunden sind.</p>
+                <button className="btn btn-secondary" onClick={() => shareLink(active.invite_code)}>Einladungslink kopieren</button>
+                {copyHint && <p className="hint" style={{ color: 'var(--forest)', marginTop: 8 }}>{copyHint}</p>}
+              </div>
+              <div className="card">
+                <h3 style={{ marginTop: 0 }}>Stammtisch verlassen</h3>
+                <button className="btn btn-secondary" onClick={() => handleLeave(active.id)}>Verlassen</button>
+              </div>
+            </div>
+          )
         )}
       </main>
 
@@ -718,7 +931,7 @@ export default function Stammtisch({ userId, onBack, initialCode, onConsumedInit
           <div className="app-tile-icon">👥</div>
           <div className="app-tile-label">Mitglieder</div>
         </button>
-        <button className={tab === 'mehr' ? 'tab-active' : ''} onClick={() => setTab('mehr')}>
+        <button className={tab === 'mehr' ? 'tab-active' : ''} onClick={() => { setTab('mehr'); setMehrView(null) }}>
           <div className="app-tile-icon">⋯</div>
           <div className="app-tile-label">Mehr</div>
         </button>

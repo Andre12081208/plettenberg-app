@@ -15,6 +15,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
   const { name: cityName } = useCity()
   const [view, setView] = useState(initialView || null)
   const [rawWerkstattAddons, setRawWerkstattAddons] = useState([])
+  const [showAngeboteUpsell, setShowAngeboteUpsell] = useState(false)
   const [infoModalKey, setInfoModalKey] = useState(null)
   const [pendingModalKey, setPendingModalKey] = useState(null)
   const [bookingBusy, setBookingBusy] = useState(false)
@@ -68,6 +69,7 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 
   const isStadtverwaltung = profile.category === 'stadtverwaltung'
   const canManageProducts = profile.profile_kind === 'anbieter' && profile.status === 'live' && profile.plan === 'basis' && profile.account_status !== 'beobachter'
+  const canManageOwnPage = profile.profile_kind === 'anbieter' && profile.status === 'live' && profile.account_status !== 'beobachter'
   const canManageChannel = profile.status === 'live' && profile.account_status !== 'beobachter' && !isStadtverwaltung
 
   const [content, setContentText] = useState('')
@@ -729,10 +731,13 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
           <div className="app-grid">
             {(() => {
               const items = []
+              if (canManageOwnPage) {
+                items.push({ key: 'raum', icon: '🏠', label: 'Meine Seite', view: 'meine-seite-home', status: 'approved' })
+              }
               if (canManageProducts) {
                 items.push({ key: 'termine', icon: '📅', label: 'Meine Termine', view: 'termine', status: getAddonStatus('termine') })
-                items.push({ key: 'raum', icon: '🏠', label: 'Meine Seite', view: 'meine-seite-home', status: 'approved' })
                 items.push({ key: 'homeboard_groessen', icon: '🧩', label: 'Homeboard-Größen', view: 'homeboard-groessen', status: getAddonStatus('homeboard_groessen') })
+              }
               }
               if (canManageChannel) items.push({ key: 'news', icon: '📢', label: 'Newsfeed-Beiträge', view: 'news', status: 'approved' })
               if (canPostDirectly) items.push({ key: 'newsDirect', icon: '📢', label: 'News veröffentlichen', view: 'newsDirect', status: 'approved' })
@@ -807,8 +812,18 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
 
           <div className="btn-row" style={{ flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => setView(getAddonStatus('raum') === 'approved' ? 'raum' : 'konto-meineseite')}>Einstellung</button>
-            <button className="btn btn-secondary" onClick={() => setView('produkte')}>Meine Angebote (Basis)</button>
+            <button className="btn btn-secondary" onClick={() => (profile.plan === 'basis' ? setView('produkte') : setShowAngeboteUpsell(true))}>Meine Angebote (Basis)</button>
           </div>
+
+          {showAngeboteUpsell && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }} onClick={() => setShowAngeboteUpsell(false)}>
+              <div className="card" style={{ maxWidth: 320, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ marginTop: 0 }}>Meine Angebote</h3>
+                <p>Diese Funktion ist Teil von "Basic Erweiterung" (19,99 € / Monat). Wende dich an die Verwaltung, um es freischalten zu lassen.</p>
+                <button className="btn btn-secondary" onClick={() => setShowAngeboteUpsell(false)}>Schließen</button>
+              </div>
+            </div>
+          )}
         </main>
       </>
     )

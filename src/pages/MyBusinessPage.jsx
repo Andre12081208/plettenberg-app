@@ -244,7 +244,7 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
           ✏️ Bearbeiten
         </button>
       )}
-      <BusinessMiniApp app={profile} userId={profile.id} onBack={() => {}} fullScreenRoom onFullScreenChange={onFullScreenChange} />
+      <BusinessMiniApp app={profile} userId={profile.id} onBack={() => {}} fullScreenRoom onFullScreenChange={onFullScreenChange} hidePlanBanner={visitorMode} />
     </div>
   )
 }

@@ -75,7 +75,7 @@ export default function BusinessDirectory({ userId, onBack, onFullScreenChange }
           )}
 
           {!loadingListings && listings.map((listing) => {
-            const isPartner = listing.business_profiles?.status === 'live' && listing.business_profiles?.plan === 'basis'
+            const isPartner = listing.business_profiles?.status === 'live'
             return (
               <button key={listing.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer' }} onClick={() => setOpenListing(listing)}>
                 <div className="avatar-preview" style={{ width: 44, height: 44, flexShrink: 0 }}>

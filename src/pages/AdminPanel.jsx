@@ -291,6 +291,69 @@ function InsightsTab() {
   )
 }
 
+function GlobalBhubIconSettings() {
+  const [icon, setIcon] = useState({ url: '', pos_x: 50, pos_y: 50, zoom: 100 })
+  const [loading, setLoading] = useState(true)
+  const [saved, setSaved] = useState('')
+
+  useEffect(() => {
+    supabase.from('platform_settings').select('value').eq('key', 'bhub_icon').maybeSingle().then(({ data }) => {
+      if (data) setIcon(data.value)
+      setLoading(false)
+    })
+  }, [])
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const path = `platform/bhub-icon-${Date.now()}.png`
+    const { error } = await supabase.storage.from('logos').upload(path, file, { upsert: true })
+    if (!error) {
+      const { data } = supabase.storage.from('logos').getPublicUrl(path)
+      const next = { ...icon, url: data.publicUrl }
+      setIcon(next)
+      await supabase.from('platform_settings').upsert({ key: 'bhub_icon', value: next })
+      setSaved('Gespeichert!')
+      setTimeout(() => setSaved(''), 2000)
+    }
+  }
+
+  async function saveZoom(value) {
+    const next = { ...icon, zoom: value }
+    setIcon(next)
+    await supabase.from('platform_settings').upsert({ key: 'bhub_icon', value: next })
+  }
+
+  if (loading) return null
+
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0 }}>B.HUB-Symbol (gilt für alle Gewerbe)</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+        <div
+          style={{
+            width: 64, height: 64, borderRadius: 16, overflow: 'hidden', flexShrink: 0,
+            background: icon.url ? undefined : 'var(--forest)',
+            backgroundImage: icon.url ? `url(${icon.url})` : 'none',
+            backgroundPosition: `${icon.pos_x}% ${icon.pos_y}%`,
+            backgroundSize: `${icon.zoom}%`,
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+        <label className="link-text" style={{ cursor: 'pointer' }}>
+          Neues Bild hochladen
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
+        </label>
+      </div>
+      <div className="field">
+        <label>Zoom ({icon.zoom}%)</label>
+        <input type="range" min={100} max={400} value={icon.zoom} onChange={(e) => saveZoom(Number(e.target.value))} />
+      </div>
+      {saved && <p className="hint" style={{ color: 'var(--forest)' }}>{saved}</p>}
+    </div>
+  )
+}
+
 function GewerbeTab() {
   const [entries, setEntries] = useState([])
   const [addons, setAddons] = useState([])
@@ -428,6 +491,8 @@ function GewerbeTab() {
 
   return (
     <>
+      <GlobalBhubIconSettings />
+
       {error && <div className="error-box">{error}</div>}
       {loading && <div className="loading-dot">Lädt...</div>}
       {!loading && entries.length === 0 && <p className="center-note">Noch keine Gewerbeanfragen vorhanden.</p>}

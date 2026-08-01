@@ -62,6 +62,14 @@ function RoomBackground({ imageUrl, transitionType, transitionDuration }) {
 }
 
 export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, onFullScreenChange, hidePlanBanner }) {
+  const [showCancelledBanner, setShowCancelledBanner] = useState(false)
+
+  useEffect(() => {
+    if (!hasShop && !hidePlanBanner) {
+      supabase.rpc('should_show_plan_cancelled_banner', { p_business_id: app.id }).then(({ data }) => setShowCancelledBanner(!!data))
+    }
+    // eslint-disable-next-line
+  }, [])
   const { name: cityName } = useCity()
   const [showRoom, setShowRoom] = useState(true)
   const [hotspots, setHotspots] = useState([])
@@ -918,7 +926,7 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
         {error && <div className="error-box">{error}</div>}
         {placedMsg && <div className="error-box" style={{ background: '#E5EFEA', color: '#1F4D3F', borderColor: '#1F4D3F' }}>{placedMsg}</div>}
 
-        {!hasShop && !hidePlanBanner && (
+        {showCancelledBanner && (
           <div style={{ position: 'relative', background: '#FEF3C7', border: '1px solid #D97706', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, lineHeight: 1.4 }}>
             💬 Dieser Betrieb hat sein Paket gekündigt und bietet aktuell nur die Visitenkarte an. Angebote, Bestellungen und weitere Funktionen sind vorübergehend nicht verfügbar.
           </div>

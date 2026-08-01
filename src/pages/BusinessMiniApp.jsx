@@ -940,8 +940,8 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
             {app.banner_url && <img src={app.banner_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
           </div>
           <div style={{ padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -48, marginBottom: 10 }}>
-              <div className="avatar-preview" style={{ width: 72, height: 72, border: '3px solid #fff' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -96, marginBottom: 10 }}>
+              <div className="avatar-preview" style={{ width: 144, height: 144, border: '3px solid #fff' }}>
                 {app.logo_url ? <img src={app.logo_url} alt="" /> : '🏬'}
               </div>
             </div>

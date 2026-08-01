@@ -65,7 +65,7 @@ export default function DirectoryListingDetail({ listing, userId, onBack, onFull
 
   if (loading) return <div className="loading-dot">Lädt...</div>
 
-  const isPartner = linkedBusiness?.status === 'live' && linkedBusiness?.plan === 'basis'
+  const isPartner = linkedBusiness?.status === 'live'
 
   if (isPartner) {
     return <BusinessMiniApp app={linkedBusiness} userId={userId} onBack={onBack} fullScreenRoom onFullScreenChange={onFullScreenChange} />

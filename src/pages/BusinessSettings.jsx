@@ -685,6 +685,10 @@ export default function BusinessSettings({ profile, onProfileUpdated, onGoToMySe
         <main style={{ paddingBottom: 90 }}>
           <p className="hint" style={{ marginBottom: 16 }}>Hier bearbeitest du alles, was du dir zusätzlich gebucht hast – und kannst direkt weitere Zusatzpakete dazu buchen.</p>
 
+          <div style={{ background: '#FEF3C7', border: '1px solid #D97706', borderRadius: 8, padding: 10, marginBottom: 16, fontSize: 12, fontFamily: 'monospace' }}>
+            DEBUG: profile.plan = "{profile.plan}"
+          </div>
+
           {profile.plan === 'basis' && (
             <>
               <div className="card">

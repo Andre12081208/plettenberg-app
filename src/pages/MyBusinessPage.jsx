@@ -241,7 +241,7 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
                   {logoPreview ? <img src={logoPreview} alt="" /> : '🏬'}
                 </div>
                 {logoPreview && (
-                  <button className="link-text" style={{ marginTop: 6 }} onClick={() => setLogoEditorUrl(logoPreview)}>
+                  <button type="button" className="link-text" style={{ marginTop: 6 }} onClick={() => setLogoEditorUrl(logoPreview)}>
                     Ausschnitt anpassen
                   </button>
                 )}

@@ -576,12 +576,14 @@ export default function BusinessOverview({ profile, onOpenVisitorPreview, onOpen
               <div style={{ fontWeight: 600, textAlign: 'left' }}>Ideenwerkstatt</div>
             </button>
 
-            <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div>
                 <h3 style={{ marginTop: 0 }}>Profil-Status</h3>
                 <p style={{ margin: 0, fontSize: 14 }}>Dein Profil ist noch nicht öffentlich sichtbar. ❌</p>
               </div>
-              <button className="btn btn-secondary" onClick={onOpenVisitorPreview}>Meine Seite in Besucheransicht</button>
+              <button className="btn btn-secondary" onClick={onOpenVisitorPreview} style={{ whiteSpace: 'nowrap', fontSize: 13, width: 'auto', padding: '8px 14px' }}>
+                Meine Seite in Besucheransicht
+              </button>
             </div>
 
             <div className="card">

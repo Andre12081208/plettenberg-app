@@ -16,7 +16,6 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
       console.log('BHUB-ICON data=' + JSON.stringify(data) + ' error=' + (error ? error.message : 'keiner'))
       if (data) setGlobalBhubIcon(data.value)
     })
-    })
   }, [])
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)

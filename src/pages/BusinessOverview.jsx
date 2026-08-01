@@ -563,13 +563,35 @@ export default function BusinessOverview({ profile, onOpenVisitorPreview, onOpen
         )}
 
         {!isLive && (
-          <div className="card">
-            <p style={{ margin: 0, color: 'var(--ink-soft)', fontSize: 14 }}>
-              {profile.status === 'in_pruefung' && 'Wir melden uns bei dir, sobald dein Profil geprüft wurde und ein Vertrag zustande kommt.'}
-              {profile.status === 'vertrag_in_arbeit' && 'Der Vertrag wird gerade fertiggemacht. Danach schalten wir dein Profil live.'}
-              {profile.status === 'abgelehnt' && 'Dein Profil wurde aktuell nicht freigeschaltet.'}
-            </p>
-          </div>
+          <>
+            <button className="card app-tile" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }} onClick={onOpenIdeenwerkstatt}>
+              <div className="app-tile-icon" style={{ position: 'relative', flexShrink: 0 }}>
+                💡
+                {unreadIdeaCount > 0 && (
+                  <span style={{ position: 'absolute', top: -6, right: -10, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--clay)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                    {unreadIdeaCount}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontWeight: 600, textAlign: 'left' }}>Ideenwerkstatt</div>
+            </button>
+
+            <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ marginTop: 0 }}>Profil-Status</h3>
+                <p style={{ margin: 0, fontSize: 14 }}>Dein Profil ist noch nicht öffentlich sichtbar. ❌</p>
+              </div>
+              <button className="btn btn-secondary" onClick={onOpenVisitorPreview}>Meine Seite in Besucheransicht</button>
+            </div>
+
+            <div className="card">
+              <p style={{ margin: 0, color: 'var(--ink-soft)', fontSize: 14 }}>
+                {profile.status === 'in_pruefung' && 'Wir melden uns bei dir, sobald dein Profil geprüft wurde und ein Vertrag zustande kommt.'}
+                {profile.status === 'vertrag_in_arbeit' && 'Der Vertrag wird gerade fertiggemacht. Danach schalten wir dein Profil live.'}
+                {profile.status === 'abgelehnt' && 'Dein Profil wurde aktuell nicht freigeschaltet.'}
+              </p>
+            </div>
+          </>
         )}
 
         {showWhyModal && (

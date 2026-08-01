@@ -12,8 +12,10 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
   const [globalBhubIcon, setGlobalBhubIcon] = useState(null)
 
   useEffect(() => {
-    supabase.from('platform_settings').select('value').eq('key', 'bhub_icon').maybeSingle().then(({ data }) => {
+    supabase.from('platform_settings').select('value').eq('key', 'bhub_icon').maybeSingle().then(({ data, error }) => {
+      console.log('BHUB-ICON data=' + JSON.stringify(data) + ' error=' + (error ? error.message : 'keiner'))
       if (data) setGlobalBhubIcon(data.value)
+    })
     })
   }, [])
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')

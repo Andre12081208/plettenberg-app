@@ -66,7 +66,10 @@ export default function BusinessMiniApp({ app, userId, onBack, fullScreenRoom, o
 
   useEffect(() => {
     if (!hasShop && !hidePlanBanner) {
-      supabase.rpc('should_show_plan_cancelled_banner', { p_business_id: app.id }).then(({ data }) => setShowCancelledBanner(!!data))
+      supabase.rpc('should_show_plan_cancelled_banner', { p_business_id: app.id }).then(({ data, error }) => {
+        console.log('Banner-Prüfung:', { data, error, businessId: app.id })
+        setShowCancelledBanner(!!data)
+      })
     }
     // eslint-disable-next-line
   }, [])

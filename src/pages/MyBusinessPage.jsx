@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useCity } from '../lib/useCity.js'
 import BusinessMiniApp from './BusinessMiniApp.jsx'
@@ -13,6 +13,93 @@ const DAYS = [
   { key: 'so', label: 'Sonntag' }
 ]
 
+function LogoCropEditor({ imageUrl, onSave, onCancel }) {
+  const [posX, setPosX] = useState(50)
+  const [posY, setPosY] = useState(50)
+  const [zoom, setZoom] = useState(100)
+  const [saving, setSaving] = useState(false)
+  const dragging = useRef(false)
+  const lastPos = useRef({ x: 0, y: 0 })
+
+  function getPoint(e) {
+    if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    return { x: e.clientX, y: e.clientY }
+  }
+
+  function handleDown(e) {
+    dragging.current = true
+    lastPos.current = getPoint(e)
+  }
+  function handleMove(e) {
+    if (!dragging.current) return
+    const point = getPoint(e)
+    const dx = point.x - lastPos.current.x
+    const dy = point.y - lastPos.current.y
+    lastPos.current = point
+    setPosX((prev) => Math.min(100, Math.max(0, prev - dx / 2)))
+    setPosY((prev) => Math.min(100, Math.max(0, prev - dy / 2)))
+  }
+  function handleUp() {
+    dragging.current = false
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.src = imageUrl
+    await new Promise((resolve) => { img.onload = resolve })
+
+    const OUTPUT_SIZE = 400
+    const scaledWidth = OUTPUT_SIZE * (zoom / 100)
+    const scaledHeight = scaledWidth * (img.naturalHeight / img.naturalWidth)
+    const offsetX = (OUTPUT_SIZE - scaledWidth) * (posX / 100)
+    const offsetY = (OUTPUT_SIZE - scaledHeight) * (posY / 100)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = OUTPUT_SIZE
+    canvas.height = OUTPUT_SIZE
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight)
+
+    canvas.toBlob((blob) => {
+      setSaving(false)
+      onSave(blob)
+    }, 'image/png')
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+      <div className="card" style={{ maxWidth: 340, width: '100%' }}>
+        <h3 style={{ marginTop: 0 }}>Logo anpassen</h3>
+        <p className="hint" style={{ marginBottom: 14 }}>Zum Verschieben ziehen, mit dem Regler zoomen.</p>
+        <div
+          style={{
+            width: 180, height: 180, margin: '0 auto 16px', borderRadius: 16, overflow: 'hidden',
+            backgroundImage: `url(${imageUrl})`, backgroundPosition: `${posX}% ${posY}%`, backgroundSize: `${zoom}%`, backgroundRepeat: 'no-repeat',
+            cursor: 'grab', touchAction: 'none', border: '2px solid var(--line)'
+          }}
+          onMouseDown={handleDown}
+          onMouseMove={handleMove}
+          onMouseUp={handleUp}
+          onMouseLeave={handleUp}
+          onTouchStart={handleDown}
+          onTouchMove={handleMove}
+          onTouchEnd={handleUp}
+        />
+        <div className="field">
+          <label htmlFor="logoZoom">Zoom</label>
+          <input id="logoZoom" type="range" min={100} max={300} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ width: '100%' }} />
+        </div>
+        <div className="btn-row">
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Wird verarbeitet...' : 'Speichern'}</button>
+          <button className="btn btn-secondary" onClick={onCancel}>Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreenChange, startEditing, settingsBack, onSwitchToRoom, onSwitchToProducts, visitorMode, onBack }) {
   const { name: cityName } = useCity()
   const [editing, setEditing] = useState(!!startEditing)
@@ -26,6 +113,7 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
 
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState(profile.logo_url || null)
+  const [logoEditorUrl, setLogoEditorUrl] = useState(null)
   const [bannerFile, setBannerFile] = useState(null)
   const [bannerPreview, setBannerPreview] = useState(profile.banner_url || null)
 
@@ -35,8 +123,14 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
   function handleLogoChange(e) {
     const f = e.target.files?.[0]
     if (!f) return
-    setLogoFile(f)
-    setLogoPreview(URL.createObjectURL(f))
+    setLogoEditorUrl(URL.createObjectURL(f))
+  }
+
+  function handleLogoCropSave(blob) {
+    const file = new File([blob], 'logo.png', { type: 'image/png' })
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(blob))
+    setLogoEditorUrl(null)
   }
 
   function handleBannerChange(e) {
@@ -146,7 +240,20 @@ export default function MyBusinessPage({ profile, onProfileUpdated, onFullScreen
                 <div className="avatar-preview" style={{ width: 72, height: 72, marginTop: 8 }}>
                   {logoPreview ? <img src={logoPreview} alt="" /> : '🏬'}
                 </div>
+                {logoPreview && (
+                  <button className="link-text" style={{ marginTop: 6 }} onClick={() => setLogoEditorUrl(logoPreview)}>
+                    Ausschnitt anpassen
+                  </button>
+                )}
               </div>
+
+              {logoEditorUrl && (
+                <LogoCropEditor
+                  imageUrl={logoEditorUrl}
+                  onSave={handleLogoCropSave}
+                  onCancel={() => setLogoEditorUrl(null)}
+                />
+              )}
 
               <div className="field">
                 <label htmlFor="tagline">Kurzer Slogan</label>

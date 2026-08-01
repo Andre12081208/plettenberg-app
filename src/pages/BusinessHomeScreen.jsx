@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import BusinessOverview from './BusinessOverview.jsx'
 import BusinessSettings from './BusinessSettings.jsx'
@@ -9,6 +8,13 @@ import Ideenwerkstatt from './Ideenwerkstatt.jsx'
 
 export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, onBackToDashboard, onOpenAdmin, onProfileUpdated }) {
   const { name: cityName } = useCity()
+  const [globalBhubIcon, setGlobalBhubIcon] = useState(null)
+
+  useEffect(() => {
+    supabase.from('platform_settings').select('value').eq('key', 'bhub_icon').maybeSingle().then(({ data }) => {
+      if (data) setGlobalBhubIcon(data.value)
+    })
+  }, [])
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('pb_business_activeTab') || 'dashboard')
   const [unreadInquiryCount, setUnreadInquiryCount] = useState(0)
   const [settingsResetKey, setSettingsResetKey] = useState(0)
@@ -92,13 +98,13 @@ export default function BusinessHomeScreen({ profile, isAdmin, isMasterAdmin, on
             className="tab-bar-icon"
             style={{
               width: 24, height: 24, borderRadius: 6, overflow: 'hidden', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              backgroundImage: profile.bhub_icon_url ? `url(${profile.bhub_icon_url})` : 'none',
-              backgroundPosition: `${profile.bhub_icon_pos_x ?? 50}% ${profile.bhub_icon_pos_y ?? 50}%`,
-              backgroundSize: `${profile.bhub_icon_zoom ?? 100}%`,
+              backgroundImage: globalBhubIcon?.url ? `url(${globalBhubIcon.url})` : 'none',
+              backgroundPosition: `${globalBhubIcon?.pos_x ?? 50}% ${globalBhubIcon?.pos_y ?? 50}%`,
+              backgroundSize: `${globalBhubIcon?.zoom ?? 100}%`,
               backgroundRepeat: 'no-repeat'
             }}
           >
-            {!profile.bhub_icon_url && '🏠'}
+            {!globalBhubIcon?.url && '🏠'}
           </span>
           B.HUB
         </button>
